@@ -8,21 +8,23 @@ engineering-guidance document, while normative algorithm behavior is drawn from
 the underlying standards such as FIPS 203, FIPS 204, FIPS 205, and relevant
 IETF protocol specifications.
 
-## Stage 5A status
+## Stage 5B-1 status
 
-Stage 5A adds the FIPS 203 ML-KEM implementation structure:
+Stage 5B-1 begins the real FIPS 203 ML-KEM implementation path by adding
+Montgomery-domain and Barrett-reduction arithmetic foundations.
 
-- parameter-set algorithm constants
-- FIPS NTT facade module
-- matrix expansion from `rho`
-- rejection-sampling helper
-- message-to-polynomial and polynomial-to-message helpers
-- tests for deterministic expansion and encoding behavior
+Added:
 
-Important: Stage 5A is still **not production ML-KEM**. It prepares the module
-layout and deterministic implementation structure for Stage 5B, where the exact
-FIPS 203 NTT, K-PKE keygen/encrypt/decrypt, and official KAT validation should
-be introduced.
+- Montgomery constants for `q = 3329`
+- Barrett reduction API
+- Montgomery reduction API
+- Montgomery conversion helpers
+- Montgomery-domain multiplication helper
+- tests for constants, round trips, and multiplication consistency
+
+Important: this stage does not yet replace the Stage 5A FIPS NTT facade.
+The next increment should implement the real FIPS 203 NTT schedule on top of
+this arithmetic layer.
 
 ## Validate
 
@@ -38,6 +40,6 @@ After tests pass:
 
 ```bash
 git add .
-git commit -m "Stage 5A: FIPS 203 ML-KEM implementation structure"
+git commit -m "Stage 5B-1: Add Montgomery and Barrett arithmetic"
 git push origin main
 ```
