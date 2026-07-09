@@ -11,15 +11,15 @@
 7. Constant-time validation: code review, `subtle`, Miri where useful, dudect-style testing.
 8. Benchmark validation: criterion microbenchmarks and end-to-end protocol benchmarks.
 
-## Stage 3 ML-KEM validation
+## Stage 4 ML-KEM validation
 
-Stage 3 validates the arithmetic foundation:
+Stage 4 validates the K-PKE foundation:
 
-- modular reduction and field operations
-- coefficient compression and decompression
-- polynomial encode/decode round trips
-- schoolbook multiplication identity behavior
-- CBD sampler range sanity
-- SHA3/SHAKE determinism and domain separation
+- baseline NTT round-trip behavior
+- baseline NTT multiplication compared with schoolbook multiplication
+- polynomial-vector rank and dot-product behavior
+- K-PKE key/ciphertext shape invariants
+- previously introduced Stage 3 arithmetic tests
 
-Production ML-KEM validation still requires official FIPS 203 known-answer tests.
+Production ML-KEM validation still requires FIPS 203 K-PKE internals and official
+known-answer tests.

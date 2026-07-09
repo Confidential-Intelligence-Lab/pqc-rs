@@ -16,10 +16,10 @@ license = "Apache-2.0 OR MIT"
 repository = "TODO"
 rust-version = "1.80"
 authors = ["TODO"]
-version = "0.3.0"
+version = "0.4.0"
 
 [workspace.dependencies]
-pqc-core = { path = "crates/pqc-core", version = "0.3.0", default-features = false }
+pqc-core = { path = "crates/pqc-core", version = "0.4.0", default-features = false }
 
 rand_core = { version = "0.6", features = ["getrandom"] }
 zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }

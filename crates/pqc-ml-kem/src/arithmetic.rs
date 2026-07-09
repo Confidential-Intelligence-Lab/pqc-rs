@@ -36,7 +36,7 @@ pub fn compress_coefficient(x: i16, d: u32) -> u16 {
     let q = u32::from(Q as u16);
     let x = u32::from(reduce(i32::from(x)) as u16);
     let scale = 1u32 << d;
-    (((x * scale) + (q / 2)) / q & (scale - 1)) as u16
+    ((((x * scale) + (q / 2)) / q) & (scale - 1)) as u16
 }
 
 /// Decompress a `d`-bit coefficient.

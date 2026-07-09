@@ -1,40 +1,44 @@
 # pqc-rfc9958-rs
 
-`pqc-rfc9958-rs` is a research-grade Rust library implementing the post-quantum cryptographic algorithms and protocol building blocks discussed in IETF RFC 9958.
+Rust workspace for implementing and validating the post-quantum cryptographic
+algorithms and protocol engineering patterns discussed by RFC 9958.
 
-Unlike a production-oriented cryptographic library focused solely on deployment, this project emphasizes:
+RFC 9958 is informational. This project treats it as a traceability and
+engineering-guidance document, while normative algorithm behavior is drawn from
+the underlying standards such as FIPS 203, FIPS 204, FIPS 205, and relevant
+IETF protocol specifications.
 
-- standards traceability
-- correctness and reproducibility
-- comprehensive validation
-- constant-time software engineering
-- interoperability testing
-- benchmarking and optimization
-- protocol-level reference implementations
+## Stage 4 status
 
-The repository follows a staged development process in which each component is introduced together with documentation, validation harnesses, and performance evaluation before optimization.
+Stage 4 adds the ML-KEM K-PKE foundation:
 
-## Initial scope
+- baseline NTT-domain module boundary
+- polynomial-vector helpers
+- K-PKE parameter-set API boundary
+- K-PKE key, ciphertext, message, and randomness shapes
+- K-PKE scaffold tests
+- NTT round-trip and multiplication consistency tests
+- documentation for the Stage 5 handoff
 
-- ML-KEM (FIPS 203)
-- ML-DSA (FIPS 204)
-- SLH-DSA (FIPS 205)
-- Hybrid classical/PQ key establishment
-- HPKE integration
-- Test harnesses
-- KAT validation
-- Fuzzing
-- Benchmarking
-- Protocol interoperability
+Important: Stage 4 is still **not production ML-KEM**. The NTT module is a
+correctness-oriented baseline boundary, not yet the optimized FIPS 203 zeta
+schedule. The high-level `keygen`, `encaps`, and `decaps` functions remain
+scaffolds until the complete K-PKE flow and official KAT validation are added.
 
-## Project goals
+## Validate
 
-- Standards-compliant implementations
-- Safe Rust (`#![forbid(unsafe_code)]` by default)
-- `no_std` support
-- Constant-time software engineering
-- Extensive automated testing
-- Clear architecture suitable for research and education
-- Portable baseline implementations followed by optimized SIMD backends
+```bash
+cargo fmt --all
+cargo clippy --workspace --all-targets --all-features -- -D warnings
+cargo test --workspace --all-features
+```
 
-This project is intended as both a reusable software library and a reference implementation supporting research, education, experimentation, and future protocol development.
+## GitHub stage workflow
+
+After tests pass:
+
+```bash
+git add .
+git commit -m "Stage 4: ML-KEM NTT and K-PKE foundation"
+git push origin main
+```

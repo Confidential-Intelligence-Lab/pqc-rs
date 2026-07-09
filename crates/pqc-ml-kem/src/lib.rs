@@ -3,14 +3,16 @@
 #![deny(missing_docs)]
 //! ML-KEM API and arithmetic scaffold.
 //!
-//! Stage 3 adds finite-field arithmetic, polynomial representation, sampling
-//! helpers, compression/decompression helpers, and symmetric primitives required
-//! by ML-KEM. The high-level KEM operations remain deterministic scaffolds until
+//! Stage 4 adds the K-PKE foundation, polynomial-vector helpers, and a
+//! correctness-oriented baseline NTT boundary on top of the Stage 3 arithmetic. The high-level KEM operations remain deterministic scaffolds until
 //! the full FIPS 203 K-PKE and ML-KEM flow is wired into key generation,
 //! encapsulation, decapsulation, and official KAT validation.
 
 pub mod arithmetic;
+pub mod kpke;
+pub mod ntt;
 pub mod poly;
+pub mod polyvec;
 pub mod sampling;
 pub mod symmetric;
 
@@ -175,7 +177,10 @@ macro_rules! impl_ml_kem_scaffold {
                 let copy_len = core::cmp::min($pk_len, $sk_len);
                 secret_key[..copy_len].copy_from_slice(&public_key[..copy_len]);
 
-                Ok((PublicKeyBytes::new(public_key), SecretKeyBytes::new(secret_key)))
+                Ok((
+                    PublicKeyBytes::new(public_key),
+                    SecretKeyBytes::new(secret_key),
+                ))
             }
 
             fn encaps<R>(
@@ -256,7 +261,8 @@ fn placeholder_shared_secret(
 
     let mut i = 0;
     while i < 32 {
-        input[32 + i] = pk_hash[i] ^ ct_hash[i] ^ parameter_name.as_bytes()[i % parameter_name.len()];
+        input[32 + i] =
+            pk_hash[i] ^ ct_hash[i] ^ parameter_name.as_bytes()[i % parameter_name.len()];
         i += 1;
     }
 

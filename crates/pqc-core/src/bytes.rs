@@ -5,9 +5,9 @@ use core::fmt;
 use subtle::{Choice, ConstantTimeEq};
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
+use crate::codec::Decode;
 #[cfg(feature = "alloc")]
 use crate::codec::Encode;
-use crate::codec::Decode;
 use crate::error::{PqcError, PqcResult};
 
 /// Public-key bytes.
