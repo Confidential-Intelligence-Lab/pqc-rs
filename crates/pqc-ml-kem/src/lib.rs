@@ -1,15 +1,19 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
-//! ML-KEM API and arithmetic scaffold.
+//! ML-KEM API and implementation scaffold.
 //!
-//! Stage 4 adds the K-PKE foundation, polynomial-vector helpers, and a
-//! correctness-oriented baseline NTT boundary on top of the Stage 3 arithmetic. The high-level KEM operations remain deterministic scaffolds until
-//! the full FIPS 203 K-PKE and ML-KEM flow is wired into key generation,
-//! encapsulation, decapsulation, and official KAT validation.
+//! Stage 5A adds FIPS 203 implementation structure on top of the Stage 4
+//! arithmetic and K-PKE boundaries: FIPS NTT-domain facade, matrix expansion,
+//! rejection sampling, and message encoding helpers. The high-level KEM
+//! operations remain scaffolds until Stage 5B/6 wire in the complete FIPS 203
+//! K-PKE and ML-KEM flows with official KAT validation.
 
 pub mod arithmetic;
+pub mod encoding;
+pub mod fips_ntt;
 pub mod kpke;
+pub mod matrix;
 pub mod ntt;
 pub mod poly;
 pub mod polyvec;
@@ -66,6 +70,47 @@ impl MlKemParameterSet {
             Self::MlKem512 => "ML-KEM-512",
             Self::MlKem768 => "ML-KEM-768",
             Self::MlKem1024 => "ML-KEM-1024",
+        }
+    }
+
+    /// Return the ML-KEM module rank `k`.
+    pub const fn k(self) -> usize {
+        match self {
+            Self::MlKem512 => 2,
+            Self::MlKem768 => 3,
+            Self::MlKem1024 => 4,
+        }
+    }
+
+    /// Return `eta1`.
+    pub const fn eta1(self) -> usize {
+        match self {
+            Self::MlKem512 => 3,
+            Self::MlKem768 => 2,
+            Self::MlKem1024 => 2,
+        }
+    }
+
+    /// Return `eta2`.
+    pub const fn eta2(self) -> usize {
+        2
+    }
+
+    /// Return `du`, the compression width for the `u` ciphertext vector.
+    pub const fn du(self) -> u32 {
+        match self {
+            Self::MlKem512 => 10,
+            Self::MlKem768 => 10,
+            Self::MlKem1024 => 11,
+        }
+    }
+
+    /// Return `dv`, the compression width for the `v` ciphertext polynomial.
+    pub const fn dv(self) -> u32 {
+        match self {
+            Self::MlKem512 => 4,
+            Self::MlKem768 => 4,
+            Self::MlKem1024 => 5,
         }
     }
 
@@ -253,7 +298,7 @@ fn placeholder_shared_secret(
     ciphertext: &[u8],
 ) -> MlKemSharedSecret {
     let mut input = [0u8; 64];
-    let domain = symmetric::h(b"pqc-rfc9958-rs stage3 ml-kem scaffold");
+    let domain = symmetric::h(b"pqc-rfc9958-rs stage5a ml-kem scaffold");
     input[..32].copy_from_slice(&domain);
 
     let pk_hash = symmetric::h(public_key);
@@ -281,6 +326,17 @@ mod tests {
         assert_eq!(MlKemParameterSet::MlKem512.public_key_bytes(), 800);
         assert_eq!(MlKemParameterSet::MlKem768.ciphertext_bytes(), 1088);
         assert_eq!(MlKemParameterSet::MlKem1024.secret_key_bytes(), 3168);
+    }
+
+    #[test]
+    fn parameter_algorithm_values_are_exposed() {
+        assert_eq!(MlKemParameterSet::MlKem512.k(), 2);
+        assert_eq!(MlKemParameterSet::MlKem768.k(), 3);
+        assert_eq!(MlKemParameterSet::MlKem1024.k(), 4);
+        assert_eq!(MlKemParameterSet::MlKem512.eta1(), 3);
+        assert_eq!(MlKemParameterSet::MlKem768.eta1(), 2);
+        assert_eq!(MlKemParameterSet::MlKem1024.du(), 11);
+        assert_eq!(MlKemParameterSet::MlKem1024.dv(), 5);
     }
 
     #[test]

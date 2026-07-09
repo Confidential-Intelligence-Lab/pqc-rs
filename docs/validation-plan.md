@@ -11,15 +11,17 @@
 7. Constant-time validation: code review, `subtle`, Miri where useful, dudect-style testing.
 8. Benchmark validation: criterion microbenchmarks and end-to-end protocol benchmarks.
 
-## Stage 4 ML-KEM validation
+## Stage 5A ML-KEM validation
 
-Stage 4 validates the K-PKE foundation:
+Stage 5A validates FIPS 203 implementation structure:
 
-- baseline NTT round-trip behavior
-- baseline NTT multiplication compared with schoolbook multiplication
-- polynomial-vector rank and dot-product behavior
-- K-PKE key/ciphertext shape invariants
-- previously introduced Stage 3 arithmetic tests
+- parameter-set algorithm constants
+- FIPS NTT facade round trips
+- `basemul` shape
+- deterministic matrix expansion
+- transposed matrix expansion path
+- canonical sampled coefficients
+- message-polynomial-message round trips
 
-Production ML-KEM validation still requires FIPS 203 K-PKE internals and official
-known-answer tests.
+Production ML-KEM validation still requires complete FIPS 203 K-PKE internals and
+official known-answer tests.
