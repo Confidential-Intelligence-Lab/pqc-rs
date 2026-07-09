@@ -3,11 +3,10 @@
 #![deny(missing_docs)]
 //! ML-KEM API and implementation scaffold.
 //!
-//! Stage 5A adds FIPS 203 implementation structure on top of the Stage 4
-//! arithmetic and K-PKE boundaries: FIPS NTT-domain facade, matrix expansion,
-//! rejection sampling, and message encoding helpers. The high-level KEM
-//! operations remain scaffolds until Stage 5B/6 wire in the complete FIPS 203
-//! K-PKE and ML-KEM flows with official KAT validation.
+//! Stage 5B-2 adds FIPS NTT schedule assets: zeta constants, bit-reversal
+//! helpers, and stronger NTT-shape tests. The high-level KEM operations remain
+//! scaffolds until the complete FIPS 203 K-PKE and ML-KEM flows are wired in and
+//! checked against official KATs.
 
 pub mod arithmetic;
 pub mod encoding;
@@ -19,6 +18,7 @@ pub mod poly;
 pub mod polyvec;
 pub mod sampling;
 pub mod symmetric;
+pub mod zetas;
 
 use pqc_core::{
     CiphertextBytes, Kem, PqcResult, PublicKeyBytes, SecretKeyBytes, SharedSecretBytes,
@@ -298,7 +298,7 @@ fn placeholder_shared_secret(
     ciphertext: &[u8],
 ) -> MlKemSharedSecret {
     let mut input = [0u8; 64];
-    let domain = symmetric::h(b"pqc-rfc9958-rs stage5a ml-kem scaffold");
+    let domain = symmetric::h(b"pqc-rfc9958-rs stage5b2 ml-kem scaffold");
     input[..32].copy_from_slice(&domain);
 
     let pk_hash = symmetric::h(public_key);

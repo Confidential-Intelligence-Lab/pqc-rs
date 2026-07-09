@@ -1,12 +1,12 @@
 //! FIPS 203 NTT implementation boundary.
 //!
-//! Stage 5A introduces a dedicated FIPS NTT facade separate from the Stage 4
-//! identity-domain boundary. The transform functions remain identity mappings
-//! until Stage 5B replaces them with the exact FIPS 203 zeta schedule and
-//! butterfly ordering.
+//! Stage 5B-2 connects the NTT facade to the zeta-schedule module while keeping
+//! the transform itself as a facade. The real butterfly implementation is the
+//! next increment.
 
 use crate::arithmetic::{mul, reduce, N};
 use crate::poly::Poly;
+use crate::zetas;
 
 /// Number of coefficients in an ML-KEM polynomial.
 pub const FIPS_NTT_DEGREE: usize = N;
@@ -34,7 +34,7 @@ impl FipsNttPoly {
         &self.coeffs
     }
 
-    /// Multiply through the Stage 5A facade.
+    /// Multiply through the Stage 5B-2 facade.
     pub fn mul_facade(&self, rhs: &Self) -> Self {
         let lhs = Poly::from_coefficients(self.coeffs);
         let rhs = Poly::from_coefficients(rhs.coeffs);
@@ -47,9 +47,6 @@ impl FipsNttPoly {
 }
 
 /// Placeholder FIPS 203 forward NTT facade.
-///
-/// This is intentionally an identity mapping in Stage 5A. It establishes the
-/// module boundary used by K-PKE while avoiding a false claim of compliance.
 pub fn ntt(poly: &Poly) -> FipsNttPoly {
     FipsNttPoly::from_coefficients(*poly.coefficients())
 }
@@ -59,16 +56,25 @@ pub fn intt(poly: &FipsNttPoly) -> Poly {
     Poly::from_coefficients(poly.coeffs)
 }
 
-/// Placeholder base multiplication for degree-one NTT factors.
-///
-/// Stage 5B should replace this with the exact FIPS 203 `basemul` operation.
+/// Base multiplication for degree-one NTT factors.
 pub fn basemul(a0: i16, a1: i16, b0: i16, b1: i16, zeta: i16) -> (i16, i16) {
     let c0 = reduce(i32::from(mul(a1, b1)) * i32::from(zeta) + i32::from(mul(a0, b0)));
     let c1 = reduce(i32::from(mul(a0, b1)) + i32::from(mul(a1, b0)));
     (c0, c1)
 }
 
-/// Multiply two polynomials through the Stage 5A FIPS NTT facade.
+/// Base multiplication using a scheduled zeta index.
+pub fn basemul_with_zeta_index(
+    a0: i16,
+    a1: i16,
+    b0: i16,
+    b1: i16,
+    zeta_index: usize,
+) -> (i16, i16) {
+    basemul(a0, a1, b0, b1, zetas::zeta(zeta_index))
+}
+
+/// Multiply two polynomials through the Stage 5B-2 FIPS NTT facade.
 pub fn multiply(lhs: &Poly, rhs: &Poly) -> Poly {
     intt(&ntt(lhs).mul_facade(&ntt(rhs)))
 }
@@ -112,5 +118,12 @@ mod tests {
         let (c0, c1) = basemul(1, 2, 3, 4, 17);
         assert_eq!(c0, reduce(3 + 2 * 4 * 17));
         assert_eq!(c1, reduce(4 + 2 * 3));
+    }
+
+    #[test]
+    fn basemul_with_zeta_index_matches_explicit_zeta() {
+        let explicit = basemul(5, 7, 11, 13, zetas::ZETAS[0]);
+        let indexed = basemul_with_zeta_index(5, 7, 11, 13, 0);
+        assert_eq!(explicit, indexed);
     }
 }

@@ -8,23 +8,19 @@ engineering-guidance document, while normative algorithm behavior is drawn from
 the underlying standards such as FIPS 203, FIPS 204, FIPS 205, and relevant
 IETF protocol specifications.
 
-## Stage 5B-1 status
+## Stage 5B-2 status
 
-Stage 5B-1 begins the real FIPS 203 ML-KEM implementation path by adding
-Montgomery-domain and Barrett-reduction arithmetic foundations.
+Stage 5B-2 adds FIPS NTT schedule assets:
 
-Added:
+- compact zeta schedule module
+- bit-reversal helper
+- zeta canonicality tests
+- generator/order tests
+- zeta-indexed `basemul` helper
 
-- Montgomery constants for `q = 3329`
-- Barrett reduction API
-- Montgomery reduction API
-- Montgomery conversion helpers
-- Montgomery-domain multiplication helper
-- tests for constants, round trips, and multiplication consistency
-
-Important: this stage does not yet replace the Stage 5A FIPS NTT facade.
-The next increment should implement the real FIPS 203 NTT schedule on top of
-this arithmetic layer.
+Important: this stage still keeps the FIPS NTT forward/inverse transforms as a
+facade. Stage 5B-3 should replace the facade with the actual butterfly
+implementation.
 
 ## Validate
 
@@ -40,6 +36,6 @@ After tests pass:
 
 ```bash
 git add .
-git commit -m "Stage 5B-1: Add Montgomery and Barrett arithmetic"
+git commit -m "Stage 5B-2: Add FIPS NTT zeta schedule assets"
 git push origin main
 ```
