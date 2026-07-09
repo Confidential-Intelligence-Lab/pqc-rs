@@ -110,6 +110,22 @@ pub fn decode_public_key_component(
     Ok((t_hat, rho))
 }
 
+/// Decode a CPA secret-key component into `s_hat`.
+pub fn decode_secret_key_component(
+    parameter_set: MlKemParameterSet,
+    input: &[u8],
+) -> PqcResult<PolyVec> {
+    let expected = secret_key_component_bytes(parameter_set);
+    if input.len() != expected {
+        return Err(PqcError::InvalidLength {
+            expected,
+            actual: input.len(),
+        });
+    }
+
+    decode_polyvec_12(parameter_set, input)
+}
+
 /// Decode an ML-KEM public key component into encoded vector bytes and `rho`.
 pub fn split_public_key_component(
     parameter_set: MlKemParameterSet,
@@ -200,6 +216,90 @@ pub fn split_ciphertext_components(
 
     let split = ciphertext_u_bytes(parameter_set);
     Ok((&input[..split], &input[split..]))
+}
+
+/// Decode compressed ciphertext `u` component into a polynomial vector.
+pub fn decode_ciphertext_u(parameter_set: MlKemParameterSet, input: &[u8]) -> PqcResult<PolyVec> {
+    let expected = ciphertext_u_bytes(parameter_set);
+    if input.len() != expected {
+        return Err(PqcError::InvalidLength {
+            expected,
+            actual: input.len(),
+        });
+    }
+
+    let rank = parameter_set.k();
+    let mut polys = [Poly::zero(), Poly::zero(), Poly::zero(), Poly::zero()];
+
+    match parameter_set.du() {
+        10 => decode_polyvec_compressed_into::<320>(rank, input, 10, &mut polys)?,
+        11 => decode_polyvec_compressed_into::<352>(rank, input, 11, &mut polys)?,
+        _ => return Err(PqcError::UnsupportedParameterSet),
+    }
+
+    Ok(PolyVec::from_slice(&polys[..rank]))
+}
+
+/// Decode compressed ciphertext `v` component into a polynomial.
+pub fn decode_ciphertext_v(parameter_set: MlKemParameterSet, input: &[u8]) -> PqcResult<Poly> {
+    let expected = ciphertext_v_bytes(parameter_set);
+    if input.len() != expected {
+        return Err(PqcError::InvalidLength {
+            expected,
+            actual: input.len(),
+        });
+    }
+
+    match parameter_set.dv() {
+        4 => {
+            let mut buf = [0u8; 128];
+            buf.copy_from_slice(input);
+            Ok(Poly::decompress::<128>(&buf, 4))
+        }
+        5 => {
+            let mut buf = [0u8; 160];
+            buf.copy_from_slice(input);
+            Ok(Poly::decompress::<160>(&buf, 5))
+        }
+        _ => Err(PqcError::UnsupportedParameterSet),
+    }
+}
+
+/// Decode ciphertext components into `(u, v)`.
+pub fn decode_ciphertext_components(
+    parameter_set: MlKemParameterSet,
+    input: &[u8],
+) -> PqcResult<(PolyVec, Poly)> {
+    let (u_bytes, v_bytes) = split_ciphertext_components(parameter_set, input)?;
+    let u = decode_ciphertext_u(parameter_set, u_bytes)?;
+    let v = decode_ciphertext_v(parameter_set, v_bytes)?;
+    Ok((u, v))
+}
+
+fn decode_polyvec_compressed_into<const PER_POLY_BYTES: usize>(
+    rank: usize,
+    input: &[u8],
+    d: u32,
+    polys: &mut [Poly; 4],
+) -> PqcResult<()> {
+    let expected = rank * PER_POLY_BYTES;
+    if input.len() != expected {
+        return Err(PqcError::InvalidLength {
+            expected,
+            actual: input.len(),
+        });
+    }
+
+    let mut i = 0;
+    while i < rank {
+        let start = i * PER_POLY_BYTES;
+        let mut buf = [0u8; PER_POLY_BYTES];
+        buf.copy_from_slice(&input[start..start + PER_POLY_BYTES]);
+        polys[i] = Poly::decompress::<PER_POLY_BYTES>(&buf, d);
+        i += 1;
+    }
+
+    Ok(())
 }
 
 /// Encode a message object into bytes.
@@ -356,6 +456,30 @@ mod tests {
 
         assert_eq!(u_bytes.len(), 960);
         assert_eq!(v_bytes.len(), 128);
+    }
+
+    #[test]
+    fn secret_key_component_decodes() {
+        let s = PolyVec::from_slice(&[sample_poly(1), sample_poly(2), sample_poly(3)]);
+
+        let encoded = encode_secret_key_component::<1152>(MlKemParameterSet::MlKem768, &s).unwrap();
+        let decoded = decode_secret_key_component(MlKemParameterSet::MlKem768, &encoded).unwrap();
+
+        assert_eq!(decoded, s);
+    }
+
+    #[test]
+    fn ciphertext_component_decodes_shapes() {
+        let u = PolyVec::from_slice(&[sample_poly(1), sample_poly(2), sample_poly(3)]);
+        let v = sample_poly(9);
+
+        let encoded =
+            encode_ciphertext_components::<1088>(MlKemParameterSet::MlKem768, &u, &v).unwrap();
+        let (decoded_u, decoded_v) =
+            decode_ciphertext_components(MlKemParameterSet::MlKem768, &encoded).unwrap();
+
+        assert_eq!(decoded_u.rank(), 3);
+        assert_eq!(decoded_v.coefficients().len(), 256);
     }
 
     #[test]
