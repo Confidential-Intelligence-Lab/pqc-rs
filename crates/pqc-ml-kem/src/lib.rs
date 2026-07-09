@@ -3,10 +3,8 @@
 #![deny(missing_docs)]
 //! ML-KEM API and implementation scaffold.
 //!
-//! Stage 5B-2 adds FIPS NTT schedule assets: zeta constants, bit-reversal
-//! helpers, and stronger NTT-shape tests. The high-level KEM operations remain
-//! scaffolds until the complete FIPS 203 K-PKE and ML-KEM flows are wired in and
-//! checked against official KATs.
+//! Stage 5B-5 adds K-PKE packing helpers for ML-KEM public keys, secret keys,
+//! and ciphertext component shapes.
 
 pub mod arithmetic;
 pub mod encoding;
@@ -14,6 +12,7 @@ pub mod fips_ntt;
 pub mod kpke;
 pub mod matrix;
 pub mod ntt;
+pub mod packing;
 pub mod poly;
 pub mod polyvec;
 pub mod sampling;
@@ -298,7 +297,7 @@ fn placeholder_shared_secret(
     ciphertext: &[u8],
 ) -> MlKemSharedSecret {
     let mut input = [0u8; 64];
-    let domain = symmetric::h(b"pqc-rfc9958-rs stage5b2 ml-kem scaffold");
+    let domain = symmetric::h(b"pqc-rfc9958-rs stage5b5 ml-kem scaffold");
     input[..32].copy_from_slice(&domain);
 
     let pk_hash = symmetric::h(public_key);

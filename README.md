@@ -3,20 +3,16 @@
 Rust workspace for implementing and validating the post-quantum cryptographic
 algorithms and protocol engineering patterns discussed by RFC 9958.
 
-## Stage 5B-4 status
+## Stage 5B-5 status
 
-Stage 5B-4 now keeps the public FIPS NTT boundary correctness-preserving and
-retains the first butterfly implementation as experimental helpers.
+Stage 5B-5 adds K-PKE packing helpers for ML-KEM object components:
 
-Added:
-
-- `experimental_forward_ntt`
-- `experimental_inverse_ntt`
-- canonical-output tests for the experimental forward path
-- public boundary round-trip tests
-
-The exact FIPS 203 inverse/scaling convention and full NTT-domain multiplication
-remain Stage 5B-5 work.
+- public-key component packing
+- secret-key component packing
+- ciphertext component packing
+- component splitting helpers
+- shape tests for ML-KEM-512/768/1024
+- rank and length rejection tests
 
 ## Validate
 
@@ -32,6 +28,6 @@ After tests pass:
 
 ```bash
 git add .
-git commit -m "Stage 5B-4: Add experimental ML-KEM NTT path"
+git commit -m "Stage 5B-5: Add ML-KEM K-PKE packing helpers"
 git push origin main
 ```
