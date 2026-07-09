@@ -8,19 +8,19 @@ engineering-guidance document, while normative algorithm behavior is drawn from
 the underlying standards such as FIPS 203, FIPS 204, FIPS 205, and relevant
 IETF protocol specifications.
 
-## Stage 5B-2 status
+## Stage 5B-3 status
 
-Stage 5B-2 adds FIPS NTT schedule assets:
+Stage 5B-3 upgrades the ML-KEM arithmetic layer with word-level Montgomery
+reduction and centered reduction helpers.
 
-- compact zeta schedule module
-- bit-reversal helper
-- zeta canonicality tests
-- generator/order tests
-- zeta-indexed `basemul` helper
+Added:
 
-Important: this stage still keeps the FIPS NTT forward/inverse transforms as a
-facade. Stage 5B-3 should replace the facade with the actual butterfly
-implementation.
+- `reduce_centered`
+- word-level `montgomery_reduce`
+- negative-product Montgomery tests
+- centered representative tests
+
+This prepares the codebase for the real NTT butterfly implementation.
 
 ## Validate
 
@@ -36,6 +36,6 @@ After tests pass:
 
 ```bash
 git add .
-git commit -m "Stage 5B-2: Add FIPS NTT zeta schedule assets"
+git commit -m "Stage 5B-3: Add word-level Montgomery reduction"
 git push origin main
 ```

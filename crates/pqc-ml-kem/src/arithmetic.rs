@@ -1,7 +1,8 @@
 //! Finite-field arithmetic for ML-KEM.
 //!
-//! Stage 5B-1 adds Montgomery-domain and Barrett-reduction helpers that will
-//! be used by the real FIPS 203 NTT implementation.
+//! Stage 5B-3 upgrades the Montgomery path from an API placeholder to a
+//! word-level Montgomery reduction compatible with the Kyber/ML-KEM NTT
+//! implementation style.
 
 /// ML-KEM polynomial degree.
 pub const N: usize = 256;
@@ -18,7 +19,7 @@ pub const MONTGOMERY_R_MOD_Q: i16 = 2285;
 /// `R^-1 mod Q`.
 pub const MONTGOMERY_R_INV_MOD_Q: i16 = 169;
 
-/// `-Q^-1 mod 2^16`, used by Montgomery reduction.
+/// `-Q^-1 mod 2^16`, used by word-level Montgomery reduction.
 pub const MONTGOMERY_QINV: i32 = 3327;
 
 /// Barrett reduction multiplier for q = 3329.
@@ -33,20 +34,32 @@ pub fn reduce(x: i32) -> i16 {
     r as i16
 }
 
+/// Center an integer modulo `Q` into approximately `[-Q/2, Q/2]`.
+pub fn reduce_centered(x: i32) -> i16 {
+    let r = i32::from(reduce(x));
+    if r > i32::from(Q) / 2 {
+        (r - i32::from(Q)) as i16
+    } else {
+        r as i16
+    }
+}
+
 /// Barrett reduce an integer modulo `Q` into `[0, Q)`.
 ///
-/// This is written as a canonical reduction for now, preserving a stable API
-/// and test oracle before the Stage 5B NTT replaces hot paths with bounded
-/// Barrett reductions.
+/// This function currently delegates to canonical reduction. The public API is
+/// stable; the optimized bounded Barrett path can replace the body later.
 pub fn barrett_reduce(x: i32) -> i16 {
     reduce(x)
 }
 
-/// Montgomery reduce `x` by computing `x * R^-1 mod Q`.
+/// Word-level Montgomery reduce `a` by computing `a * R^-1 mod Q`.
 ///
-/// This implementation returns a canonical representative in `[0, Q)`.
-pub fn montgomery_reduce(x: i32) -> i16 {
-    reduce(x * i32::from(MONTGOMERY_R_INV_MOD_Q))
+/// This follows the `u = a * (-q^-1) mod R; (a + u*q) / R` form and returns a
+/// canonical representative in `[0, Q)`.
+pub fn montgomery_reduce(a: i32) -> i16 {
+    let u = (i64::from(a) * i64::from(MONTGOMERY_QINV)) & 0xffff;
+    let t = (i64::from(a) + u * i64::from(Q)) >> 16;
+    reduce(t as i32)
 }
 
 /// Convert a canonical coefficient to Montgomery domain.
@@ -59,7 +72,7 @@ pub fn from_montgomery(x: i16) -> i16 {
     montgomery_reduce(i32::from(x))
 }
 
-/// Montgomery-domain multiplication returning a canonical standard coefficient.
+/// Multiply two Montgomery-domain values and return a Montgomery-domain value.
 pub fn montgomery_mul(a: i16, b: i16) -> i16 {
     montgomery_reduce(i32::from(a) * i32::from(b))
 }
@@ -110,6 +123,16 @@ mod tests {
     }
 
     #[test]
+    fn centered_reduction_outputs_expected_representatives() {
+        assert_eq!(reduce_centered(0), 0);
+        assert_eq!(reduce_centered(1), 1);
+        assert_eq!(reduce_centered(1664), 1664);
+        assert_eq!(reduce_centered(1665), -1664);
+        assert_eq!(reduce_centered(3328), -1);
+        assert_eq!(reduce_centered(-1), -1);
+    }
+
+    #[test]
     fn field_operations_are_modular() {
         assert_eq!(add(3328, 2), 1);
         assert_eq!(sub(1, 2), 3328);
@@ -143,6 +166,16 @@ mod tests {
     #[test]
     fn montgomery_reduce_matches_multiply_by_r_inverse() {
         for x in [0, 1, 17, 3328, 3329, 65536, 1_234_567] {
+            assert_eq!(
+                montgomery_reduce(x),
+                reduce(x * i32::from(MONTGOMERY_R_INV_MOD_Q))
+            );
+        }
+    }
+
+    #[test]
+    fn montgomery_word_level_reduction_handles_negative_products() {
+        for x in [-1_234_567, -65_536, -3329, -1, 0, 1, 65_536, 1_234_567] {
             assert_eq!(
                 montgomery_reduce(x),
                 reduce(x * i32::from(MONTGOMERY_R_INV_MOD_Q))
