@@ -3,16 +3,16 @@
 Rust workspace for implementing and validating the post-quantum cryptographic
 algorithms and protocol engineering patterns discussed by RFC 9958.
 
-## Stage 5B-5 status
+## Stage 5B-6 status
 
-Stage 5B-5 adds K-PKE packing helpers for ML-KEM object components:
+Stage 5B-6 adds deterministic K-PKE key-generation structure:
 
-- public-key component packing
-- secret-key component packing
-- ciphertext component packing
-- component splitting helpers
-- shape tests for ML-KEM-512/768/1024
-- rank and length rejection tests
+- seed expansion into `rho` and `sigma`
+- noise polynomial sampling
+- noise vector sampling
+- public vector computation
+- public/secret component packing
+- deterministic shape tests for ML-KEM-512/768/1024
 
 ## Validate
 
@@ -28,6 +28,6 @@ After tests pass:
 
 ```bash
 git add .
-git commit -m "Stage 5B-5: Add ML-KEM K-PKE packing helpers"
+git commit -m "Stage 5B-6: Add deterministic K-PKE keygen structure"
 git push origin main
 ```
