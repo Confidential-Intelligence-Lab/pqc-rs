@@ -1,9 +1,7 @@
 //! K-PKE byte packing helpers for ML-KEM.
 //!
-//! Stage 5B-5 adds deterministic packing and unpacking of the object shapes used
-//! by K-PKE: public-key components, secret-key components, and ciphertext
-//! components. These helpers are structural and tested independently before the
-//! real K-PKE algorithms are wired in.
+//! Stage 5B-7 extends the packing layer with polynomial-vector decoding so
+//! deterministic encryption can consume encoded public-key components.
 
 use pqc_core::{PqcError, PqcResult};
 
@@ -75,6 +73,41 @@ pub fn encode_public_key_component<const BYTES: usize>(
     encode_polyvec_12_into(t_hat, &mut out[..polyvec_12_bytes(parameter_set)])?;
     out[polyvec_12_bytes(parameter_set)..].copy_from_slice(rho);
     Ok(out)
+}
+
+/// Decode a 12-bit encoded polynomial vector.
+pub fn decode_polyvec_12(parameter_set: MlKemParameterSet, input: &[u8]) -> PqcResult<PolyVec> {
+    let expected = polyvec_12_bytes(parameter_set);
+    if input.len() != expected {
+        return Err(PqcError::InvalidLength {
+            expected,
+            actual: input.len(),
+        });
+    }
+
+    let rank = parameter_set.k();
+    let mut polys = [Poly::zero(), Poly::zero(), Poly::zero(), Poly::zero()];
+
+    let mut i = 0;
+    while i < rank {
+        let start = i * POLY_12_BYTES;
+        let mut encoded = [0u8; POLY_12_BYTES];
+        encoded.copy_from_slice(&input[start..start + POLY_12_BYTES]);
+        polys[i] = Poly::decode_12(&encoded);
+        i += 1;
+    }
+
+    Ok(PolyVec::from_slice(&polys[..rank]))
+}
+
+/// Decode a public-key component into `t_hat` and `rho`.
+pub fn decode_public_key_component(
+    parameter_set: MlKemParameterSet,
+    input: &[u8],
+) -> PqcResult<(PolyVec, [u8; RHO_BYTES])> {
+    let (t_bytes, rho) = split_public_key_component(parameter_set, input)?;
+    let t_hat = decode_polyvec_12(parameter_set, t_bytes)?;
+    Ok((t_hat, rho))
 }
 
 /// Decode an ML-KEM public key component into encoded vector bytes and `rho`.
@@ -273,7 +306,7 @@ mod tests {
     }
 
     #[test]
-    fn public_key_component_encodes_and_splits() {
+    fn public_key_component_encodes_splits_and_decodes() {
         let t = PolyVec::from_slice(&[sample_poly(1), sample_poly(2)]);
         let rho = [7u8; RHO_BYTES];
 
@@ -281,8 +314,24 @@ mod tests {
             encode_public_key_component::<800>(MlKemParameterSet::MlKem512, &t, &rho).unwrap();
         let (t_bytes, decoded_rho) =
             split_public_key_component(MlKemParameterSet::MlKem512, &encoded).unwrap();
+        let decoded_t = decode_polyvec_12(MlKemParameterSet::MlKem512, t_bytes).unwrap();
 
         assert_eq!(t_bytes.len(), 768);
+        assert_eq!(decoded_rho, rho);
+        assert_eq!(decoded_t, t);
+    }
+
+    #[test]
+    fn decode_public_key_component_round_trips() {
+        let t = PolyVec::from_slice(&[sample_poly(1), sample_poly(2), sample_poly(3)]);
+        let rho = [9u8; RHO_BYTES];
+
+        let encoded =
+            encode_public_key_component::<1184>(MlKemParameterSet::MlKem768, &t, &rho).unwrap();
+        let (decoded_t, decoded_rho) =
+            decode_public_key_component(MlKemParameterSet::MlKem768, &encoded).unwrap();
+
+        assert_eq!(decoded_t, t);
         assert_eq!(decoded_rho, rho);
     }
 
@@ -325,5 +374,6 @@ mod tests {
         let rho = [0u8; RHO_BYTES];
 
         assert!(encode_public_key_component::<799>(MlKemParameterSet::MlKem512, &t, &rho).is_err());
+        assert!(decode_polyvec_12(MlKemParameterSet::MlKem512, &[0u8; 767]).is_err());
     }
 }

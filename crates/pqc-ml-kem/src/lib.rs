@@ -3,13 +3,14 @@
 #![deny(missing_docs)]
 //! ML-KEM API and implementation scaffold.
 //!
-//! Stage 5B-6 starts wiring deterministic K-PKE key generation structure on top
-//! of the existing packing, matrix, sampling, and polynomial-vector modules.
+//! Stage 5B-7 adds deterministic K-PKE encryption structure on top of the
+//! existing keygen, packing, matrix, sampling, and polynomial-vector modules.
 
 pub mod arithmetic;
 pub mod encoding;
 pub mod fips_ntt;
 pub mod kpke;
+pub mod kpke_encrypt;
 pub mod kpke_keygen;
 pub mod matrix;
 pub mod ntt;
@@ -298,7 +299,7 @@ fn placeholder_shared_secret(
     ciphertext: &[u8],
 ) -> MlKemSharedSecret {
     let mut input = [0u8; 64];
-    let domain = symmetric::h(b"pqc-rfc9958-rs stage5b6 ml-kem scaffold");
+    let domain = symmetric::h(b"pqc-rfc9958-rs stage5b7 ml-kem scaffold");
     input[..32].copy_from_slice(&domain);
 
     let pk_hash = symmetric::h(public_key);
