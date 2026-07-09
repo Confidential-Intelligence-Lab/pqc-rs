@@ -1,0 +1,31 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/pqc-core",
+    "crates/pqc-ml-kem",
+    "crates/pqc-ml-dsa",
+    "crates/pqc-slh-dsa",
+    "crates/pqc-hybrid",
+    "crates/pqc-hpke",
+    "crates/pqc-test-harness",
+]
+
+[workspace.package]
+edition = "2021"
+license = "Apache-2.0 OR MIT"
+repository = "TODO"
+rust-version = "1.80"
+authors = ["TODO"]
+version = "0.3.0"
+
+[workspace.dependencies]
+pqc-core = { path = "crates/pqc-core", version = "0.3.0", default-features = false }
+
+rand_core = { version = "0.6", features = ["getrandom"] }
+zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
+subtle = { version = "2", default-features = false }
+sha3 = { version = "0.10", default-features = false }
+thiserror = "1"
+hex = "0.4"
+criterion = "0.5"
+proptest = "1"

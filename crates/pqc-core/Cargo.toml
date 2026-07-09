@@ -1,0 +1,21 @@
+[package]
+name = "pqc-core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[features]
+default = ["std"]
+std = ["alloc", "zeroize/std"]
+alloc = ["zeroize/alloc"]
+serde = []
+acvp = []
+bench = []
+
+[dependencies]
+rand_core = { workspace = true }
+subtle = { workspace = true }
+zeroize = { workspace = true }
+thiserror = { workspace = true, optional = true }

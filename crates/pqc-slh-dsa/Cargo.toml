@@ -1,0 +1,18 @@
+[package]
+name = "pqc-slh-dsa"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+
+[features]
+default = ["std"]
+std = ["pqc-core/std"]
+alloc = ["pqc-core/alloc"]
+acvp = ["pqc-core/acvp"]
+bench = ["pqc-core/bench"]
+
+[dependencies]
+pqc-core = { workspace = true }
+rand_core = { workspace = true }
