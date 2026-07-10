@@ -132,6 +132,19 @@ pub fn dot_to_poly(lhs: &NttPolyVec, rhs: &NttPolyVec) -> Poly {
     fips_ntt::invntt_tomont(&FipsNttPoly::from_coefficients(accumulator))
 }
 
+/// Add a coefficient-domain error vector after NTT-domain matrix-vector
+/// multiplication.
+pub fn matrix_vector_mul_add_to_polyvec(
+    matrix: &NttPolyMatrix,
+    vector: &NttPolyVec,
+    error: &PolyVec,
+) -> PolyVec {
+    assert_eq!(matrix.rank(), vector.rank());
+    assert_eq!(vector.rank(), error.rank());
+
+    matrix_vector_mul_to_polyvec(matrix, vector).add(error)
+}
+
 /// Compute `matrix * vector` in the NTT domain and return coefficient-domain
 /// output.
 pub fn matrix_vector_mul_to_polyvec(matrix: &NttPolyMatrix, vector: &NttPolyVec) -> PolyVec {

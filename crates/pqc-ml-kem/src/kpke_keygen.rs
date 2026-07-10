@@ -8,7 +8,7 @@
 
 use pqc_core::{PqcError, PqcResult};
 
-use crate::kpke_arithmetic;
+use crate::kpke_ntt_domain::{NttPolyMatrix, NttPolyVec};
 use crate::matrix::expand_matrix;
 use crate::packing::{
     encode_public_key_component, encode_secret_key_component, public_key_component_bytes,
@@ -98,7 +98,10 @@ pub fn compute_public_vector(
     assert_eq!(matrix_rank, s.rank());
     assert_eq!(matrix_rank, e.rank());
 
-    kpke_arithmetic::matrix_vector_mul_add(a, s, e)
+    let matrix_ntt = NttPolyMatrix::from_matrix(a);
+    let secret_ntt = NttPolyVec::from_polyvec(s);
+
+    crate::kpke_ntt_domain::matrix_vector_mul_add_to_polyvec(&matrix_ntt, &secret_ntt, e)
 }
 
 /// Deterministic structural K-PKE key generation.
@@ -155,6 +158,20 @@ mod tests {
         let expanded = expand_keygen_seed(&seed);
         let s = sample_noise_vector(MlKemParameterSet::MlKem768, &expanded.sigma, 0);
         assert_eq!(s.rank(), 3);
+    }
+
+    #[test]
+    fn keygen_ntt_intermediates_match_stage5b12_reference() {
+        let parameter_set = MlKemParameterSet::MlKem512;
+        let material = expand_keygen_seed(&[31u8; 32]);
+        let matrix = expand_matrix(parameter_set.k(), &material.rho, false);
+        let secret = sample_noise_vector(parameter_set, &material.sigma, 0);
+        let error = sample_noise_vector(parameter_set, &material.sigma, parameter_set.k() as u8);
+
+        let actual = compute_public_vector(parameter_set.k(), &matrix, &secret, &error);
+        let expected = crate::kpke_arithmetic::matrix_vector_mul_add(&matrix, &secret, &error);
+
+        assert_eq!(actual, expected);
     }
 
     #[test]

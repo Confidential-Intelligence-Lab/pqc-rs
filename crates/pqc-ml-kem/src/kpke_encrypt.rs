@@ -9,7 +9,7 @@ use pqc_core::{PqcError, PqcResult};
 
 use crate::encoding::message_to_poly;
 use crate::kpke::{EncryptionRandomness, Message};
-use crate::kpke_arithmetic;
+use crate::kpke_ntt_domain::{NttPolyMatrix, NttPolyVec};
 use crate::matrix::expand_matrix;
 use crate::packing::{
     ciphertext_component_bytes, decode_public_key_component, encode_ciphertext_components,
@@ -64,14 +64,19 @@ pub fn compute_u_vector(
     assert_eq!(e1.rank(), rank);
 
     let transposed_matrix = expand_matrix(rank, rho, true);
-    kpke_arithmetic::matrix_vector_mul_add(&transposed_matrix, r, e1)
+    let matrix_ntt = NttPolyMatrix::from_matrix(&transposed_matrix);
+    let randomness_ntt = NttPolyVec::from_polyvec(r);
+
+    crate::kpke_ntt_domain::matrix_vector_mul_add_to_polyvec(&matrix_ntt, &randomness_ntt, e1)
 }
 
 /// Compute structural `v = t^T r + e2 + m`.
 pub fn compute_v_poly(t_hat: &PolyVec, r: &PolyVec, e2: &Poly, message: &Message) -> Poly {
     assert_eq!(t_hat.rank(), r.rank());
 
-    let mut acc = kpke_arithmetic::dot(t_hat, r);
+    let public_ntt = NttPolyVec::from_polyvec(t_hat);
+    let randomness_ntt = NttPolyVec::from_polyvec(r);
+    let mut acc = crate::kpke_ntt_domain::dot_to_poly(&public_ntt, &randomness_ntt);
     acc = acc.add(e2);
     acc.add(&message_to_poly(message))
 }
@@ -118,6 +123,22 @@ mod tests {
         let sigma = [4u8; 32];
         let v = sample_eta2_vector(MlKemParameterSet::MlKem1024, &sigma, 0);
         assert_eq!(v.rank(), 4);
+    }
+
+    #[test]
+    fn encryption_ntt_intermediates_match_stage5b12_reference() {
+        let parameter_set = MlKemParameterSet::MlKem512;
+        let rho = [41u8; 32];
+        let randomness = sample_eta2_vector(parameter_set, &[42u8; 32], 0);
+        let error = sample_eta2_vector(parameter_set, &[43u8; 32], parameter_set.k() as u8);
+
+        let actual = compute_u_vector(parameter_set, &rho, &randomness, &error);
+
+        let transposed = expand_matrix(parameter_set.k(), &rho, true);
+        let expected =
+            crate::kpke_arithmetic::matrix_vector_mul_add(&transposed, &randomness, &error);
+
+        assert_eq!(actual, expected);
     }
 
     #[test]

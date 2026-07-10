@@ -70,12 +70,12 @@ pub const COMPONENT_STATUS: &[ComponentStatus] = &[
     ComponentStatus {
         id: "kpke-keygen",
         level: ConformanceLevel::Structural,
-        note: "Structural implementation now routes polynomial products through the NTT path.",
+        note: "Structural implementation uses explicit NTT-domain matrix and vector intermediates.",
     },
     ComponentStatus {
         id: "kpke-encrypt",
         level: ConformanceLevel::Structural,
-        note: "Structural implementation now routes polynomial products through the NTT path.",
+        note: "Structural implementation uses explicit NTT-domain matrix and vector intermediates.",
     },
     ComponentStatus {
         id: "kpke-decrypt",

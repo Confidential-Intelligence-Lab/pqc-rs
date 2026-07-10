@@ -3,18 +3,10 @@
 Rust workspace for implementing and validating post-quantum cryptographic
 algorithms and protocol engineering patterns discussed by RFC 9958.
 
-## Stage 5B-13 status
+## Stage 5B-14 status
 
-Stage 5B-13 introduces explicit K-PKE NTT-domain intermediates:
-
-- NTT polynomial vectors
-- NTT polynomial matrices
-- vector and matrix transforms
-- NTT-domain inner products
-- NTT-domain matrix-vector multiplication
-- equivalence tests against coefficient-domain arithmetic
-
-Existing K-PKE APIs remain unchanged and the project remains pre-KAT.
+Stage 5B-14 adopts explicit NTT-domain intermediates in structural K-PKE key
+generation and encryption while preserving existing encodings.
 
 ## Validate
 
@@ -28,6 +20,6 @@ cargo test --workspace --all-features
 
 ```bash
 git add .
-git commit -m "Stage 5B-13: Add NTT-domain K-PKE intermediates"
+git commit -m "Stage 5B-14: Adopt NTT-domain K-PKE intermediates"
 git push origin main
 ```
