@@ -1,76 +1,36 @@
-//! FIPS NTT zeta schedule assets for ML-KEM.
+//! Reference-compatible ML-KEM NTT zeta schedule.
 //!
-//! Stage 5B-2 introduces the constant-table module and bit-reversal helpers used
-//! by the real NTT implementation. The full butterfly implementation lands in a
-//! later increment after this schedule is validated in isolation.
+//! Values are stored in centered Montgomery representation, matching the
+//! CRYSTALS-Kyber reference implementation from which FIPS 203 is derived.
 
-use crate::arithmetic::{mul, reduce, Q};
+use crate::arithmetic::Q;
 
-/// Primitive root used by ML-KEM's NTT schedule generation.
+/// Primitive root used by the ML-KEM NTT schedule.
 pub const ZETA_GENERATOR: i16 = 17;
 
-/// Number of zeta values in the compact ML-KEM schedule.
+/// Number of entries in the compact NTT schedule.
 pub const ZETAS_LEN: usize = 128;
 
-/// Compact zeta schedule used by Kyber/ML-KEM implementations.
-///
-/// These values are kept in canonical `[0, q)` representation. Stage 5B-3 will
-/// consume this table in the real forward and inverse NTT.
+/// Centered Montgomery-domain zeta schedule.
 pub const ZETAS: [i16; ZETAS_LEN] = [
-    2285, 2571, 2970, 1812, 1493, 1422, 287, 202, 3158, 622, 1577, 182, 962, 2127, 1855, 1468, 573,
-    2004, 264, 383, 2500, 1458, 1727, 3199, 2648, 1017, 732, 608, 1787, 411, 3124, 1758, 1223, 652,
-    2777, 1015, 2036, 1491, 3047, 1785, 516, 3321, 3009, 2663, 1711, 2167, 126, 1469, 2476, 3239,
-    3058, 830, 107, 1908, 3082, 2378, 2931, 961, 1821, 2604, 448, 2264, 677, 2054, 2226, 430, 555,
-    843, 2078, 871, 1550, 105, 422, 587, 177, 3094, 3038, 2869, 1574, 1653, 3083, 778, 1159, 3182,
-    2552, 1483, 2727, 1119, 1739, 644, 2457, 349, 418, 329, 3173, 3254, 817, 1097, 603, 610, 1322,
-    2044, 1864, 384, 2114, 3193, 1218, 1994, 2455, 220, 2142, 1670, 2144, 1799, 2051, 794, 1819,
-    2475, 2459, 478, 3221, 3021, 996, 991, 958, 1869, 1522, 1628,
+    -1044, -758, -359, -1517, 1493, 1422, 287, 202, -171, 622, 1577, 182, 962, -1202, -1474, 1468,
+    573, -1325, 264, 383, -829, 1458, -1602, -130, -681, 1017, 732, 608, -1542, 411, -205, -1571,
+    1223, 652, -552, 1015, -1293, 1491, -282, -1544, 516, -8, -320, -666, -1618, -1162, 126, 1469,
+    -853, -90, -271, 830, 107, -1421, -247, -951, -398, 961, -1508, -725, 448, -1065, 677, -1275,
+    -1103, 430, 555, 843, -1251, 871, 1550, 105, 422, 587, 177, -235, -291, -460, 1574, 1653, -246,
+    778, 1159, -147, -777, 1483, -602, 1119, -1590, 644, -872, 349, 418, 329, -156, -75, 817, 1097,
+    603, 610, 1322, -1285, -1465, 384, -1215, -136, 1218, -1335, -874, 220, -1187, -1659, -1185,
+    -1530, -1278, 794, -1510, -854, -870, 478, -108, -308, 996, 991, 958, -1460, 1522, 1628,
 ];
 
-/// Reverse the lowest `width` bits of `value`.
-pub const fn bit_reverse(mut value: usize, width: u32) -> usize {
-    let mut out = 0usize;
-    let mut i = 0;
-    while i < width {
-        out = (out << 1) | (value & 1);
-        value >>= 1;
-        i += 1;
-    }
-    out
-}
-
-/// Compute `base^exp mod q`.
-pub fn pow_mod_q(base: i16, exp: usize) -> i16 {
-    let mut result = 1i16;
-    let mut b = reduce(i32::from(base));
-    let mut e = exp;
-
-    while e > 0 {
-        if e & 1 == 1 {
-            result = mul(result, b);
-        }
-        b = mul(b, b);
-        e >>= 1;
-    }
-
-    result
-}
-
-/// Generate a zeta from the primitive generator and bit-reversed exponent.
-pub fn generated_zeta(index: usize) -> i16 {
-    debug_assert!(index < ZETAS_LEN);
-    let exponent = bit_reverse(index, 7);
-    pow_mod_q(ZETA_GENERATOR, exponent)
-}
-
-/// Return a scheduled zeta by index.
+/// Return a scheduled zeta.
 pub fn zeta(index: usize) -> i16 {
     ZETAS[index]
 }
 
-/// Return `true` if every table value is canonical modulo q.
-pub fn all_zetas_are_canonical() -> bool {
-    ZETAS.iter().all(|z| *z >= 0 && *z < Q)
+/// Return whether all values are centered representatives modulo `q`.
+pub fn all_zetas_are_centered() -> bool {
+    ZETAS.iter().all(|z| *z >= -(Q / 2) && *z <= Q / 2)
 }
 
 #[cfg(test)]
@@ -78,34 +38,19 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bit_reverse_examples_are_correct() {
-        assert_eq!(bit_reverse(0b0000001, 7), 0b1000000);
-        assert_eq!(bit_reverse(0b0000011, 7), 0b1100000);
-        assert_eq!(bit_reverse(0b1010101, 7), 0b1010101);
-    }
-
-    #[test]
-    fn zeta_table_has_expected_length_and_boundaries() {
-        assert_eq!(ZETAS.len(), ZETAS_LEN);
-        assert_eq!(ZETAS[0], 2285);
+    fn table_has_reference_boundaries() {
+        assert_eq!(ZETAS.len(), 128);
+        assert_eq!(ZETAS[0], -1044);
         assert_eq!(ZETAS[127], 1628);
     }
 
     #[test]
-    fn zeta_values_are_canonical() {
-        assert!(all_zetas_are_canonical());
+    fn table_values_are_centered() {
+        assert!(all_zetas_are_centered());
     }
 
     #[test]
-    fn generator_has_expected_order_shape() {
-        assert_eq!(pow_mod_q(ZETA_GENERATOR, 256), 1);
-        assert_eq!(pow_mod_q(ZETA_GENERATOR, 128), Q - 1);
-    }
-
-    #[test]
-    fn generated_zeta_path_is_deterministic() {
-        assert_eq!(generated_zeta(0), 1);
-        assert_eq!(generated_zeta(1), pow_mod_q(ZETA_GENERATOR, 64));
-        assert_eq!(generated_zeta(2), pow_mod_q(ZETA_GENERATOR, 32));
+    fn basemul_region_has_expected_size() {
+        assert_eq!(&ZETAS[64..].len(), &64);
     }
 }

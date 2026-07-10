@@ -3,20 +3,18 @@
 Rust workspace for implementing and validating post-quantum cryptographic
 algorithms and protocol engineering patterns discussed by RFC 9958.
 
-## Stage 5B-10 status
+## Stage 5B-11 status
 
-Stage 5B-10 adds a FIPS 203 conformance gate:
+Stage 5B-11 adds reference-compatible ML-KEM NTT arithmetic:
 
-- conformance maturity levels
-- component status manifest
-- parameter-set conformance status
-- KAT and intermediate-value record types
-- deterministic validation results
-- negative parameter-set mismatch tests
-- FIPS 203 traceability documentation
+- centered zeta schedule
+- forward NTT
+- `invntt_tomont`
+- ordinary inverse convenience wrapper
+- complete NTT-domain base multiplication
+- sparse and dense equivalence tests against schoolbook multiplication
 
-The repository explicitly does **not** claim FIPS 203 conformance or official
-KAT validation at this stage.
+Official FIPS 203 KAT validation remains pending.
 
 ## Validate
 
@@ -30,6 +28,6 @@ cargo test --workspace --all-features
 
 ```bash
 git add .
-git commit -m "Stage 5B-10: Add FIPS 203 conformance gate"
+git commit -m "Stage 5B-11: Add reference-compatible ML-KEM NTT"
 git push origin main
 ```
