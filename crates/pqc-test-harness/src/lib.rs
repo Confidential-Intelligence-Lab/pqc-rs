@@ -3,6 +3,7 @@
 //! Shared testing helpers for KATs, negative tests, protocol tests, and benchmarks.
 
 pub mod acvp;
+pub mod acvp_encap_decap;
 
 /// A parsed known-answer-test vector.
 #[derive(Clone, Debug, Eq, PartialEq)]
