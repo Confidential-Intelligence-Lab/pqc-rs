@@ -1,28 +1,11 @@
 # pqc-rfc9958-rs
 
-Rust workspace for implementing and validating post-quantum cryptographic
-algorithms and protocol engineering patterns discussed by RFC 9958.
+## Stage 6.3 status
 
-## Stage 5B-16 status
+Stage 6.3 adds opt-in ML-KEM KeyGen trace capture and a runner that emits the
+first failing NIST ACVP case as JSON plus binary checkpoints.
 
-Stage 5B-16 adds an authoritative NIST ACVP import path:
-
-- pinned ACVP-Server release
-- reproducible fetch script
-- provenance and checksum files
-- typed ML-KEM keyGen JSON parser
-- prompt/expected joining
-- strict metadata and case matching
-
-No official vector is marked as passed yet.
-
-## Fetch vectors
-
-```bash
-./scripts/fetch-nist-acvp-ml-kem.sh
-```
-
-## Validate
+Validate:
 
 ```bash
 cargo fmt --all
@@ -30,10 +13,12 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
 ```
 
-## GitHub stage workflow
+Generate the first failing trace:
 
 ```bash
-git add .
-git commit -m "Stage 5B-16: Add NIST ACVP vector import"
-git push origin main
+cargo run -p pqc-test-harness \
+  --bin ml-kem-acvp-keygen-trace \
+  --release
 ```
+
+The implementation remains pre-conformance.

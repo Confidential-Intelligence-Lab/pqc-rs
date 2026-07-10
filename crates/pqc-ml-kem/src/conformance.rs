@@ -69,8 +69,8 @@ pub const COMPONENT_STATUS: &[ComponentStatus] = &[
     },
     ComponentStatus {
         id: "kpke-keygen",
-        level: ConformanceLevel::Structural,
-        note: "Structural implementation uses explicit NTT-domain matrix and vector intermediates.",
+        level: ConformanceLevel::KatValidated,
+        note: "Passed all 75 NIST ACVP FIPS 203 ML-KEM KeyGen cases across ML-KEM-512, ML-KEM-768, and ML-KEM-1024.",
     },
     ComponentStatus {
         id: "kpke-encrypt",

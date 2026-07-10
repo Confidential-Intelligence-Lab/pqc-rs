@@ -62,7 +62,7 @@ pub struct IntermediateFixture {
 /// Build an internal fixture for ML-KEM-512.
 pub fn build_ml_kem_512_fixture() -> PqcResult<IntermediateFixture> {
     build_fixture::<800, 768, 768>(
-        "stage5b15-ml-kem-512",
+        "stage6-4-acvp-keygen-ml-kem-512",
         MlKemParameterSet::MlKem512,
         [0x11u8; 32],
         [0x22u8; 32],
@@ -73,7 +73,7 @@ pub fn build_ml_kem_512_fixture() -> PqcResult<IntermediateFixture> {
 /// Build an internal fixture for ML-KEM-768.
 pub fn build_ml_kem_768_fixture() -> PqcResult<IntermediateFixture> {
     build_fixture::<1184, 1152, 1088>(
-        "stage5b15-ml-kem-768",
+        "stage6-4-acvp-keygen-ml-kem-768",
         MlKemParameterSet::MlKem768,
         [0x44u8; 32],
         [0x55u8; 32],
@@ -84,7 +84,7 @@ pub fn build_ml_kem_768_fixture() -> PqcResult<IntermediateFixture> {
 /// Build an internal fixture for ML-KEM-1024.
 pub fn build_ml_kem_1024_fixture() -> PqcResult<IntermediateFixture> {
     build_fixture::<1568, 1536, 1568>(
-        "stage5b15-ml-kem-1024",
+        "stage6-4-acvp-keygen-ml-kem-1024",
         MlKemParameterSet::MlKem1024,
         [0x77u8; 32],
         [0x88u8; 32],
@@ -99,7 +99,8 @@ fn build_fixture<const PK: usize, const SK: usize, const CT: usize>(
     message_bytes: [u8; 32],
     encryption_randomness_bytes: [u8; 32],
 ) -> PqcResult<IntermediateFixture> {
-    let seed_material = kpke_keygen::expand_keygen_seed(&keygen_seed);
+    let seed_material =
+        kpke_keygen::expand_keygen_seed_for_parameter_set(parameter_set, &keygen_seed);
     let matrix = expand_matrix(parameter_set.k(), &seed_material.rho, false);
     let secret = kpke_keygen::sample_noise_vector(parameter_set, &seed_material.sigma, 0);
     let error = kpke_keygen::sample_noise_vector(
@@ -182,7 +183,7 @@ mod tests {
 
         assert_eq!(first, second);
         assert_fixture_shape(&first);
-        assert_eq!(first.id, "stage5b15-ml-kem-512");
+        assert_eq!(first.id, "stage6-4-acvp-keygen-ml-kem-512");
     }
 
     #[test]
@@ -192,7 +193,7 @@ mod tests {
 
         assert_eq!(first, second);
         assert_fixture_shape(&first);
-        assert_eq!(first.id, "stage5b15-ml-kem-768");
+        assert_eq!(first.id, "stage6-4-acvp-keygen-ml-kem-768");
     }
 
     #[test]
@@ -202,7 +203,19 @@ mod tests {
 
         assert_eq!(first, second);
         assert_fixture_shape(&first);
-        assert_eq!(first.id, "stage5b15-ml-kem-1024");
+        assert_eq!(first.id, "stage6-4-acvp-keygen-ml-kem-1024");
+    }
+
+    #[test]
+    fn fixture_public_keys_end_with_their_rho_seed() {
+        for fixture in [
+            build_ml_kem_512_fixture().unwrap(),
+            build_ml_kem_768_fixture().unwrap(),
+            build_ml_kem_1024_fixture().unwrap(),
+        ] {
+            let rho_offset = fixture.public_key.len() - 32;
+            assert_eq!(&fixture.public_key[rho_offset..], fixture.rho);
+        }
     }
 
     #[test]

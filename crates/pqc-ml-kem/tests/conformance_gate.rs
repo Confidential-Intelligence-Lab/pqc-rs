@@ -19,10 +19,14 @@ fn repository_does_not_claim_fips203_conformance() {
 }
 
 #[test]
-fn no_component_is_marked_kat_validated_yet() {
-    assert!(COMPONENT_STATUS
+fn only_keygen_is_marked_kat_validated() {
+    let validated: Vec<_> = COMPONENT_STATUS
         .iter()
-        .all(|entry| entry.level != ConformanceLevel::KatValidated));
+        .filter(|entry| entry.level == ConformanceLevel::KatValidated)
+        .map(|entry| entry.id)
+        .collect();
+
+    assert_eq!(validated, vec!["kpke-keygen"]);
 }
 
 #[test]

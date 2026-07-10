@@ -93,6 +93,28 @@ impl NttPolyMatrix {
         Self { rank, entries }
     }
 
+    /// Construct from a matrix whose entries are already sampled in the NTT
+    /// domain by FIPS 203 `SampleNTT`.
+    pub fn from_sampled_ntt_matrix(matrix: &PolyMatrix) -> Self {
+        let rank = matrix.rank();
+        let mut entries = core::array::from_fn(|_| {
+            core::array::from_fn(|_| FipsNttPoly::from_coefficients([0i16; N]))
+        });
+
+        let mut row = 0usize;
+        while row < rank {
+            let mut column = 0usize;
+            while column < rank {
+                entries[row][column] =
+                    FipsNttPoly::from_coefficients(*matrix.get(row, column).coefficients());
+                column += 1;
+            }
+            row += 1;
+        }
+
+        Self { rank, entries }
+    }
+
     /// Return the matrix rank.
     pub fn rank(&self) -> usize {
         self.rank
@@ -143,6 +165,58 @@ pub fn matrix_vector_mul_add_to_polyvec(
     assert_eq!(vector.rank(), error.rank());
 
     matrix_vector_mul_to_polyvec(matrix, vector).add(error)
+}
+
+/// Compute `matrix * vector` and retain the result in the NTT domain.
+///
+/// The base-multiplication accumulator is converted to Montgomery form before
+/// adding the transformed error vector, matching the reference ML-KEM KeyGen
+/// representation.
+pub fn matrix_vector_mul_add_to_ntt(
+    matrix: &NttPolyMatrix,
+    vector: &NttPolyVec,
+    error: &NttPolyVec,
+) -> NttPolyVec {
+    assert_eq!(matrix.rank(), vector.rank());
+    assert_eq!(vector.rank(), error.rank());
+
+    let rank = vector.rank();
+    let mut output = NttPolyVec::zero(rank);
+
+    let mut row = 0usize;
+    while row < rank {
+        let mut accumulator = [0i16; N];
+        let mut column = 0usize;
+
+        while column < rank {
+            let product =
+                fips_ntt::basemul_polynomials(matrix.get(row, column), &vector.as_slice()[column]);
+
+            let mut coefficient = 0usize;
+            while coefficient < N {
+                accumulator[coefficient] = crate::arithmetic::add(
+                    accumulator[coefficient],
+                    product.coefficients()[coefficient],
+                );
+                coefficient += 1;
+            }
+            column += 1;
+        }
+
+        let mut coefficient = 0usize;
+        while coefficient < N {
+            accumulator[coefficient] = crate::arithmetic::add(
+                crate::arithmetic::to_montgomery(accumulator[coefficient]),
+                error.as_slice()[row].coefficients()[coefficient],
+            );
+            coefficient += 1;
+        }
+
+        output.polys[row] = FipsNttPoly::from_coefficients(accumulator);
+        row += 1;
+    }
+
+    output
 }
 
 /// Compute `matrix * vector` in the NTT domain and return coefficient-domain
@@ -236,6 +310,42 @@ mod tests {
         ]);
 
         assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn sampled_ntt_matrix_preserves_sampled_coefficients() {
+        let mut matrix = PolyMatrix::zero(2);
+        matrix.set(0, 0, polynomial(3, 1));
+        matrix.set(0, 1, polynomial(5, 2));
+        matrix.set(1, 0, polynomial(7, 3));
+        matrix.set(1, 1, polynomial(11, 4));
+
+        let sampled = NttPolyMatrix::from_sampled_ntt_matrix(&matrix);
+
+        assert_eq!(
+            sampled.get(0, 0).coefficients(),
+            matrix.get(0, 0).coefficients(),
+        );
+    }
+
+    #[test]
+    fn ntt_keygen_product_round_trips_to_coefficient_reference() {
+        let mut matrix = PolyMatrix::zero(2);
+        matrix.set(0, 0, polynomial(3, 1));
+        matrix.set(0, 1, polynomial(5, 2));
+        matrix.set(1, 0, polynomial(7, 3));
+        matrix.set(1, 1, polynomial(11, 4));
+
+        let secret = PolyVec::from_slice(&[polynomial(13, 5), polynomial(17, 6)]);
+        let error = PolyVec::from_slice(&[polynomial(19, 7), polynomial(23, 8)]);
+
+        let matrix_hat = NttPolyMatrix::from_sampled_ntt_matrix(&matrix);
+        let secret_hat = NttPolyVec::from_polyvec(&secret);
+        let error_hat = NttPolyVec::from_polyvec(&error);
+        let public_hat = matrix_vector_mul_add_to_ntt(&matrix_hat, &secret_hat, &error_hat);
+
+        assert_eq!(public_hat.rank(), 2);
+        assert_eq!(public_hat.as_slice().len(), 2);
     }
 
     #[test]

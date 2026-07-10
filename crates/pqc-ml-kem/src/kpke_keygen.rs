@@ -11,7 +11,7 @@ use pqc_core::{PqcError, PqcResult};
 use crate::kpke_ntt_domain::{NttPolyMatrix, NttPolyVec};
 use crate::matrix::expand_matrix;
 use crate::packing::{
-    encode_public_key_component, encode_secret_key_component, public_key_component_bytes,
+    encode_ntt_public_key_component, encode_ntt_secret_key_component, public_key_component_bytes,
     secret_key_component_bytes,
 };
 use crate::poly::Poly;
@@ -41,8 +41,31 @@ pub struct KpkeKeygenOutput<const PK_BYTES: usize, const SK_BYTES: usize> {
 }
 
 /// Expand 32-byte entropy into `rho` and `sigma`.
+///
+/// This helper preserves the original structural behavior for internal fixtures.
+/// FIPS 203 key generation must use [`expand_keygen_seed_for_parameter_set`].
 pub fn expand_keygen_seed(seed: &[u8; 32]) -> KpkeSeedMaterial {
     let expanded = symmetric::g(seed);
+    split_keygen_seed_material(&expanded)
+}
+
+/// Expand FIPS 203 K-PKE key-generation input into `rho` and `sigma`.
+///
+/// FIPS 203 derives the two 32-byte seeds as `G(d || k)`, where `k` is the
+/// one-byte module rank for the selected parameter set.
+pub fn expand_keygen_seed_for_parameter_set(
+    parameter_set: MlKemParameterSet,
+    d: &[u8; 32],
+) -> KpkeSeedMaterial {
+    let mut input = [0u8; 33];
+    input[..32].copy_from_slice(d);
+    input[32] = parameter_set.k() as u8;
+
+    let expanded = symmetric::g(&input);
+    split_keygen_seed_material(&expanded)
+}
+
+fn split_keygen_seed_material(expanded: &[u8; 64]) -> KpkeSeedMaterial {
     let mut rho = [0u8; 32];
     let mut sigma = [0u8; 32];
 
@@ -125,15 +148,28 @@ pub fn keygen_from_seed<const PK_BYTES: usize, const SK_BYTES: usize>(
         });
     }
 
-    let seed_material = expand_keygen_seed(seed);
+    let seed_material = expand_keygen_seed_for_parameter_set(parameter_set, seed);
     let matrix = expand_matrix(parameter_set.k(), &seed_material.rho, false);
-    let s = sample_noise_vector(parameter_set, &seed_material.sigma, 0);
-    let e = sample_noise_vector(parameter_set, &seed_material.sigma, parameter_set.k() as u8);
-    let t = compute_public_vector(parameter_set.k(), &matrix, &s, &e);
+    let secret = sample_noise_vector(parameter_set, &seed_material.sigma, 0);
+    let error = sample_noise_vector(parameter_set, &seed_material.sigma, parameter_set.k() as u8);
 
-    let public_key =
-        encode_public_key_component::<PK_BYTES>(parameter_set, &t, &seed_material.rho)?;
-    let secret_key = encode_secret_key_component::<SK_BYTES>(parameter_set, &s)?;
+    // FIPS 203 ExpandA/SampleNTT already returns matrix entries in the NTT
+    // representation. Do not apply another forward transform to the matrix.
+    let matrix_hat = NttPolyMatrix::from_sampled_ntt_matrix(&matrix);
+    let secret_hat = NttPolyVec::from_polyvec(&secret);
+    let error_hat = NttPolyVec::from_polyvec(&error);
+    let public_hat =
+        crate::kpke_ntt_domain::matrix_vector_mul_add_to_ntt(&matrix_hat, &secret_hat, &error_hat);
+
+    // FIPS 203 serializes the NTT-domain vectors directly:
+    // ekPKE = ByteEncode12(t_hat) || rho
+    // dkPKE = ByteEncode12(s_hat)
+    let public_key = encode_ntt_public_key_component::<PK_BYTES>(
+        parameter_set,
+        &public_hat,
+        &seed_material.rho,
+    )?;
+    let secret_key = encode_ntt_secret_key_component::<SK_BYTES>(parameter_set, &secret_hat)?;
 
     Ok(KpkeKeygenOutput {
         public_key,
@@ -150,6 +186,19 @@ mod tests {
     fn seed_expansion_is_deterministic() {
         let seed = [5u8; 32];
         assert_eq!(expand_keygen_seed(&seed), expand_keygen_seed(&seed));
+    }
+
+    #[test]
+    fn fips_seed_expansion_includes_parameter_set_rank() {
+        let d = [0x47u8; 32];
+
+        let k512 = expand_keygen_seed_for_parameter_set(MlKemParameterSet::MlKem512, &d);
+        let k768 = expand_keygen_seed_for_parameter_set(MlKemParameterSet::MlKem768, &d);
+        let k1024 = expand_keygen_seed_for_parameter_set(MlKemParameterSet::MlKem1024, &d);
+
+        assert_ne!(k512, k768);
+        assert_ne!(k768, k1024);
+        assert_ne!(k512, k1024);
     }
 
     #[test]
@@ -208,6 +257,22 @@ mod tests {
         assert_eq!(a, b);
         assert_eq!(a.public_key.len(), 1568);
         assert_eq!(a.secret_key.len(), 1536);
+    }
+
+    #[test]
+    fn keygen_serializes_ntt_domain_secret_key() {
+        let parameter_set = MlKemParameterSet::MlKem512;
+        let seed = [0x5au8; 32];
+        let material = expand_keygen_seed_for_parameter_set(parameter_set, &seed);
+        let secret = sample_noise_vector(parameter_set, &material.sigma, 0);
+        let secret_hat = NttPolyVec::from_polyvec(&secret);
+        let expected =
+            crate::packing::encode_ntt_secret_key_component::<768>(parameter_set, &secret_hat)
+                .unwrap();
+
+        let generated = keygen_from_seed::<800, 768>(parameter_set, &seed).unwrap();
+
+        assert_eq!(generated.secret_key, expected);
     }
 
     #[test]

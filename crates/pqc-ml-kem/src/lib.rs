@@ -3,8 +3,8 @@
 #![deny(missing_docs)]
 //! ML-KEM API and implementation scaffold.
 //!
-//! Stage 5B-12 routes K-PKE polynomial products through the verified ML-KEM
-//! NTT multiplier while preserving the structural API and encodings.
+//! Stage 6.3 adds opt-in normative KeyGen tracing while the verified ML-KEM
+//! arithmetic and public APIs remain unchanged.
 
 pub mod arithmetic;
 pub mod conformance;
@@ -19,6 +19,9 @@ pub mod kpke_keygen;
 pub mod kpke_ntt_domain;
 pub mod kpke_structural;
 pub mod matrix;
+pub mod ml_kem_keygen;
+#[cfg(feature = "std")]
+pub mod ml_kem_trace;
 pub mod ntt;
 pub mod packing;
 pub mod poly;
@@ -305,7 +308,7 @@ fn placeholder_shared_secret(
     ciphertext: &[u8],
 ) -> MlKemSharedSecret {
     let mut input = [0u8; 64];
-    let domain = symmetric::h(b"pqc-rfc9958-rs stage5b15 ml-kem scaffold");
+    let domain = symmetric::h(b"pqc-rfc9958-rs stage6_1 ml-kem scaffold");
     input[..32].copy_from_slice(&domain);
 
     let pk_hash = symmetric::h(public_key);

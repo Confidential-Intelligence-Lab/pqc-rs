@@ -6,6 +6,7 @@
 use pqc_core::{PqcError, PqcResult};
 
 use crate::kpke::Message;
+use crate::kpke_ntt_domain::NttPolyVec;
 use crate::poly::Poly;
 use crate::polyvec::PolyVec;
 use crate::MlKemParameterSet;
@@ -72,6 +73,51 @@ pub fn encode_public_key_component<const BYTES: usize>(
     let mut out = [0u8; BYTES];
     encode_polyvec_12_into(t_hat, &mut out[..polyvec_12_bytes(parameter_set)])?;
     out[polyvec_12_bytes(parameter_set)..].copy_from_slice(rho);
+    Ok(out)
+}
+
+/// Encode an ML-KEM public-key component directly from the NTT-domain public
+/// vector and `rho`.
+pub fn encode_ntt_public_key_component<const BYTES: usize>(
+    parameter_set: MlKemParameterSet,
+    t_hat: &NttPolyVec,
+    rho: &[u8; RHO_BYTES],
+) -> PqcResult<[u8; BYTES]> {
+    if t_hat.rank() != parameter_set.k() {
+        return Err(PqcError::ProtocolInvariantFailed);
+    }
+    let expected = public_key_component_bytes(parameter_set);
+    if BYTES != expected {
+        return Err(PqcError::InvalidLength {
+            expected,
+            actual: BYTES,
+        });
+    }
+
+    let mut out = [0u8; BYTES];
+    encode_ntt_polyvec_12_into(t_hat, &mut out[..polyvec_12_bytes(parameter_set)])?;
+    out[polyvec_12_bytes(parameter_set)..].copy_from_slice(rho);
+    Ok(out)
+}
+
+/// Encode the CPA secret-key component directly from `s_hat`.
+pub fn encode_ntt_secret_key_component<const BYTES: usize>(
+    parameter_set: MlKemParameterSet,
+    s_hat: &NttPolyVec,
+) -> PqcResult<[u8; BYTES]> {
+    if s_hat.rank() != parameter_set.k() {
+        return Err(PqcError::ProtocolInvariantFailed);
+    }
+    let expected = secret_key_component_bytes(parameter_set);
+    if BYTES != expected {
+        return Err(PqcError::InvalidLength {
+            expected,
+            actual: BYTES,
+        });
+    }
+
+    let mut out = [0u8; BYTES];
+    encode_ntt_polyvec_12_into(s_hat, &mut out)?;
     Ok(out)
 }
 
@@ -307,6 +353,24 @@ pub fn encode_message(message: &Message) -> [u8; 32] {
     let mut out = [0u8; 32];
     out.copy_from_slice(message.as_bytes());
     out
+}
+
+fn encode_ntt_polyvec_12_into(polyvec: &NttPolyVec, out: &mut [u8]) -> PqcResult<()> {
+    let expected = polyvec.rank() * POLY_12_BYTES;
+    if out.len() != expected {
+        return Err(PqcError::InvalidLength {
+            expected,
+            actual: out.len(),
+        });
+    }
+
+    for (index, poly) in polyvec.as_slice().iter().enumerate() {
+        let encoded = Poly::from_coefficients(*poly.coefficients()).encode_12();
+        let start = index * POLY_12_BYTES;
+        out[start..start + POLY_12_BYTES].copy_from_slice(&encoded);
+    }
+
+    Ok(())
 }
 
 fn encode_polyvec_12_into(polyvec: &PolyVec, out: &mut [u8]) -> PqcResult<()> {
