@@ -8,6 +8,7 @@
 
 use pqc_core::{PqcError, PqcResult};
 
+use crate::kpke_arithmetic;
 use crate::matrix::expand_matrix;
 use crate::packing::{
     encode_public_key_component, encode_secret_key_component, public_key_component_bytes,
@@ -93,24 +94,11 @@ pub fn compute_public_vector(
     s: &PolyVec,
     e: &PolyVec,
 ) -> PolyVec {
+    assert_eq!(matrix_rank, a.rank());
     assert_eq!(matrix_rank, s.rank());
     assert_eq!(matrix_rank, e.rank());
 
-    let mut polys = [Poly::zero(), Poly::zero(), Poly::zero(), Poly::zero()];
-
-    let mut row = 0;
-    while row < matrix_rank {
-        let mut acc = Poly::zero();
-        let mut col = 0;
-        while col < matrix_rank {
-            acc = acc.add(&a.get(row, col).mul_schoolbook(&s.as_slice()[col]));
-            col += 1;
-        }
-        polys[row] = acc.add(&e.as_slice()[row]);
-        row += 1;
-    }
-
-    PolyVec::from_slice(&polys[..matrix_rank])
+    kpke_arithmetic::matrix_vector_mul_add(a, s, e)
 }
 
 /// Deterministic structural K-PKE key generation.

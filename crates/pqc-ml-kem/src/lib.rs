@@ -3,14 +3,15 @@
 #![deny(missing_docs)]
 //! ML-KEM API and implementation scaffold.
 //!
-//! Stage 5B-10 adds conformance status, KAT record types, validation manifests,
-//! and negative-test helpers without claiming FIPS 203 compliance.
+//! Stage 5B-12 routes K-PKE polynomial products through the verified ML-KEM
+//! NTT multiplier while preserving the structural API and encodings.
 
 pub mod arithmetic;
 pub mod conformance;
 pub mod encoding;
 pub mod fips_ntt;
 pub mod kpke;
+pub mod kpke_arithmetic;
 pub mod kpke_decrypt;
 pub mod kpke_encrypt;
 pub mod kpke_keygen;
@@ -302,7 +303,7 @@ fn placeholder_shared_secret(
     ciphertext: &[u8],
 ) -> MlKemSharedSecret {
     let mut input = [0u8; 64];
-    let domain = symmetric::h(b"pqc-rfc9958-rs stage5b10 ml-kem scaffold");
+    let domain = symmetric::h(b"pqc-rfc9958-rs stage5b12 ml-kem scaffold");
     input[..32].copy_from_slice(&domain);
 
     let pk_hash = symmetric::h(public_key);

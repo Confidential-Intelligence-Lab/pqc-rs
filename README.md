@@ -3,18 +3,10 @@
 Rust workspace for implementing and validating post-quantum cryptographic
 algorithms and protocol engineering patterns discussed by RFC 9958.
 
-## Stage 5B-11 status
+## Stage 5B-12 status
 
-Stage 5B-11 adds reference-compatible ML-KEM NTT arithmetic:
-
-- centered zeta schedule
-- forward NTT
-- `invntt_tomont`
-- ordinary inverse convenience wrapper
-- complete NTT-domain base multiplication
-- sparse and dense equivalence tests against schoolbook multiplication
-
-Official FIPS 203 KAT validation remains pending.
+Stage 5B-12 routes K-PKE polynomial arithmetic through the verified ML-KEM
+NTT path while preserving the existing structural APIs and encodings.
 
 ## Validate
 
@@ -28,6 +20,6 @@ cargo test --workspace --all-features
 
 ```bash
 git add .
-git commit -m "Stage 5B-11: Add reference-compatible ML-KEM NTT"
+git commit -m "Stage 5B-12: Route K-PKE arithmetic through NTT"
 git push origin main
 ```

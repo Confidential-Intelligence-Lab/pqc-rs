@@ -59,8 +59,8 @@ pub const COMPONENT_STATUS: &[ComponentStatus] = &[
     },
     ComponentStatus {
         id: "fips-ntt",
-        level: ConformanceLevel::Experimental,
-        note: "Butterfly path exists but exact FIPS 203 domain/scaling remains pending.",
+        level: ConformanceLevel::InternallyValidated,
+        note: "Forward/inverse and base multiplication match schoolbook polynomial products.",
     },
     ComponentStatus {
         id: "matrix-expansion",
@@ -70,17 +70,17 @@ pub const COMPONENT_STATUS: &[ComponentStatus] = &[
     ComponentStatus {
         id: "kpke-keygen",
         level: ConformanceLevel::Structural,
-        note: "Deterministic structure exists using current baseline arithmetic.",
+        note: "Structural implementation now routes polynomial products through the NTT path.",
     },
     ComponentStatus {
         id: "kpke-encrypt",
         level: ConformanceLevel::Structural,
-        note: "Deterministic structure exists using current baseline arithmetic.",
+        note: "Structural implementation now routes polynomial products through the NTT path.",
     },
     ComponentStatus {
         id: "kpke-decrypt",
         level: ConformanceLevel::Structural,
-        note: "Message-recovery structure exists; exact K-PKE correctness is pending.",
+        note: "Message recovery now routes polynomial products through the NTT path.",
     },
     ComponentStatus {
         id: "ml-kem-cca-transform",

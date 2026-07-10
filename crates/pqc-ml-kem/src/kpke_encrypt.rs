@@ -9,6 +9,7 @@ use pqc_core::{PqcError, PqcResult};
 
 use crate::encoding::message_to_poly;
 use crate::kpke::{EncryptionRandomness, Message};
+use crate::kpke_arithmetic;
 use crate::matrix::expand_matrix;
 use crate::packing::{
     ciphertext_component_bytes, decode_public_key_component, encode_ciphertext_components,
@@ -62,29 +63,15 @@ pub fn compute_u_vector(
     assert_eq!(r.rank(), rank);
     assert_eq!(e1.rank(), rank);
 
-    let a_t = expand_matrix(rank, rho, true);
-    let mut polys = [Poly::zero(), Poly::zero(), Poly::zero(), Poly::zero()];
-
-    let mut row = 0;
-    while row < rank {
-        let mut acc = Poly::zero();
-        let mut col = 0;
-        while col < rank {
-            acc = acc.add(&a_t.get(row, col).mul_schoolbook(&r.as_slice()[col]));
-            col += 1;
-        }
-        polys[row] = acc.add(&e1.as_slice()[row]);
-        row += 1;
-    }
-
-    PolyVec::from_slice(&polys[..rank])
+    let transposed_matrix = expand_matrix(rank, rho, true);
+    kpke_arithmetic::matrix_vector_mul_add(&transposed_matrix, r, e1)
 }
 
 /// Compute structural `v = t^T r + e2 + m`.
 pub fn compute_v_poly(t_hat: &PolyVec, r: &PolyVec, e2: &Poly, message: &Message) -> Poly {
     assert_eq!(t_hat.rank(), r.rank());
 
-    let mut acc = t_hat.dot_schoolbook(r);
+    let mut acc = kpke_arithmetic::dot(t_hat, r);
     acc = acc.add(e2);
     acc.add(&message_to_poly(message))
 }
