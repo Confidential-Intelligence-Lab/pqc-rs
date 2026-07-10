@@ -3,15 +3,10 @@
 Rust workspace for implementing and validating the post-quantum cryptographic
 algorithms and protocol engineering patterns discussed by RFC 9958.
 
-## Stage 5B-8 status
+## Stage 5B-9 status
 
-Stage 5B-8 adds deterministic K-PKE decryption structure:
-
-- CPA secret-key component decoding
-- ciphertext component decoding
-- structural `w = v - s^T u`
-- message recovery
-- malformed input rejection tests
+Stage 5B-9 integrates structural K-PKE behind the public `Kpke` trait for
+ML-KEM-512, ML-KEM-768, and ML-KEM-1024.
 
 ## Validate
 
@@ -23,10 +18,8 @@ cargo test --workspace --all-features
 
 ## GitHub stage workflow
 
-After tests pass:
-
 ```bash
 git add .
-git commit -m "Stage 5B-8: Add deterministic K-PKE decryption structure"
+git commit -m "Stage 5B-9: Integrate structural K-PKE trait"
 git push origin main
 ```
