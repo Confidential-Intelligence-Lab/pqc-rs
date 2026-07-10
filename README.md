@@ -1,12 +1,22 @@
 # pqc-rfc9958-rs
 
-Rust workspace for implementing and validating the post-quantum cryptographic
+Rust workspace for implementing and validating post-quantum cryptographic
 algorithms and protocol engineering patterns discussed by RFC 9958.
 
-## Stage 5B-9 status
+## Stage 5B-10 status
 
-Stage 5B-9 integrates structural K-PKE behind the public `Kpke` trait for
-ML-KEM-512, ML-KEM-768, and ML-KEM-1024.
+Stage 5B-10 adds a FIPS 203 conformance gate:
+
+- conformance maturity levels
+- component status manifest
+- parameter-set conformance status
+- KAT and intermediate-value record types
+- deterministic validation results
+- negative parameter-set mismatch tests
+- FIPS 203 traceability documentation
+
+The repository explicitly does **not** claim FIPS 203 conformance or official
+KAT validation at this stage.
 
 ## Validate
 
@@ -20,6 +30,6 @@ cargo test --workspace --all-features
 
 ```bash
 git add .
-git commit -m "Stage 5B-9: Integrate structural K-PKE trait"
+git commit -m "Stage 5B-10: Add FIPS 203 conformance gate"
 git push origin main
 ```

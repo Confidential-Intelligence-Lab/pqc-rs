@@ -3,10 +3,11 @@
 #![deny(missing_docs)]
 //! ML-KEM API and implementation scaffold.
 //!
-//! Stage 5B-9 unifies structural key generation, encryption, and decryption
-//! behind the public `Kpke` trait for all three ML-KEM parameter sets.
+//! Stage 5B-10 adds conformance status, KAT record types, validation manifests,
+//! and negative-test helpers without claiming FIPS 203 compliance.
 
 pub mod arithmetic;
+pub mod conformance;
 pub mod encoding;
 pub mod fips_ntt;
 pub mod kpke;
@@ -301,7 +302,7 @@ fn placeholder_shared_secret(
     ciphertext: &[u8],
 ) -> MlKemSharedSecret {
     let mut input = [0u8; 64];
-    let domain = symmetric::h(b"pqc-rfc9958-rs stage5b9 ml-kem scaffold");
+    let domain = symmetric::h(b"pqc-rfc9958-rs stage5b10 ml-kem scaffold");
     input[..32].copy_from_slice(&domain);
 
     let pk_hash = symmetric::h(public_key);
