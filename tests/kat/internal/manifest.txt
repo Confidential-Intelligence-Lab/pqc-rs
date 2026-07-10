@@ -1,0 +1,12 @@
+format = pqc-rfc9958-rs-internal-fixture-v1
+status = internal-golden-only
+official_fips203_kat = false
+
+fixture = stage5b15-ml-kem-512
+parameter_set = ML-KEM-512
+
+fixture = stage5b15-ml-kem-768
+parameter_set = ML-KEM-768
+
+fixture = stage5b15-ml-kem-1024
+parameter_set = ML-KEM-1024

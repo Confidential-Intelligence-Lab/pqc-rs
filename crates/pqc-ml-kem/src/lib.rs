@@ -10,6 +10,7 @@ pub mod arithmetic;
 pub mod conformance;
 pub mod encoding;
 pub mod fips_ntt;
+pub mod intermediate_values;
 pub mod kpke;
 pub mod kpke_arithmetic;
 pub mod kpke_decrypt;
@@ -304,7 +305,7 @@ fn placeholder_shared_secret(
     ciphertext: &[u8],
 ) -> MlKemSharedSecret {
     let mut input = [0u8; 64];
-    let domain = symmetric::h(b"pqc-rfc9958-rs stage5b14 ml-kem scaffold");
+    let domain = symmetric::h(b"pqc-rfc9958-rs stage5b15 ml-kem scaffold");
     input[..32].copy_from_slice(&domain);
 
     let pk_hash = symmetric::h(public_key);
