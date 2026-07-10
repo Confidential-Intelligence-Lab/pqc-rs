@@ -3,18 +3,24 @@
 Rust workspace for implementing and validating post-quantum cryptographic
 algorithms and protocol engineering patterns discussed by RFC 9958.
 
-## Stage 5B-15 status
+## Stage 5B-16 status
 
-Stage 5B-15 adds deterministic internal golden fixtures for:
+Stage 5B-16 adds an authoritative NIST ACVP import path:
 
-- seed expansion
-- matrix expansion
-- secret/error sampling
-- packed K-PKE public keys
-- packed CPA secret-key components
-- packed ciphertexts
+- pinned ACVP-Server release
+- reproducible fetch script
+- provenance and checksum files
+- typed ML-KEM keyGen JSON parser
+- prompt/expected joining
+- strict metadata and case matching
 
-These are internal regression fixtures, not official FIPS 203 KATs.
+No official vector is marked as passed yet.
+
+## Fetch vectors
+
+```bash
+./scripts/fetch-nist-acvp-ml-kem.sh
+```
 
 ## Validate
 
@@ -28,6 +34,6 @@ cargo test --workspace --all-features
 
 ```bash
 git add .
-git commit -m "Stage 5B-15: Add intermediate-value golden fixtures"
+git commit -m "Stage 5B-16: Add NIST ACVP vector import"
 git push origin main
 ```

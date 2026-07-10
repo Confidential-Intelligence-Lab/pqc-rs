@@ -1,0 +1,6 @@
+repository=https://github.com/usnistgov/ACVP-Server.git
+branch=master
+commit=15c0f3deeefbfa8cb6cd32a99e1ca3b738c66bf0
+fetched_utc=2026-07-10T04:22:59Z
+transport=raw-files-with-retries
+status=authoritative-source-imported-not-yet-passed
