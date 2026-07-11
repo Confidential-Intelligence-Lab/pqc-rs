@@ -6,3 +6,9 @@
 /// Placeholder type for compile validation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct HpkePlaceholder;
+pub mod error;
+pub mod identifiers;
+pub mod kdf;
+pub mod key_schedule;
+
+pub use error::HpkeError;

@@ -16,3 +16,7 @@ bench = ["pqc-core/bench"]
 [dependencies]
 pqc-core = { workspace = true }
 rand_core = { workspace = true }
+hkdf = { workspace = true }
+sha2 = { workspace = true }
+hex = { workspace = true }
+
