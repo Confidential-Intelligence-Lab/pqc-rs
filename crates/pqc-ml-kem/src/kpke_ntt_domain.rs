@@ -41,6 +41,23 @@ impl NttPolyVec {
         out
     }
 
+    /// Construct from coefficients that are already in ML-KEM NTT order.
+    ///
+    /// This must be used for vectors decoded from `ByteDecode12` public-key
+    /// components and for values produced directly by `SampleNTT`.
+    pub fn from_sampled_ntt_polyvec(polyvec: &PolyVec) -> Self {
+        let mut out = Self::zero(polyvec.rank());
+        let mut index = 0usize;
+
+        while index < polyvec.rank() {
+            out.polys[index] =
+                FipsNttPoly::from_coefficients(*polyvec.as_slice()[index].coefficients());
+            index += 1;
+        }
+
+        out
+    }
+
     /// Return the active rank.
     pub fn rank(&self) -> usize {
         self.rank

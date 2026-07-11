@@ -19,6 +19,7 @@ pub mod kpke_keygen;
 pub mod kpke_ntt_domain;
 pub mod kpke_structural;
 pub mod matrix;
+pub mod ml_kem_encaps;
 pub mod ml_kem_keygen;
 #[cfg(feature = "std")]
 pub mod ml_kem_trace;

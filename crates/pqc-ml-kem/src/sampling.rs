@@ -22,31 +22,66 @@ pub fn cbd_eta2(input: &[u8; 128]) -> Poly {
 
 /// Sample a polynomial from a centered binomial distribution with `eta = 3`.
 pub fn cbd_eta3(input: &[u8; 192]) -> Poly {
-    let mut coeffs = [0i16; N];
+    let mut coefficients = [0i16; 256];
+    let mut block = 0usize;
 
-    let mut i = 0;
-    while i < N {
-        let bit_pos = i * 6;
-        let byte_pos = bit_pos / 8;
-        let offset = bit_pos % 8;
+    while block < 64 {
+        let offset = 3 * block;
+        let word = u32::from(input[offset])
+            | (u32::from(input[offset + 1]) << 8)
+            | (u32::from(input[offset + 2]) << 16);
 
-        let mut window = u32::from(input[byte_pos]) >> offset;
-        if byte_pos + 1 < input.len() {
-            window |= u32::from(input[byte_pos + 1]) << (8 - offset);
+        let mut sums = word & 0x0024_9249;
+        sums += (word >> 1) & 0x0024_9249;
+        sums += (word >> 2) & 0x0024_9249;
+
+        let mut lane = 0usize;
+        while lane < 4 {
+            let shift = 6 * lane;
+            let a = ((sums >> shift) & 0x7) as i16;
+            let b = ((sums >> (shift + 3)) & 0x7) as i16;
+            coefficients[4 * block + lane] = a - b;
+            lane += 1;
         }
-        if offset > 4 && byte_pos + 2 < input.len() {
-            window |= u32::from(input[byte_pos + 2]) << (16 - offset);
-        }
 
-        let bits = window & 0x3f;
-        let a = (bits & 1) + ((bits >> 1) & 1) + ((bits >> 2) & 1);
-        let b = ((bits >> 3) & 1) + ((bits >> 4) & 1) + ((bits >> 5) & 1);
-        coeffs[i] = a as i16 - b as i16;
-
-        i += 1;
+        block += 1;
     }
 
-    Poly::from_coefficients(coeffs)
+    Poly::from_coefficients(coefficients)
+}
+
+#[cfg(test)]
+mod stage6_5b2_tests {
+    use super::*;
+
+    #[test]
+    fn cbd_eta3_all_zero_input_is_zero() {
+        assert_eq!(cbd_eta3(&[0u8; 192]), Poly::zero());
+    }
+
+    #[test]
+    fn cbd_eta3_known_bit_groups() {
+        let mut input = [0u8; 192];
+
+        input[0] = 0b0000_0111;
+        let positive = cbd_eta3(&input);
+        assert_eq!(positive.coefficients()[0], 3);
+
+        input[0] = 0b0011_1000;
+        let negative = cbd_eta3(&input);
+        assert_eq!(negative.coefficients()[0], 3326);
+    }
+
+    #[test]
+    fn cbd_eta3_coefficients_stay_in_range() {
+        let input = [0xffu8; 192];
+        let polynomial = cbd_eta3(&input);
+
+        assert!(polynomial
+            .coefficients()
+            .iter()
+            .all(|coefficient| (-3..=3).contains(coefficient)));
+    }
 }
 
 #[cfg(test)]

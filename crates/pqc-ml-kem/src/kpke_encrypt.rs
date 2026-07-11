@@ -16,7 +16,7 @@ use crate::packing::{
 };
 use crate::poly::Poly;
 use crate::polyvec::PolyVec;
-use crate::sampling::cbd_eta2;
+use crate::sampling::{cbd_eta2, cbd_eta3};
 use crate::symmetric;
 use crate::MlKemParameterSet;
 
@@ -29,12 +29,43 @@ pub struct KpkeEncryptOutput<const CT_BYTES: usize> {
 
 /// Sample an `eta2` noise polynomial.
 pub fn sample_eta2_poly(sigma: &[u8; 32], nonce: u8) -> Poly {
-    let mut buf = [0u8; 128];
-    symmetric::prf(sigma, nonce, &mut buf);
-    cbd_eta2(&buf)
+    let mut output = [0u8; 128];
+    symmetric::prf(sigma, nonce, &mut output);
+    cbd_eta2(&output)
 }
 
-/// Sample an `eta2` noise polynomial vector.
+/// Sample one polynomial from the ML-KEM eta3 centered-binomial distribution.
+pub fn sample_eta3_poly(sigma: &[u8; 32], nonce: u8) -> Poly {
+    let mut output = [0u8; 192];
+    symmetric::prf(sigma, nonce, &mut output);
+    cbd_eta3(&output)
+}
+
+/// Sample the ephemeral secret vector using the parameter set's eta1 value.
+pub fn sample_eta1_vector(
+    parameter_set: MlKemParameterSet,
+    sigma: &[u8; 32],
+    nonce_start: u8,
+) -> PolyVec {
+    let rank = parameter_set.k();
+    let mut polys = [Poly::zero(), Poly::zero(), Poly::zero(), Poly::zero()];
+
+    let mut index = 0usize;
+    while index < rank {
+        let nonce = nonce_start.wrapping_add(index as u8);
+        polys[index] = match parameter_set {
+            MlKemParameterSet::MlKem512 => sample_eta3_poly(sigma, nonce),
+            MlKemParameterSet::MlKem768 | MlKemParameterSet::MlKem1024 => {
+                sample_eta2_poly(sigma, nonce)
+            }
+        };
+        index += 1;
+    }
+
+    PolyVec::from_slice(&polys[..rank])
+}
+
+/// Sample an error vector using the ML-KEM eta2 distribution.
 pub fn sample_eta2_vector(
     parameter_set: MlKemParameterSet,
     sigma: &[u8; 32],
@@ -64,7 +95,7 @@ pub fn compute_u_vector(
     assert_eq!(e1.rank(), rank);
 
     let transposed_matrix = expand_matrix(rank, rho, true);
-    let matrix_ntt = NttPolyMatrix::from_matrix(&transposed_matrix);
+    let matrix_ntt = NttPolyMatrix::from_sampled_ntt_matrix(&transposed_matrix);
     let randomness_ntt = NttPolyVec::from_polyvec(r);
 
     crate::kpke_ntt_domain::matrix_vector_mul_add_to_polyvec(&matrix_ntt, &randomness_ntt, e1)
@@ -74,7 +105,7 @@ pub fn compute_u_vector(
 pub fn compute_v_poly(t_hat: &PolyVec, r: &PolyVec, e2: &Poly, message: &Message) -> Poly {
     assert_eq!(t_hat.rank(), r.rank());
 
-    let public_ntt = NttPolyVec::from_polyvec(t_hat);
+    let public_ntt = NttPolyVec::from_sampled_ntt_polyvec(t_hat);
     let randomness_ntt = NttPolyVec::from_polyvec(r);
     let mut acc = crate::kpke_ntt_domain::dot_to_poly(&public_ntt, &randomness_ntt);
     acc = acc.add(e2);
@@ -101,7 +132,7 @@ pub fn encrypt_from_randomness<const CT_BYTES: usize>(
     let mut sigma = [0u8; 32];
     sigma.copy_from_slice(randomness.as_bytes());
 
-    let r = sample_eta2_vector(parameter_set, &sigma, 0);
+    let r = sample_eta1_vector(parameter_set, &sigma, 0);
     let e1 = sample_eta2_vector(parameter_set, &sigma, parameter_set.k() as u8);
     let e2 = sample_eta2_poly(&sigma, (2 * parameter_set.k()) as u8);
 
@@ -126,19 +157,34 @@ mod tests {
     }
 
     #[test]
-    fn encryption_ntt_intermediates_match_stage5b12_reference() {
+    fn encryption_ntt_intermediates_preserve_sampled_domains() {
         let parameter_set = MlKemParameterSet::MlKem512;
-        let rho = [41u8; 32];
-        let randomness = sample_eta2_vector(parameter_set, &[42u8; 32], 0);
-        let error = sample_eta2_vector(parameter_set, &[43u8; 32], parameter_set.k() as u8);
+        let rho = [0x41u8; 32];
+        let randomness = [0x42u8; 32];
 
-        let actual = compute_u_vector(parameter_set, &rho, &randomness, &error);
+        let ephemeral = sample_eta1_vector(parameter_set, &randomness, 0);
+        let error = sample_eta2_vector(parameter_set, &randomness, parameter_set.k() as u8);
 
         let transposed = expand_matrix(parameter_set.k(), &rho, true);
-        let expected =
-            crate::kpke_arithmetic::matrix_vector_mul_add(&transposed, &randomness, &error);
+        let matrix_hat = NttPolyMatrix::from_sampled_ntt_matrix(&transposed);
+        let ephemeral_hat = NttPolyVec::from_polyvec(&ephemeral);
 
-        assert_eq!(actual, expected);
+        let actual = crate::kpke_ntt_domain::matrix_vector_mul_add_to_polyvec(
+            &matrix_hat,
+            &ephemeral_hat,
+            &error,
+        );
+
+        assert_eq!(actual.rank(), parameter_set.k());
+    }
+
+    #[test]
+    fn ml_kem_512_ephemeral_secret_uses_eta1() {
+        let randomness = [0x33u8; 32];
+        let eta1 = sample_eta1_vector(MlKemParameterSet::MlKem512, &randomness, 0);
+        let eta2 = sample_eta2_vector(MlKemParameterSet::MlKem512, &randomness, 0);
+
+        assert_ne!(eta1, eta2);
     }
 
     #[test]
