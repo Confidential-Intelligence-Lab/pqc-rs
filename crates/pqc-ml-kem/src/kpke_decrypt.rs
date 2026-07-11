@@ -9,7 +9,7 @@ use pqc_core::{PqcError, PqcResult};
 
 use crate::encoding::poly_to_message;
 use crate::kpke::Message;
-use crate::kpke_arithmetic;
+use crate::kpke_ntt_domain::NttPolyVec;
 use crate::packing::{
     ciphertext_component_bytes, decode_ciphertext_components, decode_secret_key_component,
 };
@@ -28,7 +28,9 @@ pub struct KpkeDecryptOutput {
 pub fn compute_message_poly(s_hat: &PolyVec, u: &PolyVec, v: &Poly) -> Poly {
     assert_eq!(s_hat.rank(), u.rank());
 
-    let product = kpke_arithmetic::dot(s_hat, u);
+    let secret_hat = NttPolyVec::from_sampled_ntt_polyvec(s_hat);
+    let u_hat = NttPolyVec::from_polyvec(u);
+    let product = crate::kpke_ntt_domain::dot_to_poly(&secret_hat, &u_hat);
     v.sub(&product)
 }
 

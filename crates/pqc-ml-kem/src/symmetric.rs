@@ -21,6 +21,16 @@ pub fn g(input: &[u8]) -> [u8; 64] {
     out
 }
 
+/// SHAKE256-based implicit-rejection hash.
+pub fn j(input: &[u8]) -> [u8; 32] {
+    let mut hasher = Shake256::default();
+    hasher.update(input);
+    let mut reader = hasher.finalize_xof();
+    let mut output = [0u8; 32];
+    reader.read(&mut output);
+    output
+}
+
 /// SHAKE128 XOF expansion with two domain bytes.
 pub fn xof(seed: &[u8; 32], x: u8, y: u8, out: &mut [u8]) {
     let mut hasher = Shake128::default();
