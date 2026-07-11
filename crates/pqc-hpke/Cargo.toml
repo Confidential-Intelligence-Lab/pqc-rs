@@ -19,4 +19,6 @@ rand_core = { workspace = true }
 hkdf = { workspace = true }
 sha2 = { workspace = true }
 hex = { workspace = true }
+pqc-ml-kem = { workspace = true }
+sha3 = { workspace = true }
 

@@ -12,3 +12,4 @@ pub mod kdf;
 pub mod key_schedule;
 
 pub use error::HpkeError;
+pub mod ml_kem;
