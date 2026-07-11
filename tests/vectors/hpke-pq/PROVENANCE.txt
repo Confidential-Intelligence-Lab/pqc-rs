@@ -1,0 +1,5 @@
+Document: draft-ietf-hpke-pq-05
+Vector repository: https://github.com/hpkewg/hpke-pq
+Vector path: test-vectors.json
+Retrieval policy: fetched explicitly by scripts/fetch-hpke-pq-vectors.sh
+Conformance scope: pure ML-KEM Base-mode suites only
