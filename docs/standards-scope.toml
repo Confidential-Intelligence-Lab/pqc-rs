@@ -1,0 +1,45 @@
+schema_version = 1
+updated = "2026-07-10"
+
+[[target]]
+id = "fips-203"
+designation = "FIPS 203"
+status = "final"
+repository_evidence = "vector-validated"
+complete_conformance_claim = false
+evidence = [
+  "NIST ACVP ML-KEM KeyGen: 75/75",
+  "NIST ACVP ML-KEM encapsulation: 75/75",
+  "NIST ACVP ML-KEM decapsulation: 30/30",
+  "NIST ACVP ML-KEM key checks: 60/60",
+]
+caveat = "Algorithm-vector validation is not a claim of CMVP module validation."
+
+[[target]]
+id = "rfc-9958"
+designation = "RFC 9958"
+title = "Post-Quantum Cryptography for Engineers"
+status = "informational"
+repository_evidence = "guidance-traced"
+complete_conformance_claim = false
+caveat = "RFC 9958 is engineering guidance, not an executable protocol specification."
+
+[[target]]
+id = "rfc-9180"
+designation = "RFC 9180"
+title = "Hybrid Public Key Encryption"
+status = "informational"
+repository_evidence = "pending"
+complete_conformance_claim = false
+caveat = "HPKE protocol implementation and RFC 9180 vector validation remain pending."
+
+[[target]]
+id = "draft-ietf-hpke-pq-05"
+designation = "draft-ietf-hpke-pq-05"
+title = "Post-Quantum and Post-Quantum/Traditional Hybrid Algorithms for HPKE"
+status = "internet-draft-work-in-progress"
+publication_date = "2026-07-06"
+expiry_date = "2027-01-07"
+repository_evidence = "draft-pinned"
+complete_conformance_claim = false
+caveat = "Experimental target only. Internet-Drafts may change, be replaced, or expire."

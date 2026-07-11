@@ -21,6 +21,7 @@ pub mod kpke_structural;
 pub mod matrix;
 pub mod ml_kem_decaps;
 pub mod ml_kem_encaps;
+pub mod ml_kem_key_check;
 pub mod ml_kem_keygen;
 #[cfg(feature = "std")]
 pub mod ml_kem_trace;

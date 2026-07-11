@@ -22,3 +22,16 @@ cargo run -p pqc-test-harness \
 ```
 
 The implementation remains pre-conformance.
+
+<!-- STANDARDS-STATUS:BEGIN -->
+## Standards status
+
+- **FIPS 203 ML-KEM:** validated against the imported NIST ACVP corpus.
+- **RFC 9958:** engineering guidance traced; it is not treated as an
+  executable protocol or conformance specification.
+- **RFC 9180 HPKE:** implementation and vector validation pending.
+- **draft-ietf-hpke-pq-05:** pinned experimental integration target;
+  Internet-Draft status is preserved explicitly.
+
+Passing ACVP vectors is not a claim of CMVP module validation.
+<!-- STANDARDS-STATUS:END -->

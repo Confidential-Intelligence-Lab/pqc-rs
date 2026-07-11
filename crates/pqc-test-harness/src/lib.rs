@@ -4,6 +4,7 @@
 
 pub mod acvp;
 pub mod acvp_encap_decap;
+pub mod standards_scope;
 
 /// A parsed known-answer-test vector.
 #[derive(Clone, Debug, Eq, PartialEq)]
