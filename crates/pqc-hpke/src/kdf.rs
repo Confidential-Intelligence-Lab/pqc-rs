@@ -20,6 +20,16 @@ pub enum KdfAlgorithm {
 }
 
 impl KdfAlgorithm {
+    /// Resolve an RFC 9180 KDF identifier.
+    pub const fn from_id(id: KdfId) -> Option<Self> {
+        match id.0 {
+            0x0001 => Some(Self::HkdfSha256),
+            0x0002 => Some(Self::HkdfSha384),
+            0x0003 => Some(Self::HkdfSha512),
+            _ => None,
+        }
+    }
+
     /// Return the HPKE KDF identifier.
     pub const fn id(self) -> KdfId {
         match self {

@@ -12,4 +12,7 @@ pub mod kdf;
 pub mod key_schedule;
 
 pub use error::HpkeError;
+pub mod aead;
+pub mod context;
 pub mod ml_kem;
+pub mod setup;
