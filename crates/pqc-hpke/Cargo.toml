@@ -5,6 +5,10 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
+description = "HPKE with ML-KEM and post-quantum/traditional hybrid key encapsulation for PQC-rs."
+readme = "../../README.md"
+categories = ["cryptography"]
+keywords = ["post-quantum", "cryptography", "hpke", "ml-kem", "rust"]
 
 [features]
 default = ["std"]

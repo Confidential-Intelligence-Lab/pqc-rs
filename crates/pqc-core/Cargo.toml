@@ -5,6 +5,10 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
+description = "Core types, traits, errors, and secret containers for the PQC-rs cryptography workspace."
+readme = "../../README.md"
+categories = ["cryptography"]
+keywords = ["post-quantum", "cryptography", "pqc", "rust"]
 
 [features]
 default = ["std"]
