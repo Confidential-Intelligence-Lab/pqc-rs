@@ -420,7 +420,7 @@ impl HybridKem {
 }
 
 /// Expanded hybrid key pair.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct HybridKeyPair {
     /// Serialized 32-byte hybrid private key seed.
     pub private_seed: [u8; 32],
@@ -431,7 +431,7 @@ pub struct HybridKeyPair {
 }
 
 /// Deterministic hybrid encapsulation output.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct HybridEncapsulation {
     /// Serialized hybrid ciphertext.
     pub encapsulated_key: Vec<u8>,

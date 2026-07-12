@@ -1,0 +1,24 @@
+name: Fuzz smoke
+
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "29 10 * * 3"
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@nightly
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo install --locked cargo-fuzz
+      - name: Run bounded fuzz targets
+        env:
+          FUZZ_SECONDS: "30"
+        run: ./scripts/run-fuzz-smoke.sh

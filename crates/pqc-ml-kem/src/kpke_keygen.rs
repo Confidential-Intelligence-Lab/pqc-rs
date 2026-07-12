@@ -21,7 +21,7 @@ use crate::symmetric;
 use crate::MlKemParameterSet;
 
 /// Expanded K-PKE key-generation seed material.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct KpkeSeedMaterial {
     /// Public matrix seed.
     pub rho: [u8; 32],
@@ -30,7 +30,7 @@ pub struct KpkeSeedMaterial {
 }
 
 /// Structural K-PKE key-generation output.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct KpkeKeygenOutput<const PK_BYTES: usize, const SK_BYTES: usize> {
     /// Encoded public key component.
     pub public_key: [u8; PK_BYTES],
@@ -185,7 +185,7 @@ mod tests {
     #[test]
     fn seed_expansion_is_deterministic() {
         let seed = [5u8; 32];
-        assert_eq!(expand_keygen_seed(&seed), expand_keygen_seed(&seed));
+        assert!(expand_keygen_seed(&seed) == expand_keygen_seed(&seed));
     }
 
     #[test]
@@ -196,9 +196,9 @@ mod tests {
         let k768 = expand_keygen_seed_for_parameter_set(MlKemParameterSet::MlKem768, &d);
         let k1024 = expand_keygen_seed_for_parameter_set(MlKemParameterSet::MlKem1024, &d);
 
-        assert_ne!(k512, k768);
-        assert_ne!(k768, k1024);
-        assert_ne!(k512, k1024);
+        assert!(k512 != k768);
+        assert!(k768 != k1024);
+        assert!(k512 != k1024);
     }
 
     #[test]
@@ -230,7 +230,7 @@ mod tests {
         let a = keygen_from_seed::<800, 768>(MlKemParameterSet::MlKem512, &seed).unwrap();
         let b = keygen_from_seed::<800, 768>(MlKemParameterSet::MlKem512, &seed).unwrap();
 
-        assert_eq!(a, b);
+        assert!(a == b);
         assert_eq!(a.public_key.len(), 800);
         assert_eq!(a.secret_key.len(), 768);
     }
@@ -242,7 +242,7 @@ mod tests {
         let a = keygen_from_seed::<1184, 1152>(MlKemParameterSet::MlKem768, &seed).unwrap();
         let b = keygen_from_seed::<1184, 1152>(MlKemParameterSet::MlKem768, &seed).unwrap();
 
-        assert_eq!(a, b);
+        assert!(a == b);
         assert_eq!(a.public_key.len(), 1184);
         assert_eq!(a.secret_key.len(), 1152);
     }
@@ -254,7 +254,7 @@ mod tests {
         let a = keygen_from_seed::<1568, 1536>(MlKemParameterSet::MlKem1024, &seed).unwrap();
         let b = keygen_from_seed::<1568, 1536>(MlKemParameterSet::MlKem1024, &seed).unwrap();
 
-        assert_eq!(a, b);
+        assert!(a == b);
         assert_eq!(a.public_key.len(), 1568);
         assert_eq!(a.secret_key.len(), 1536);
     }

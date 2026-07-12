@@ -1,0 +1,54 @@
+[package]
+name = "pqc-rfc9958-fuzz"
+version = "0.0.0"
+edition = "2021"
+publish = false
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+serde_json = "1"
+
+pqc-hpke = { path = "../crates/pqc-hpke", version = "0.4.0" }
+pqc-ml-kem = { path = "../crates/pqc-ml-kem", version = "0.4.0" }
+pqc-test-harness = { path = "../crates/pqc-test-harness", version = "0.4.0" }
+
+[[bin]]
+name = "ml_kem_key_checks"
+path = "fuzz_targets/ml_kem_key_checks.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "ml_kem_decapsulation"
+path = "fuzz_targets/ml_kem_decapsulation.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "hpke_vector_parser"
+path = "fuzz_targets/hpke_vector_parser.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "hpke_receiver_open"
+path = "fuzz_targets/hpke_receiver_open.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "hybrid_kem_inputs"
+path = "fuzz_targets/hybrid_kem_inputs.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]
+members = ["."]

@@ -10,7 +10,7 @@ use crate::symmetric;
 use crate::MlKemParameterSet;
 
 /// Deterministic ML-KEM key-generation output.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct MlKemKeygenOutput<const EK_BYTES: usize, const DK_BYTES: usize> {
     /// Encapsulation key.
     pub encapsulation_key: [u8; EK_BYTES],
@@ -81,17 +81,17 @@ mod tests {
         let d = [0x11u8; 32];
         let z = [0x22u8; 32];
 
-        assert_eq!(
-            ml_kem_512_keygen_internal(&d, &z).unwrap(),
+        assert!(
             ml_kem_512_keygen_internal(&d, &z).unwrap()
+                == ml_kem_512_keygen_internal(&d, &z).unwrap()
         );
-        assert_eq!(
-            ml_kem_768_keygen_internal(&d, &z).unwrap(),
+        assert!(
             ml_kem_768_keygen_internal(&d, &z).unwrap()
+                == ml_kem_768_keygen_internal(&d, &z).unwrap()
         );
-        assert_eq!(
-            ml_kem_1024_keygen_internal(&d, &z).unwrap(),
+        assert!(
             ml_kem_1024_keygen_internal(&d, &z).unwrap()
+                == ml_kem_1024_keygen_internal(&d, &z).unwrap()
         );
     }
 

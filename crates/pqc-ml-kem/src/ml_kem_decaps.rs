@@ -17,7 +17,7 @@ use crate::MlKemParameterSet;
 pub const ML_KEM_SHARED_SECRET_BYTES: usize = 32;
 
 /// Deterministic decapsulation output.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct MlKemDecapsulationOutput {
     /// Decapsulated shared secret.
     pub shared_secret: SharedSecretBytes<ML_KEM_SHARED_SECRET_BYTES>,

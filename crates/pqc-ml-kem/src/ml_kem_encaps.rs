@@ -11,7 +11,7 @@ use crate::MlKemParameterSet;
 pub const ML_KEM_SHARED_SECRET_BYTES: usize = 32;
 
 /// Deterministic encapsulation result.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct MlKemEncapsulationOutput {
     /// Encapsulation ciphertext.
     pub ciphertext: Vec<u8>,

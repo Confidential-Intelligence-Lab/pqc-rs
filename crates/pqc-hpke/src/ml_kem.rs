@@ -247,7 +247,7 @@ impl MlKemHpke {
 }
 
 /// ML-KEM HPKE key pair.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct MlKemHpkeKeyPair {
     /// HPKE private key in the 64-byte seed format `d || z`.
     pub private_key_seed: [u8; 64],
@@ -258,7 +258,7 @@ pub struct MlKemHpkeKeyPair {
 }
 
 /// Deterministic ML-KEM HPKE encapsulation output.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct MlKemHpkeEncapsulation {
     /// HPKE `enc` value.
     pub encapsulated_key: Vec<u8>,

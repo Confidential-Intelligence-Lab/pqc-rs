@@ -78,7 +78,7 @@ pub struct KeyScheduleInputs<'a> {
 }
 
 /// RFC 9180 key-schedule output.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct KeyScheduleOutput {
     /// AEAD key.
     pub key: Vec<u8>,
