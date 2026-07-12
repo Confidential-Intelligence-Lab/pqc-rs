@@ -3,6 +3,7 @@
 use crate::identifiers::{AeadId, HpkeSuiteId};
 use crate::kdf::KdfAlgorithm;
 use crate::HpkeError;
+use pqc_core::secret::SecretVec;
 
 /// HPKE mode value.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -78,20 +79,19 @@ pub struct KeyScheduleInputs<'a> {
 }
 
 /// RFC 9180 key-schedule output.
-#[derive(Clone, Eq, PartialEq)]
 pub struct KeyScheduleOutput {
     /// AEAD key.
-    pub key: Vec<u8>,
+    pub key: SecretVec,
     /// Base nonce.
     pub base_nonce: Vec<u8>,
     /// Initial sequence number.
     pub sequence_number: u64,
     /// Exporter secret.
-    pub exporter_secret: Vec<u8>,
+    pub exporter_secret: SecretVec,
     /// Serialized key-schedule context.
     pub key_schedule_context: Vec<u8>,
     /// Intermediate secret retained for validation.
-    pub secret: Vec<u8>,
+    pub secret: SecretVec,
 }
 
 /// Verify RFC 9180 PSK input consistency.
@@ -161,12 +161,12 @@ pub fn key_schedule(
     )?;
 
     Ok(KeyScheduleOutput {
-        key,
+        key: SecretVec::new(key),
         base_nonce,
         sequence_number: 0,
-        exporter_secret,
+        exporter_secret: SecretVec::new(exporter_secret),
         key_schedule_context,
-        secret,
+        secret: SecretVec::new(secret),
     })
 }
 
@@ -222,13 +222,13 @@ mod tests {
             "00725611c9d98c07c03f60095cd32d400d8347d45ed67097bbad50fc56da742d079f23913be9bd9302a41f2a8797bcd1b104775a54d5c1511abfbaf809a9a605b8"
         );
         assert_eq!(
-            hex::encode(output.secret),
+            hex::encode(output.secret.as_bytes()),
             "fd43c4edc16db3816528a0662f9be842770e242a35625fa4260c082ef44e5b2e"
         );
         assert_eq!(hex::encode(output.key), "d79b34deb1cc78754a35047534c80e51");
         assert_eq!(hex::encode(output.base_nonce), "a68368fd8b85a49a7462bb66");
         assert_eq!(
-            hex::encode(output.exporter_secret),
+            hex::encode(output.exporter_secret.as_bytes()),
             "de4e354b82c6e5db12d7a7e23cf6e3c9a7f8c79f01ed58ef867e8265bcea5ac9"
         );
         assert_eq!(output.sequence_number, 0);

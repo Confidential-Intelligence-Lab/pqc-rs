@@ -39,7 +39,7 @@ pub fn setup_hybrid_base_sender_deterministic(
         parameters,
         KeyScheduleInputs {
             mode: HpkeMode::Base,
-            shared_secret: &encapsulation.shared_secret,
+            shared_secret: encapsulation.shared_secret.as_bytes(),
             info,
             psk: b"",
             psk_id: b"",

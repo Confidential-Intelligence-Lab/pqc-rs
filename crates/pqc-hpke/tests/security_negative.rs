@@ -29,7 +29,7 @@ fn altered_aad_is_rejected_without_advancing_receiver_sequence() {
     let mut receiver_context = setup_base_receiver(
         kem,
         suite,
-        &key_pair.private_key_seed,
+        key_pair.private_key_seed.as_bytes(),
         &sender.encapsulated_key,
         b"security-negative",
     )
@@ -65,7 +65,7 @@ fn modified_ciphertext_is_rejected_without_advancing_sequence() {
     let mut receiver_context = setup_base_receiver(
         kem,
         suite,
-        &key_pair.private_key_seed,
+        key_pair.private_key_seed.as_bytes(),
         &sender.encapsulated_key,
         b"tamper-test",
     )
@@ -97,7 +97,7 @@ fn different_info_values_produce_incompatible_contexts() {
     let mut receiver_context = setup_base_receiver(
         kem,
         suite,
-        &key_pair.private_key_seed,
+        key_pair.private_key_seed.as_bytes(),
         &sender.encapsulated_key,
         b"receiver info",
     )

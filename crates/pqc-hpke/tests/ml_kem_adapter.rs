@@ -15,10 +15,13 @@ fn pure_ml_kem_hpke_kem_adapters_round_trip() {
             .encapsulate_deterministic(&key_pair.public_key, &randomness)
             .unwrap();
         let receiver = kem
-            .decapsulate(&key_pair.private_key_seed, &sender.encapsulated_key)
+            .decapsulate(
+                key_pair.private_key_seed.as_bytes(),
+                &sender.encapsulated_key,
+            )
             .unwrap();
 
-        assert_eq!(sender.shared_secret, receiver);
+        assert!(sender.shared_secret.as_bytes() == receiver.as_slice());
         assert_eq!(sender.encapsulated_key.len(), kem.encapsulation_length());
     }
 }

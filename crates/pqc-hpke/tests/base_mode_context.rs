@@ -21,7 +21,7 @@ fn base_mode_round_trips_multiple_messages() {
     let mut receiver = setup_base_receiver(
         kem,
         suite,
-        &key_pair.private_key_seed,
+        key_pair.private_key_seed.as_bytes(),
         &sender.encapsulated_key,
         b"stage7b4",
     )
@@ -53,7 +53,7 @@ fn sender_and_receiver_export_same_secret() {
     let receiver = setup_base_receiver(
         kem,
         suite,
-        &key_pair.private_key_seed,
+        key_pair.private_key_seed.as_bytes(),
         &sender.encapsulated_key,
         b"export-test",
     )
@@ -80,7 +80,7 @@ fn failed_open_does_not_advance_sequence() {
     let mut receiver = setup_base_receiver(
         kem,
         suite,
-        &key_pair.private_key_seed,
+        key_pair.private_key_seed.as_bytes(),
         &sender.encapsulated_key,
         b"failure-test",
     )

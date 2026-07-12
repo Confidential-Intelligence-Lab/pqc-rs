@@ -3,6 +3,7 @@
 //! This module follows `draft-ietf-hpke-pq-05` and keeps ML-KEM
 //! decapsulation keys in the draft's 64-byte seed format.
 
+use pqc_core::secret::{SecretBytes, SecretVec};
 use pqc_ml_kem::ml_kem_decaps::decaps_internal;
 use pqc_ml_kem::ml_kem_encaps::encaps_internal;
 use pqc_ml_kem::ml_kem_key_check::{decapsulation_key_is_valid, encapsulation_key_is_valid};
@@ -137,9 +138,9 @@ impl MlKemHpke {
         };
 
         Ok(MlKemHpkeKeyPair {
-            private_key_seed,
+            private_key_seed: SecretBytes::new(private_key_seed),
             public_key,
-            expanded_private_key,
+            expanded_private_key: SecretVec::new(expanded_private_key),
         })
     }
 
@@ -162,7 +163,7 @@ impl MlKemHpke {
 
         Ok(MlKemHpkeEncapsulation {
             encapsulated_key: output.ciphertext,
-            shared_secret: output.shared_secret.as_bytes().to_vec(),
+            shared_secret: SecretVec::new(output.shared_secret.as_bytes().to_vec()),
         })
     }
 
@@ -185,13 +186,16 @@ impl MlKemHpke {
             .map_err(|_| MlKemHpkeError::InvalidPrivateKeyLength)?;
         let key_pair = self.expand_seed_private_key(seed)?;
 
-        if !decapsulation_key_is_valid(self.parameter_set(), &key_pair.expanded_private_key) {
+        if !decapsulation_key_is_valid(
+            self.parameter_set(),
+            key_pair.expanded_private_key.as_bytes(),
+        ) {
             return Err(MlKemHpkeError::DecapError);
         }
 
         let output = decaps_internal(
             self.parameter_set(),
-            &key_pair.expanded_private_key,
+            key_pair.expanded_private_key.as_bytes(),
             encapsulated_key,
         )
         .map_err(|_| MlKemHpkeError::DecapError)?;
@@ -247,23 +251,21 @@ impl MlKemHpke {
 }
 
 /// ML-KEM HPKE key pair.
-#[derive(Clone, Eq, PartialEq)]
 pub struct MlKemHpkeKeyPair {
     /// HPKE private key in the 64-byte seed format `d || z`.
-    pub private_key_seed: [u8; 64],
+    pub private_key_seed: SecretBytes<64>,
     /// Serialized ML-KEM encapsulation key.
     pub public_key: Vec<u8>,
     /// Expanded FIPS 203 decapsulation key, retained internally.
-    pub expanded_private_key: Vec<u8>,
+    pub expanded_private_key: SecretVec,
 }
 
 /// Deterministic ML-KEM HPKE encapsulation output.
-#[derive(Clone, Eq, PartialEq)]
 pub struct MlKemHpkeEncapsulation {
     /// HPKE `enc` value.
     pub encapsulated_key: Vec<u8>,
     /// HPKE KEM shared secret.
-    pub shared_secret: Vec<u8>,
+    pub shared_secret: SecretVec,
 }
 
 /// ML-KEM HPKE adapter error.
@@ -335,7 +337,7 @@ mod tests {
         let key_pair = MlKemHpke::MlKem768.derive_key_pair(&ikm).unwrap();
 
         assert_eq!(
-            hex::encode(key_pair.private_key_seed),
+            hex::encode(key_pair.private_key_seed.as_bytes()),
             "555f04d397d64a045cf078dbc8c403b1e576906ef3ec8f21fdd773a79f4cbb2e2c49fdc93efc5e57b42d4932ca4270041ccf255b1a25d21c01f89790ef04e091"
         );
     }
@@ -355,10 +357,13 @@ mod tests {
                 .encapsulate_deterministic(&key_pair.public_key, &randomness)
                 .unwrap();
             let recovered = kem
-                .decapsulate(&key_pair.private_key_seed, &encapsulation.encapsulated_key)
+                .decapsulate(
+                    key_pair.private_key_seed.as_bytes(),
+                    &encapsulation.encapsulated_key,
+                )
                 .unwrap();
 
-            assert_eq!(recovered, encapsulation.shared_secret);
+            assert!(recovered.as_slice() == encapsulation.shared_secret.as_bytes());
         }
     }
 
@@ -372,11 +377,11 @@ mod tests {
                 .unwrap(),
             key_pair.public_key
         );
-        assert_eq!(
+        assert!(
             MlKemHpke::MlKem512
-                .serialize_private_key(&key_pair.private_key_seed)
-                .unwrap(),
-            key_pair.private_key_seed
+                .serialize_private_key(key_pair.private_key_seed.as_bytes())
+                .unwrap()
+                == key_pair.private_key_seed.as_bytes()
         );
     }
 }

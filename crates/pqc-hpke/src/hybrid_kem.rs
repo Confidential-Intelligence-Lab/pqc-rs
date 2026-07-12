@@ -1,6 +1,7 @@
 //! PQ/traditional hybrid KEMs for HPKE.
 
 use p256::elliptic_curve::sec1::ToEncodedPoint as _;
+use pqc_core::secret::{SecretBytes, SecretVec};
 use sha3::{
     digest::{Digest, ExtendableOutput, Update, XofReader},
     Sha3_256, Shake256,
@@ -100,10 +101,10 @@ impl HybridKem {
         public_key.extend_from_slice(&traditional_public);
 
         Ok(HybridKeyPair {
-            private_seed,
+            private_seed: SecretBytes::new(private_seed),
             public_key,
-            expanded_pq_private_key: pq_private,
-            traditional_private_key: traditional_private,
+            expanded_pq_private_key: SecretVec::new(pq_private),
+            traditional_private_key: SecretVec::new(traditional_private),
         })
     }
 
@@ -145,7 +146,7 @@ impl HybridKem {
 
         Ok(HybridEncapsulation {
             encapsulated_key,
-            shared_secret,
+            shared_secret: SecretVec::new(shared_secret),
         })
     }
 
@@ -171,9 +172,12 @@ impl HybridKem {
         let traditional_ciphertext = &encapsulated_key[pq_ciphertext_length..];
         let traditional_public = &key_pair.public_key[self.pq_public_key_length()..];
 
-        let pq_secret = self.pq_decapsulate(&key_pair.expanded_pq_private_key, pq_ciphertext)?;
-        let traditional_secret = self
-            .traditional_decapsulate(&key_pair.traditional_private_key, traditional_ciphertext)?;
+        let pq_secret =
+            self.pq_decapsulate(key_pair.expanded_pq_private_key.as_bytes(), pq_ciphertext)?;
+        let traditional_secret = self.traditional_decapsulate(
+            key_pair.traditional_private_key.as_bytes(),
+            traditional_ciphertext,
+        )?;
 
         Ok(self.combine(
             &pq_secret,
@@ -420,23 +424,21 @@ impl HybridKem {
 }
 
 /// Expanded hybrid key pair.
-#[derive(Clone)]
 pub struct HybridKeyPair {
     /// Serialized 32-byte hybrid private key seed.
-    pub private_seed: [u8; 32],
+    pub private_seed: SecretBytes<32>,
     /// Serialized hybrid public key.
     pub public_key: Vec<u8>,
-    expanded_pq_private_key: Vec<u8>,
-    traditional_private_key: Vec<u8>,
+    expanded_pq_private_key: SecretVec,
+    traditional_private_key: SecretVec,
 }
 
 /// Deterministic hybrid encapsulation output.
-#[derive(Clone, Eq, PartialEq)]
 pub struct HybridEncapsulation {
     /// Serialized hybrid ciphertext.
     pub encapsulated_key: Vec<u8>,
     /// 32-byte combined KEM shared secret.
-    pub shared_secret: Vec<u8>,
+    pub shared_secret: SecretVec,
 }
 
 /// Hybrid KEM error.

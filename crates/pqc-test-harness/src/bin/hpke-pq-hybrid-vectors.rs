@@ -87,7 +87,7 @@ fn execute_suite(vector: &HpkePqVector, results: &mut Results) -> Result<(), Str
         results,
         vector,
         "recipient private key",
-        &key_pair.private_seed,
+        key_pair.private_seed.as_bytes(),
         &expected_sk,
     )?;
     check(
@@ -112,7 +112,7 @@ fn execute_suite(vector: &HpkePqVector, results: &mut Results) -> Result<(), Str
         results,
         vector,
         "shared_secret",
-        &kem_output.shared_secret,
+        kem_output.shared_secret.as_bytes(),
         &expected_shared,
     )?;
 
@@ -120,9 +120,14 @@ fn execute_suite(vector: &HpkePqVector, results: &mut Results) -> Result<(), Str
         setup_hybrid_base_sender_deterministic(kem, suite, &key_pair.public_key, &info, &ikm_e)
             .map_err(|error| error.to_string())?;
     let mut sender_context = sender.context;
-    let mut receiver_context =
-        setup_hybrid_base_receiver(kem, suite, &key_pair.private_seed, &expected_enc, &info)
-            .map_err(|error| error.to_string())?;
+    let mut receiver_context = setup_hybrid_base_receiver(
+        kem,
+        suite,
+        key_pair.private_seed.as_bytes(),
+        &expected_enc,
+        &info,
+    )
+    .map_err(|error| error.to_string())?;
 
     for encryption in &vector.encryptions {
         let aad = decode_hex(&encryption.aad).map_err(|error| error.to_string())?;

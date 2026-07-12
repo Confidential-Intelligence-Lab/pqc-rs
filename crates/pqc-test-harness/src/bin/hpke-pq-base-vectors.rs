@@ -95,7 +95,7 @@ fn execute_suite(vector: &HpkePqVector, results: &mut Results) -> Result<(), Str
         results,
         vector,
         "recipient private key",
-        &key_pair.private_key_seed,
+        key_pair.private_key_seed.as_bytes(),
         &expected_sk,
     )?;
     check(
@@ -123,7 +123,7 @@ fn execute_suite(vector: &HpkePqVector, results: &mut Results) -> Result<(), Str
         results,
         vector,
         "shared_secret",
-        &kem_output.shared_secret,
+        kem_output.shared_secret.as_bytes(),
         &expected_shared_secret,
     )?;
 
@@ -139,9 +139,14 @@ fn execute_suite(vector: &HpkePqVector, results: &mut Results) -> Result<(), Str
     )?;
 
     let mut sender_context = sender.context;
-    let mut receiver_context =
-        setup_base_receiver(kem, suite, &key_pair.private_key_seed, &expected_enc, &info)
-            .map_err(|error| error.to_string())?;
+    let mut receiver_context = setup_base_receiver(
+        kem,
+        suite,
+        key_pair.private_key_seed.as_bytes(),
+        &expected_enc,
+        &info,
+    )
+    .map_err(|error| error.to_string())?;
 
     for (index, encryption) in vector.encryptions.iter().enumerate() {
         let expected_sequence = encryption.seq.unwrap_or(index as u64);

@@ -107,10 +107,10 @@ impl ContextState {
             suite,
             kdf,
             aead,
-            key: schedule.key,
+            key: schedule.key.as_bytes().to_vec(),
             base_nonce: schedule.base_nonce,
             sequence_number: schedule.sequence_number,
-            exporter_secret: schedule.exporter_secret,
+            exporter_secret: schedule.exporter_secret.as_bytes().to_vec(),
         }
     }
 

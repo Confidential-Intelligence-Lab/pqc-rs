@@ -25,8 +25,8 @@ fn suite_and_key_schedule_are_stable() {
     )
     .unwrap();
 
-    assert_eq!(output.key.len(), 16);
+    assert_eq!(output.key.as_bytes().len(), 16);
     assert_eq!(output.base_nonce.len(), 12);
-    assert_eq!(output.exporter_secret.len(), 32);
+    assert_eq!(output.exporter_secret.as_bytes().len(), 32);
     assert_eq!(output.sequence_number, 0);
 }
