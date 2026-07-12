@@ -28,3 +28,13 @@ x25519-dalek = { workspace = true }
 p256 = { workspace = true }
 p384 = { workspace = true }
 
+[dev-dependencies]
+criterion = { workspace = true }
+
+[[bench]]
+name = "hpke"
+harness = false
+
+[[bench]]
+name = "hybrid_hpke"
+harness = false

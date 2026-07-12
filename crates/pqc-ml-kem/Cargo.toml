@@ -22,3 +22,8 @@ subtle = { workspace = true }
 
 [dev-dependencies]
 pqc-test-harness = { path = "../pqc-test-harness", version = "0.4.0" }
+criterion = { workspace = true }
+
+[[bench]]
+name = "ml_kem"
+harness = false
