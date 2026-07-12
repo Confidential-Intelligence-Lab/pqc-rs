@@ -21,4 +21,4 @@ zeroize = { workspace = true }
 subtle = { workspace = true }
 
 [dev-dependencies]
-pqc-test-harness = { path = "../pqc-test-harness" }
+pqc-test-harness = { path = "../pqc-test-harness", version = "0.4.0" }

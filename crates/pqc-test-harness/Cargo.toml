@@ -20,5 +20,5 @@ rand_core = { workspace = true }
 hex = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-pqc-hpke = { path = "../pqc-hpke" }
+pqc-hpke = { path = "../pqc-hpke", version = "0.4.0" }
 
