@@ -16,4 +16,5 @@ pub mod constants;
 pub mod ntt;
 pub mod poly;
 pub mod reduce;
+pub mod sample;
 pub mod xof;
