@@ -14,6 +14,7 @@ pub use error::MlDsaError;
 pub use params::{MlDsaParameterSet, MlDsaParameters};
 pub mod challenge;
 pub mod constants;
+pub mod hint;
 pub mod ntt;
 pub mod poly;
 pub mod reduce;
