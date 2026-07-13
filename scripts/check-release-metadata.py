@@ -8,7 +8,7 @@ for field in ('authors','repository','license','edition','rust-version','version
     value=wp.get(field)
     if value is None or (isinstance(value,str) and ('TODO' in value or not value.strip())) or (isinstance(value,list) and any('TODO' in x for x in value)):
         errors.append(f'workspace.package.{field} is missing or unresolved')
-for crate in ('pqc-core','pqc-ml-kem','pqc-hpke'):
+for crate in ('pqc-rs-core','pqc-rs-ml-kem','pqc-rs-hpke'):
     p=Path('crates')/crate/'Cargo.toml'; data=tomllib.loads(p.read_text()); pkg=data.get('package',{})
     if pkg.get('publish') is False: errors.append(f'{p}: publish=false for release crate')
 for crate in ('pqc-test-harness','pqc-ml-dsa','pqc-slh-dsa'):

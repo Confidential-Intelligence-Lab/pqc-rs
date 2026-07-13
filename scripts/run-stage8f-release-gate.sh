@@ -16,8 +16,8 @@ cargo run -p pqc-test-harness --bin ml-kem-acvp-key-check --release
 cargo run -p pqc-test-harness --bin hpke-pq-base-vectors --release
 cargo run -p pqc-test-harness --bin hpke-pq-hybrid-vectors --release
 
-cargo package -p pqc-core
-cargo package -p pqc-ml-kem --no-verify
-cargo package -p pqc-hpke --no-verify
+cargo package -p pqc-rs-core
+cargo package -p pqc-rs-ml-kem --no-verify
+cargo package -p pqc-rs-hpke --no-verify
 
 echo "Stage 8F release gate passed."

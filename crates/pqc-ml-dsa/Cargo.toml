@@ -1,5 +1,6 @@
 [package]
-name = "pqc-ml-dsa"
+description = "FIPS 204 ML-DSA implementation for PQC-rs"
+name = "pqc-rs-ml-dsa"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -15,5 +16,8 @@ acvp = ["pqc-core/acvp"]
 bench = ["pqc-core/bench"]
 
 [dependencies]
-pqc-core = { workspace = true }
+pqc-core = { package = "pqc-rs-core", workspace = true }
 rand_core = { workspace = true }
+
+[lib]
+name = "pqc_ml_dsa"

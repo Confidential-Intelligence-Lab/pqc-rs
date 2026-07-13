@@ -5,64 +5,35 @@ readonly VERSION="0.4.0-rc.1"
 readonly OUT_DIR="target/release-candidate"
 
 mkdir -p "${OUT_DIR}"
-rm -f "${OUT_DIR}"/*.crate
-rm -f "${OUT_DIR}"/*.tar.gz
-rm -f "${OUT_DIR}"/*-file-list.txt
-rm -f "${OUT_DIR}/build-record.txt"
+rm -f "${OUT_DIR}"/*.crate "${OUT_DIR}"/*.tar.gz 2>/dev/null || true
 
 if [[ -n "$(git status --porcelain)" ]]; then
-  echo "The working tree is not clean." >&2
-  echo "Commit the release changes before creating the release candidate." >&2
+  echo "Working tree is not clean. Commit before packaging." >&2
   git status --short >&2
   exit 1
 fi
 
-echo "== Validate local release crates =="
-cargo check -p pqc-core --all-features
-cargo check -p pqc-ml-kem --all-features
-cargo check -p pqc-hpke --all-features
+cargo check -p pqc-rs-core --all-features
+cargo check -p pqc-rs-ml-kem --all-features
+cargo check -p pqc-rs-hpke --all-features
 
-echo "== Fully package and verify pqc-core =="
-cargo package -p pqc-core --list \
-  > "${OUT_DIR}/pqc-core-file-list.txt"
+cargo package -p pqc-rs-core --list \
+  > "${OUT_DIR}/pqc-rs-core-package-list.txt"
+cargo package -p pqc-rs-core
 
-cargo package -p pqc-core
+cp "target/package/pqc-rs-core-${VERSION}.crate" "${OUT_DIR}/"
 
-cp \
-  "target/package/pqc-core-${VERSION}.crate" \
-  "${OUT_DIR}/"
+git ls-files crates/pqc-rs-ml-kem README.md LICENSE LICENSE-MIT LICENSE-APACHE \
+  2>/dev/null | sort -u > "${OUT_DIR}/pqc-rs-ml-kem-file-list.txt"
 
-echo "== Record tracked files for dependent crates =="
-
-git ls-files \
-  crates/pqc-ml-kem \
-  README.md \
-  LICENSE \
-  LICENSE-MIT \
-  LICENSE-APACHE \
-  2>/dev/null \
-  | sort -u \
-  > "${OUT_DIR}/pqc-ml-kem-file-list.txt"
-
-git ls-files \
-  crates/pqc-hpke \
-  README.md \
-  LICENSE \
-  LICENSE-MIT \
-  LICENSE-APACHE \
-  2>/dev/null \
-  | sort -u \
-  > "${OUT_DIR}/pqc-hpke-file-list.txt"
-
-echo "== Create complete source archive =="
+git ls-files crates/pqc-rs-hpke README.md LICENSE LICENSE-MIT LICENSE-APACHE \
+  2>/dev/null | sort -u > "${OUT_DIR}/pqc-rs-hpke-file-list.txt"
 
 git archive \
   --format=tar.gz \
   --prefix="pqc-rs-${VERSION}/" \
   -o "${OUT_DIR}/pqc-rs-${VERSION}.tar.gz" \
   HEAD
-
-echo "== Record build metadata =="
 
 {
   date -u
@@ -72,27 +43,8 @@ echo "== Record build metadata =="
   git status --short
 } > "${OUT_DIR}/build-record.txt"
 
-cat <<SUMMARY
-
-Release candidate artifacts created in:
-
-  ${OUT_DIR}/
-
-Artifacts:
-  pqc-core-${VERSION}.crate
-  pqc-rs-${VERSION}.tar.gz
-  pqc-core-file-list.txt
-  pqc-ml-kem-file-list.txt
-  pqc-hpke-file-list.txt
-  build-record.txt
-
-The dependent crates cannot be registry-verified before their internal
-dependencies are published.
-
-Required publication order:
-
-  1. pqc-core
-  2. pqc-ml-kem
-  3. pqc-hpke
-
-SUMMARY
+echo "Release candidate artifacts written to ${OUT_DIR}/"
+echo "Publish order:"
+echo "  1. pqc-rs-core"
+echo "  2. pqc-rs-ml-kem"
+echo "  3. pqc-rs-hpke"

@@ -1,5 +1,5 @@
 [package]
-name = "pqc-ml-kem"
+name = "pqc-rs-ml-kem"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
@@ -18,16 +18,19 @@ acvp = ["pqc-core/acvp"]
 bench = ["pqc-core/bench"]
 
 [dependencies]
-pqc-core = { workspace = true }
+pqc-core = { package = "pqc-rs-core", workspace = true }
 rand_core = { workspace = true }
 sha3 = { workspace = true }
 zeroize = { workspace = true }
 subtle = { workspace = true }
 
 [dev-dependencies]
-pqc-test-harness = { path = "../pqc-test-harness", version = "0.4.0-rc.1" }
+pqc-test-harness = { package = "pqc-rs-test-harness", path = "../pqc-test-harness", version = "0.4.0-rc.1" }
 criterion = { workspace = true }
 
 [[bench]]
 name = "ml_kem"
 harness = false
+
+[lib]
+name = "pqc_ml_kem"

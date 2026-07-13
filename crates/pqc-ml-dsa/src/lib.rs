@@ -6,3 +6,9 @@
 /// Placeholder type for compile validation.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct MlDsaPlaceholder;
+pub mod api;
+pub mod error;
+pub mod params;
+pub use api::MlDsa;
+pub use error::MlDsaError;
+pub use params::{MlDsaParameterSet, MlDsaParameters};

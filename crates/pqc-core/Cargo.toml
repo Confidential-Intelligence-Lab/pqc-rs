@@ -1,11 +1,11 @@
 [package]
-name = "pqc-core"
+name = "pqc-rs-core"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-description = "Core types, traits, errors, and secret containers for the PQC-rs cryptography workspace."
+description = "Core traits, byte types, errors, and secret containers for PQC-rs."
 readme = "../../README.md"
 categories = ["cryptography"]
 keywords = ["post-quantum", "cryptography", "pqc", "rust"]
@@ -23,3 +23,6 @@ rand_core = { workspace = true }
 subtle = { workspace = true }
 zeroize = { workspace = true }
 thiserror = { workspace = true, optional = true }
+
+[lib]
+name = "pqc_core"
