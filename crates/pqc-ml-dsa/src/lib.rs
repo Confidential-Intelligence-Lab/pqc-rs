@@ -12,6 +12,7 @@ pub mod params;
 pub use api::MlDsa;
 pub use error::MlDsaError;
 pub use params::{MlDsaParameterSet, MlDsaParameters};
+pub mod challenge;
 pub mod constants;
 pub mod ntt;
 pub mod poly;
