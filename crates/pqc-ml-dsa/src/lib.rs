@@ -23,4 +23,5 @@ pub mod poly;
 pub mod reduce;
 pub mod rounding;
 pub mod sample;
+pub mod signing;
 pub mod xof;
