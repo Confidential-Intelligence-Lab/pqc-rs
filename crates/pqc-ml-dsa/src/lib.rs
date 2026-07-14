@@ -17,6 +17,7 @@ pub mod constants;
 pub mod encoding;
 pub mod expand_a;
 pub mod hint;
+pub mod keygen;
 pub mod ntt;
 pub mod poly;
 pub mod reduce;
