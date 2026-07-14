@@ -24,4 +24,5 @@ pub mod reduce;
 pub mod rounding;
 pub mod sample;
 pub mod signing;
+pub mod signing_core;
 pub mod xof;

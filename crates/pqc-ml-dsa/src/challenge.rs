@@ -26,6 +26,11 @@ pub fn sample_in_ball(
     seed: &[u8; CHALLENGE_SEED_BYTES],
     tau: usize,
 ) -> Result<Poly, ChallengeError> {
+    sample_in_ball_bytes(seed, tau)
+}
+
+/// Sample a sparse challenge from a parameter-sized challenge seed.
+pub fn sample_in_ball_bytes(seed: &[u8], tau: usize) -> Result<Poly, ChallengeError> {
     if tau == 0 || tau > 64 || tau > N {
         return Err(ChallengeError::InvalidTau);
     }
