@@ -26,4 +26,5 @@ pub mod sample;
 pub mod signature;
 pub mod signing;
 pub mod signing_core;
+pub mod verification;
 pub mod xof;
