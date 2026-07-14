@@ -15,6 +15,7 @@ pub use params::{MlDsaParameterSet, MlDsaParameters};
 pub mod challenge;
 pub mod constants;
 pub mod encoding;
+pub mod expand_a;
 pub mod hint;
 pub mod ntt;
 pub mod poly;
