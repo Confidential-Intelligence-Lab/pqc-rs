@@ -1,0 +1,5 @@
+repository=https://github.com/usnistgov/ACVP-Server.git
+commit=15c0f3deeefbfa8cb6cd32a99e1ca3b738c66bf0
+subdirectory=gen-val/json-files/ML-DSA-sigVer-FIPS204
+scope=external-pure
+fetched_utc=2026-07-14T21:22:43Z

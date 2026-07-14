@@ -1,0 +1,9 @@
+NIST ACVP ML-DSA sigVer external-pure response
+  groups examined: 12
+  groups supported: 3
+  groups skipped: 9
+  tests executed: 45
+  verifier true: 9
+  verifier false: 36
+  matched expected results: 45
+  mismatches: 0
