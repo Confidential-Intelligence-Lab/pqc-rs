@@ -15,7 +15,7 @@ use crate::hint::use_hint_poly;
 use crate::params::MlDsaParameterSet;
 use crate::poly::Poly;
 use crate::rounding::D;
-use crate::signing::compute_message_representative;
+use crate::signing::{compute_internal_message_representative, compute_message_representative};
 use crate::signing_core::{
     challenge_seed_bytes, gamma2_for, matrix_vector_product, subtract_challenge_product,
     vector_infinity_norm_below,
@@ -201,6 +201,42 @@ pub fn verify_internal(
     context: &[u8],
     encoded_signature: &[u8],
 ) -> Result<bool, VerificationError> {
+    let tr = hash_public_key(encoded_public_key);
+    let mu = compute_message_representative(&tr, context, message)
+        .map_err(|_| VerificationError::ContextTooLong)?;
+
+    verify_with_mu(parameter_set, encoded_public_key, &mu, encoded_signature)
+}
+
+/// Verify through `ML-DSA.Verify_internal` from `M'`.
+pub fn verify_internal_message(
+    parameter_set: MlDsaParameterSet,
+    encoded_public_key: &[u8],
+    message_prime: &[u8],
+    encoded_signature: &[u8],
+) -> Result<bool, VerificationError> {
+    let tr = hash_public_key(encoded_public_key);
+    let mu = compute_internal_message_representative(&tr, message_prime);
+
+    verify_with_mu(parameter_set, encoded_public_key, &mu, encoded_signature)
+}
+
+/// Verify through `ML-DSA.Verify_internal` from externally supplied `mu`.
+pub fn verify_internal_mu(
+    parameter_set: MlDsaParameterSet,
+    encoded_public_key: &[u8],
+    mu: &[u8; 64],
+    encoded_signature: &[u8],
+) -> Result<bool, VerificationError> {
+    verify_with_mu(parameter_set, encoded_public_key, mu, encoded_signature)
+}
+
+fn verify_with_mu(
+    parameter_set: MlDsaParameterSet,
+    encoded_public_key: &[u8],
+    mu: &[u8; 64],
+    encoded_signature: &[u8],
+) -> Result<bool, VerificationError> {
     let parameters = parameter_set.parameters();
     let beta = parameters.tau as i32 * parameters.eta;
     let gamma2 = gamma2_for(parameter_set);
@@ -211,10 +247,6 @@ pub fn verify_internal(
     if !vector_infinity_norm_below(signature.z(), parameters.gamma1 - beta) {
         return Ok(false);
     }
-
-    let tr = hash_public_key(encoded_public_key);
-    let mu = compute_message_representative(&tr, context, message)
-        .map_err(|_| VerificationError::ContextTooLong)?;
 
     let challenge = sample_in_ball_bytes(signature.challenge_seed(), parameters.tau)
         .map_err(|_| VerificationError::InvalidSignatureEncoding)?;
@@ -237,7 +269,7 @@ pub fn verify_internal(
 
     let encoded_w1 = encode_w1_vector(&w1, gamma2)?;
     let expected_challenge_seed =
-        hash_challenge_transcript(&mu, &encoded_w1, challenge_seed_bytes(parameter_set));
+        hash_challenge_transcript(mu, &encoded_w1, challenge_seed_bytes(parameter_set));
 
     Ok(constant_time_equal(
         signature.challenge_seed(),

@@ -6,7 +6,10 @@ use crate::expand_a::expand_a;
 use crate::params::MlDsaParameterSet;
 use crate::poly::Poly;
 use crate::rounding::low_bits;
-use crate::signing::{prepare_signing, sample_mask_vector, SigningError, SIGNING_RANDOMNESS_BYTES};
+use crate::signing::{
+    prepare_internal_signing, prepare_signing, prepare_signing_from_mu, sample_mask_vector,
+    SigningError, SigningPreparation, SIGNING_RANDOMNESS_BYTES,
+};
 use crate::signing_core::{
     derive_challenge, encode_w1_vector, gamma2_for, high_bits_vector, matrix_vector_product,
     vector_infinity_norm_below, SigningCoreError,
@@ -58,10 +61,6 @@ pub fn sign_internal(
     context: &[u8],
     randomness: &[u8; SIGNING_RANDOMNESS_BYTES],
 ) -> Result<Vec<u8>, SignatureError> {
-    let parameters = parameter_set.parameters();
-    let beta = parameters.tau as i32 * parameters.eta;
-    let gamma2 = gamma2_for(parameter_set);
-
     let preparation = prepare_signing(
         parameter_set,
         encoded_private_key,
@@ -69,6 +68,43 @@ pub fn sign_internal(
         context,
         randomness,
     )?;
+    sign_prepared(parameter_set, preparation)
+}
+
+/// Generate a signature through `ML-DSA.Sign_internal` from `M'`.
+pub fn sign_internal_message(
+    parameter_set: MlDsaParameterSet,
+    encoded_private_key: &[u8],
+    message_prime: &[u8],
+    randomness: &[u8; SIGNING_RANDOMNESS_BYTES],
+) -> Result<Vec<u8>, SignatureError> {
+    let preparation = prepare_internal_signing(
+        parameter_set,
+        encoded_private_key,
+        message_prime,
+        randomness,
+    )?;
+    sign_prepared(parameter_set, preparation)
+}
+
+/// Generate a signature through `ML-DSA.Sign_internal` from supplied `mu`.
+pub fn sign_internal_mu(
+    parameter_set: MlDsaParameterSet,
+    encoded_private_key: &[u8],
+    mu: &[u8; crate::signing::MU_BYTES],
+    randomness: &[u8; SIGNING_RANDOMNESS_BYTES],
+) -> Result<Vec<u8>, SignatureError> {
+    let preparation = prepare_signing_from_mu(parameter_set, encoded_private_key, mu, randomness)?;
+    sign_prepared(parameter_set, preparation)
+}
+
+fn sign_prepared(
+    parameter_set: MlDsaParameterSet,
+    preparation: SigningPreparation,
+) -> Result<Vec<u8>, SignatureError> {
+    let parameters = parameter_set.parameters();
+    let beta = parameters.tau as i32 * parameters.eta;
+    let gamma2 = gamma2_for(parameter_set);
 
     let matrix = expand_a(preparation.private_key().rho(), parameter_set)
         .map_err(|_| SignatureError::Arithmetic)?;

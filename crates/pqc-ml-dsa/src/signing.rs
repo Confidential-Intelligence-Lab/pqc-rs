@@ -157,6 +157,59 @@ pub fn compute_message_representative(
     Ok(mu)
 }
 
+/// Compute the internal-interface message representative.
+///
+/// This computes `SHAKE256(tr || message_prime, 64)`, where `message_prime`
+/// is the input to `ML-DSA.Sign_internal`.
+pub fn compute_internal_message_representative(
+    tr: &[u8; 64],
+    message_prime: &[u8],
+) -> [u8; MU_BYTES] {
+    let mut hasher = Shake256::default();
+    hasher.update(tr);
+    hasher.update(message_prime);
+
+    let mut reader = hasher.finalize_xof();
+    let mut mu = [0_u8; MU_BYTES];
+    reader.read(&mut mu);
+    mu
+}
+
+/// Decode a private key and prepare signing from an externally supplied `mu`.
+pub fn prepare_signing_from_mu(
+    parameter_set: MlDsaParameterSet,
+    encoded_private_key: &[u8],
+    mu: &[u8; MU_BYTES],
+    randomness: &[u8; SIGNING_RANDOMNESS_BYTES],
+) -> Result<SigningPreparation, SigningError> {
+    let private_key = decode_private_key(parameter_set, encoded_private_key)?;
+    let rho_double_prime = derive_rho_double_prime(private_key.key(), randomness, mu);
+
+    Ok(SigningPreparation {
+        private_key,
+        mu: *mu,
+        rho_double_prime,
+    })
+}
+
+/// Decode a private key and prepare the internal signing interface from `M'`.
+pub fn prepare_internal_signing(
+    parameter_set: MlDsaParameterSet,
+    encoded_private_key: &[u8],
+    message_prime: &[u8],
+    randomness: &[u8; SIGNING_RANDOMNESS_BYTES],
+) -> Result<SigningPreparation, SigningError> {
+    let private_key = decode_private_key(parameter_set, encoded_private_key)?;
+    let mu = compute_internal_message_representative(private_key.tr(), message_prime);
+    let rho_double_prime = derive_rho_double_prime(private_key.key(), randomness, &mu);
+
+    Ok(SigningPreparation {
+        private_key,
+        mu,
+        rho_double_prime,
+    })
+}
+
 /// Derive `rho_double_prime = SHAKE256(K || rnd || mu, 64)`.
 pub fn derive_rho_double_prime(
     key: &[u8; 32],
