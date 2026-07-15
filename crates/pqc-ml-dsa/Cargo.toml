@@ -19,6 +19,7 @@ bench = ["pqc-core/bench"]
 pqc-core = { package = "pqc-rs-core", workspace = true }
 rand_core = { workspace = true }
 sha3 = { workspace = true }
+sha2 = { workspace = true }
 
 [lib]
 name = "pqc_ml_dsa"

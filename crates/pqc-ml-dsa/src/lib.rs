@@ -16,6 +16,7 @@ pub mod challenge;
 pub mod constants;
 pub mod encoding;
 pub mod expand_a;
+pub mod hash_mldsa;
 pub mod hint;
 pub mod keygen;
 pub mod ntt;
