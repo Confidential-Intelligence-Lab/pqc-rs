@@ -1,0 +1,87 @@
+target,category,instruction,source_file,source_line,dependency,classification,rationale,reviewer,status
+audit_multiply_challenge,conditional_branches,100000aa4:	b.eq	0x100000b0c,,,transcript-derived,expected,Sparse challenge support branch; challenge is transcript-derived.,,provisional
+audit_multiply_challenge,indexed_memory_candidates,"100000a68:	stp	x28, x27, [sp, #-0x30]!",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_multiply_challenge,indexed_memory_candidates,"100000a6c:	stp	x20, x19, [sp, #0x10]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_multiply_challenge,indexed_memory_candidates,"100000a70:	stp	x29, x30, [sp, #0x20]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_multiply_challenge,indexed_memory_candidates,"100000afc:	ldp	x29, x30, [sp, #0x20]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_multiply_challenge,indexed_memory_candidates,"100000b00:	ldp	x20, x19, [sp, #0x10]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_multiply_challenge,indexed_memory_candidates,"100000b04:	ldp	x28, x27, [sp], #0x30",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sample_eta,conditional_branches,100000b90:	b.eq	0x100000bbc,,,unclassified,review,Manual classification required.,,open
+audit_sample_eta,indexed_memory_candidates,"100000b30:	stp	x28, x27, [sp, #-0x30]!",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sample_eta,indexed_memory_candidates,"100000b34:	stp	x20, x19, [sp, #0x10]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sample_eta,indexed_memory_candidates,"100000b38:	stp	x29, x30, [sp, #0x20]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sample_eta,indexed_memory_candidates,"100000bac:	ldp	x29, x30, [sp, #0x20]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sample_eta,indexed_memory_candidates,"100000bb0:	ldp	x20, x19, [sp, #0x10]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sample_eta,indexed_memory_candidates,"100000bb4:	ldp	x28, x27, [sp], #0x30",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sample_ball,conditional_branches,100000c34:	b.eq	0x100000c60,,,unclassified,review,Manual classification required.,,open
+audit_sample_ball,indexed_memory_candidates,"100000be0:	stp	x28, x27, [sp, #-0x30]!",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sample_ball,indexed_memory_candidates,"100000be4:	stp	x20, x19, [sp, #0x10]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sample_ball,indexed_memory_candidates,"100000be8:	stp	x29, x30, [sp, #0x20]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sample_ball,indexed_memory_candidates,"100000c04:	stp	x8, x9, [sp, #0x8]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sample_ball,indexed_memory_candidates,"100000c0c:	ldp	x0, x1, [sp, #0x8]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sample_ball,indexed_memory_candidates,"100000c50:	ldp	x29, x30, [sp, #0x20]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sample_ball,indexed_memory_candidates,"100000c54:	ldp	x20, x19, [sp, #0x10]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sample_ball,indexed_memory_candidates,"100000c58:	ldp	x28, x27, [sp], #0x30",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_rounding,conditional_branches,100000ddc:	b.ne	0x100000ce8,,,public-loop-index,expected,Fixed wrapper loop.,Ro,closed
+audit_rounding,conditional_selects,"100000d30:	csel	w2, w4, w2, lt",,,secret-coefficient,constant-time-select,Branchless conditional select.,Ro,closed
+audit_rounding,conditional_selects,"100000d4c:	csel	w2, wzr, w5, hi",,,secret-coefficient,constant-time-select,Branchless conditional select.,Ro,closed
+audit_rounding,conditional_selects,"100000d60:	csel	w2, w2, w4, ne",,,secret-coefficient,constant-time-select,Branchless conditional select.,Ro,closed
+audit_rounding,conditional_selects,"100000d90:	csel	w1, w3, w1, lt",,,secret-coefficient,constant-time-select,Branchless conditional select.,Ro,closed
+audit_rounding,conditional_selects,"100000da8:	csel	w4, wzr, w4, hi",,,secret-coefficient,constant-time-select,Branchless conditional select.,Ro,closed
+audit_rounding,conditional_selects,"100000dbc:	csel	w2, w16, w17, ne",,,secret-coefficient,constant-time-select,Branchless conditional select.,Ro,closed
+audit_rounding,conditional_selects,"100000dc0:	csel	w3, w4, w3, ne",,,secret-coefficient,constant-time-select,Branchless conditional select.,Ro,closed
+audit_rounding,conditional_selects,"100000dcc:	csel	w2, w0, wzr, gt",,,secret-coefficient,constant-time-select,Branchless conditional select.,Ro,closed
+audit_rounding,vector_candidates,"100000d18:	smull	x4, w2, w13",,,secret-coefficient,expected,Fixed-latency multiplication.,Ro,closed
+audit_rounding,vector_candidates,"100000d78:	smull	x3, w1, w13",,,secret-coefficient,expected,Fixed-latency multiplication.,Ro,closed
+audit_rounding,indexed_memory_candidates,"100000c88:	stp	x29, x30, [sp, #0x30]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_rounding,indexed_memory_candidates,"100000ce8:	ldr	w1, [x11, x10]",,,public-loop-index,expected,Public wrapper index.,Ro,closed
+audit_rounding,indexed_memory_candidates,"100000d04:	stp	w4, w2, [x29, #-0x8]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_rounding,indexed_memory_candidates,"100000de0:	ldp	x29, x30, [sp, #0x30]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_encoding,conditional_branches,100000e40:	b.eq	0x100000f5c,,,unclassified,review,Manual classification required.,,open
+audit_encoding,conditional_branches,100000e70:	b.eq	0x100000f88,,,unclassified,review,Manual classification required.,,open
+audit_encoding,conditional_branches,100000ec0:	b.eq	0x100000f9c,,,unclassified,review,Manual classification required.,,open
+audit_encoding,conditional_branches,100000f00:	b.eq	0x100000fcc,,,unclassified,review,Manual classification required.,,open
+audit_encoding,conditional_branches,"100000f1c:	cbz	x21, 0x100000f30",,,unclassified,review,Manual classification required.,,open
+audit_encoding,conditional_branches,"100000f30:	cbz	x19, 0x100000f44",,,unclassified,review,Manual classification required.,,open
+audit_encoding,conditional_branches,"100000ffc:	cbz	x21, 0x10000101c",,,unclassified,review,Manual classification required.,,open
+audit_encoding,conditional_branches,"10000101c:	cbz	x19, 0x100001038",,,unclassified,review,Manual classification required.,,open
+audit_encoding,indexed_memory_candidates,"100000dec:	stp	x24, x23, [sp, #-0x40]!",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_encoding,indexed_memory_candidates,"100000df0:	stp	x22, x21, [sp, #0x10]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_encoding,indexed_memory_candidates,"100000df4:	stp	x20, x19, [sp, #0x20]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_encoding,indexed_memory_candidates,"100000df8:	stp	x29, x30, [sp, #0x30]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_encoding,indexed_memory_candidates,"100000f48:	ldp	x29, x30, [sp, #0x30]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_encoding,indexed_memory_candidates,"100000f4c:	ldp	x20, x19, [sp, #0x20]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_encoding,indexed_memory_candidates,"100000f50:	ldp	x22, x21, [sp, #0x10]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_encoding,indexed_memory_candidates,"100000f54:	ldp	x24, x23, [sp], #0x40",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,conditional_branches,100001078:	b.eq	0x1000011a4,,,unclassified,review,Manual classification required.,,open
+audit_sign_verify,conditional_branches,1000010f0:	b.eq	0x1000011d0,,,unclassified,review,Manual classification required.,,open
+audit_sign_verify,conditional_branches,"100001140:	tbnz	w0, #0x0, 0x100001200",,,unclassified,review,Manual classification required.,,open
+audit_sign_verify,conditional_branches,"100001150:	cbz	x20, 0x100001164",,,unclassified,review,Manual classification required.,,open
+audit_sign_verify,conditional_branches,"100001168:	cbz	x1, 0x100001178",,,unclassified,review,Manual classification required.,,open
+audit_sign_verify,conditional_branches,"10000117c:	cbz	x1, 0x10000118c",,,unclassified,review,Manual classification required.,,open
+audit_sign_verify,conditional_branches,"100001230:	cbz	x20, 0x100001258",,,unclassified,review,Manual classification required.,,open
+audit_sign_verify,indexed_memory_candidates,"100001040:	stp	x24, x23, [sp, #0x90]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"100001044:	stp	x22, x21, [sp, #0xa0]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"100001048:	stp	x20, x19, [sp, #0xb0]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"10000104c:	stp	x29, x30, [sp, #0xc0]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"100001094:	ldp	x19, x8, [sp, #0x30]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"100001098:	stp	x19, x8, [x29, #-0x50]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"1000010a0:	ldp	x1, x2, [x29, #-0x50]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"1000010b0:	stp	x23, x8, [x29, #-0x50]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"1000010c0:	ldp	x3, x4, [x29, #-0x50]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"1000010c8:	stp	x24, x8, [x29, #-0x50]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"1000010d0:	ldp	x5, x6, [x29, #-0x50]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"1000010f4:	ldp	x21, x8, [x29, #-0x48]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"1000010f8:	ldp	x22, x9, [sp, #0x18]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"1000010fc:	stp	x22, x9, [x29, #-0x50]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"100001104:	ldp	x1, x2, [x29, #-0x50]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"10000110c:	stp	x23, x9, [x29, #-0x50]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"100001114:	ldp	x3, x4, [x29, #-0x50]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"10000111c:	stp	x24, x9, [x29, #-0x50]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"100001124:	ldp	x5, x6, [x29, #-0x50]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"100001128:	stp	x21, x8, [x29, #-0x50]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"100001130:	ldp	x7, x8, [x29, #-0x50]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"10000118c:	ldp	x29, x30, [sp, #0xc0]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"100001190:	ldp	x20, x19, [sp, #0xb0]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"100001194:	ldp	x22, x21, [sp, #0xa0]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed
+audit_sign_verify,indexed_memory_candidates,"100001198:	ldp	x24, x23, [sp, #0x90]",,,implementation-control,expected,Compiler-generated fixed-offset stack/frame access.,Ro,closed

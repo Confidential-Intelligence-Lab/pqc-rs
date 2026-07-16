@@ -1,0 +1,33 @@
+name: Stage 9F-4 Linux Audit
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "crates/pqc-ml-dsa/**"
+      - "crates/pqc-test-harness/**"
+      - "scripts/run-stage9f4-linux-valgrind.sh"
+      - ".github/workflows/stage9f4-linux-audit.yml"
+
+jobs:
+  valgrind:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Valgrind
+        run: sudo apt-get update && sudo apt-get install -y valgrind
+
+      - name: Run workspace tests
+        run: cargo test --workspace --all-features
+
+      - name: Run Stage 9F-4 Linux audit
+        run: ./scripts/run-stage9f4-linux-valgrind.sh
+
+      - name: Upload audit artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage9f4-linux-audit
+          path: target/stage9f4-ctgrind
