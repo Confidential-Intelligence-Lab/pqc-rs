@@ -4,9 +4,11 @@
 //! Secret masks must not be converted into Rust `bool` values inside
 //! secret-bearing code paths.
 
+mod compare;
 mod mask;
 mod select;
 
+pub use compare::{ct_eq_bytes, ct_eq_slices, ct_is_zero_bytes, ct_is_zero_slice};
 pub use mask::{
     ct_eq_u16, ct_eq_u32, ct_eq_u64, ct_eq_u8, ct_is_nonzero_u16, ct_is_nonzero_u32,
     ct_is_nonzero_u64, ct_is_nonzero_u8, ct_is_zero_u16, ct_is_zero_u32, ct_is_zero_u64,
