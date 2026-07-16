@@ -24,3 +24,6 @@ pub use error::{PqcError, PqcResult};
 pub use kem::Kem;
 pub use signature::SignatureScheme;
 pub mod secret;
+
+/// Constant-time utility primitives.
+pub mod ct;
