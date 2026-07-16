@@ -1,5 +1,94 @@
 //! Complete deterministic ML-DSA signing loop and signature encoding.
 
+use std::cell::Cell;
+
+thread_local! {
+    static SIGNING_TRACE: Cell<SigningTrace> =
+        const { Cell::new(SigningTrace::new()) };
+}
+
+/// Audit counters for one ML-DSA signing operation.
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+pub struct SigningTrace {
+    /// Number of rejection-loop attempts.
+    pub attempts: u64,
+    /// Rejections caused by the response-vector norm check.
+    pub reject_z: u64,
+    /// Rejections caused by the low-bits norm check.
+    pub reject_r0: u64,
+    /// Rejections caused by the secret `t0` product norm check.
+    pub reject_ct0: u64,
+    /// Rejections caused by excessive hint weight.
+    pub reject_hint: u64,
+}
+
+impl SigningTrace {
+    const fn new() -> Self {
+        Self {
+            attempts: 0,
+            reject_z: 0,
+            reject_r0: 0,
+            reject_ct0: 0,
+            reject_hint: 0,
+        }
+    }
+
+    /// Return the total number of rejected attempts.
+    pub const fn total_rejections(self) -> u64 {
+        self.reject_z + self.reject_r0 + self.reject_ct0 + self.reject_hint
+    }
+}
+
+/// Reset the thread-local signing trace.
+pub fn clear_signing_trace() {
+    SIGNING_TRACE.with(|trace| trace.set(SigningTrace::new()));
+}
+
+/// Read the thread-local signing trace.
+pub fn signing_trace() -> SigningTrace {
+    SIGNING_TRACE.with(Cell::get)
+}
+
+fn trace_attempt() {
+    SIGNING_TRACE.with(|trace| {
+        let mut value = trace.get();
+        value.attempts += 1;
+        trace.set(value);
+    });
+}
+
+fn trace_reject_z() {
+    SIGNING_TRACE.with(|trace| {
+        let mut value = trace.get();
+        value.reject_z += 1;
+        trace.set(value);
+    });
+}
+
+fn trace_reject_r0() {
+    SIGNING_TRACE.with(|trace| {
+        let mut value = trace.get();
+        value.reject_r0 += 1;
+        trace.set(value);
+    });
+}
+
+fn trace_reject_ct0() {
+    SIGNING_TRACE.with(|trace| {
+        let mut value = trace.get();
+        value.reject_ct0 += 1;
+        trace.set(value);
+    });
+}
+
+fn trace_reject_hint() {
+    SIGNING_TRACE.with(|trace| {
+        let mut value = trace.get();
+        value.reject_hint += 1;
+        trace.set(value);
+    });
+}
+
 use crate::constants::{N, Q};
 use crate::encoding::{encode_z, EncodingError};
 use crate::expand_a::expand_a;
@@ -112,6 +201,7 @@ fn sign_prepared(
     let mut kappa = 0_u16;
 
     for _ in 0..MAX_SIGNING_ATTEMPTS {
+        trace_attempt();
         let y = sample_mask_vector(
             preparation.rho_double_prime(),
             kappa,
@@ -134,6 +224,7 @@ fn sign_prepared(
         let z = add_centered_vectors(&y, &challenge_s1)?;
 
         if !vector_infinity_norm_below(&z, parameters.gamma1 - beta) {
+            trace_reject_z();
             continue;
         }
 
@@ -143,6 +234,7 @@ fn sign_prepared(
         let r0 = subtract_centered_vectors(&w0, &challenge_s2)?;
 
         if !vector_infinity_norm_below(&r0, parameters.gamma2 - beta) {
+            trace_reject_r0();
             continue;
         }
 
@@ -150,6 +242,7 @@ fn sign_prepared(
             multiply_challenge_vector_centered(&challenge, preparation.private_key().t0());
 
         if !vector_infinity_norm_below(&challenge_t0, parameters.gamma2) {
+            trace_reject_ct0();
             continue;
         }
 
@@ -160,6 +253,7 @@ fn sign_prepared(
             crate::signing_core::make_hint_vector(&negative_challenge_t0, &hint_reference, gamma2)?;
 
         if hint_weight > parameters.omega {
+            trace_reject_hint();
             continue;
         }
 
