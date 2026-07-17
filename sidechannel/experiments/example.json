@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "id": "example-ct-compare",
+  "description": "Template experiment. Replace command with an existing timing harness invocation.",
+  "command": ["cargo", "test", "-p", "pqc-rs-core", "--test", "stage10b2_timing", "--", "--nocapture"],
+  "working_directory": ".",
+  "repetitions": 3,
+  "timeout_seconds": 300,
+  "parser": {
+    "type": "regex",
+    "pattern": "(?:welch[_ -]?t|t-statistic|t)[=: ]+(-?[0-9]+(?:\\.[0-9]+)?)",
+    "metric": "welch_t",
+    "absolute": true
+  },
+  "policy": {
+    "maximum": 4.5,
+    "minimum_successful_repetitions": 3
+  },
+  "tags": ["timing", "constant-time", "template"],
+  "enabled": false
+}

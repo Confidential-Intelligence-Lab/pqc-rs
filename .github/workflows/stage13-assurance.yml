@@ -1,0 +1,41 @@
+name: Stage 13 Assurance
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: Assurance profile
+        required: true
+        default: portable
+        type: choice
+        options: [portable, review]
+permissions:
+  contents: read
+jobs:
+  assurance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: Validate overlay
+        run: python3 scripts/validate-stage13.py
+      - name: Run assurance profile
+        run: ./scripts/run-stage13.sh "${{ inputs.profile || 'portable' }}"
+      - name: Upload assurance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage13-assurance-${{ github.sha }}
+          path: |
+            target/stage13/
+            target/stage13-*-evidence.tar.gz
+          if-no-files-found: warn
+          retention-days: 30

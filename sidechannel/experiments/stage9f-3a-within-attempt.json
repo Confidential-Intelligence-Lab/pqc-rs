@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "id": "stage9f-3a-within-attempt",
+  "description": "Largest within-attempt signing timing statistic.",
+  "command": [
+    "python3",
+    "scripts/stage11_legacy_adapter.py",
+    "stage9f-3a-within-attempt"
+  ],
+  "working_directory": ".",
+  "repetitions": 3,
+  "timeout_seconds": 900,
+  "parser": {
+    "type": "regex",
+    "pattern": "stage11_metric=(-?[0-9]+(?:\\.[0-9]+)?)",
+    "metric": "welch_t",
+    "absolute": true,
+    "skip_pattern": "^STAGE11_SKIP:"
+  },
+  "policy": {
+    "minimum_successful_repetitions": 3,
+    "maximum": 4.5
+  },
+  "tags": [
+    "stage9f",
+    "timing",
+    "signing",
+    "bucketed"
+  ],
+  "enabled": true
+}

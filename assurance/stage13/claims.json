@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "claims": [
+    {
+      "id": "A13-CT-REGRESSION",
+      "title": "Critical constant-time regressions are screened",
+      "evidence": ["stage12"],
+      "strength": "empirical-regression",
+      "required_profiles": ["portable", "review", "release"]
+    },
+    {
+      "id": "A13-ALGEBRAIC-INVARIANTS",
+      "title": "Cryptographic algebraic invariants remain satisfied",
+      "evidence": ["property-tests", "differential-tests"],
+      "strength": "testing",
+      "required_profiles": ["portable", "review", "release"]
+    },
+    {
+      "id": "A13-SECRET-LIFETIME",
+      "title": "Secret-bearing APIs and zeroization paths remain inventoried",
+      "evidence": ["secret-inventory"],
+      "strength": "static-review-support",
+      "required_profiles": ["portable", "review", "release"]
+    },
+    {
+      "id": "A13-MEMORY-SAFETY",
+      "title": "Supported code paths pass interpreter-based memory checks",
+      "evidence": ["miri"],
+      "strength": "dynamic-analysis",
+      "required_profiles": ["review", "release"]
+    },
+    {
+      "id": "A13-COMPILER-STABILITY",
+      "title": "Security-sensitive code generation is compared across toolchains",
+      "evidence": ["codegen-matrix"],
+      "strength": "compiler-regression",
+      "required_profiles": ["review", "release"]
+    },
+    {
+      "id": "A13-SUPPLY-CHAIN",
+      "title": "Release dependency inventory is captured and integrity protected",
+      "evidence": ["sbom", "checksums"],
+      "strength": "release-assurance",
+      "required_profiles": ["portable", "review", "release"]
+    },
+    {
+      "id": "A13-ARTIFACT-AUTHENTICITY",
+      "title": "Release evidence bundle is signed",
+      "evidence": ["signature"],
+      "strength": "release-assurance",
+      "required_profiles": ["release"]
+    }
+  ],
+  "non_claims": [
+    "Stage 13 does not prove whole-library constant-time behavior.",
+    "Stage 13 does not constitute FIPS or Common Criteria validation.",
+    "Passing property tests does not establish mathematical correctness for all inputs.",
+    "Generated-code comparison detects change; it does not automatically establish safety."
+  ]
+}

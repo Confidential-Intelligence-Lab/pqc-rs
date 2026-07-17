@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "portable": {
+      "description": "Portable release gate using the enabled Stage 11A statistical and machine-code experiments.",
+      "repetitions": 3,
+      "run_compiler_matrix": true,
+      "run_microarchitectural_probes": false,
+      "require_clean_git": false
+    },
+    "full": {
+      "description": "Full supported-host campaign with compiler diversity and optional Linux perf probes.",
+      "repetitions": 5,
+      "run_compiler_matrix": true,
+      "run_microarchitectural_probes": true,
+      "require_clean_git": true
+    },
+    "soak": {
+      "description": "Long-duration release campaign intended for controlled runners.",
+      "repetitions": 10,
+      "run_compiler_matrix": true,
+      "run_microarchitectural_probes": true,
+      "require_clean_git": true
+    }
+  },
+  "compiler_toolchains": ["stable", "beta", "nightly"],
+  "required_toolchain": "stable",
+  "microarchitectural": {
+    "linux_perf_events": ["cycles", "instructions", "branches", "branch-misses", "cache-references", "cache-misses"],
+    "minimum_runs": 3
+  }
+}

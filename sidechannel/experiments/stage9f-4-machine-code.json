@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "id": "stage9f-4-machine-code",
+  "description": "Generated machine-code audit wrappers.",
+  "command": [
+    "python3",
+    "scripts/stage11_legacy_adapter.py",
+    "stage9f-4-machine-code"
+  ],
+  "working_directory": ".",
+  "repetitions": 1,
+  "timeout_seconds": 900,
+  "parser": {
+    "type": "exit_status",
+    "skip_pattern": "^STAGE11_SKIP:"
+  },
+  "policy": {
+    "minimum_successful_repetitions": 1
+  },
+  "tags": [
+    "stage9f",
+    "machine-code",
+    "audit"
+  ],
+  "enabled": true
+}

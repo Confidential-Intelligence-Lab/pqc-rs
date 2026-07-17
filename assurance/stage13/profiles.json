@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "profiles": {
+    "portable": {
+      "require_clean_git": false,
+      "run_stage12": true,
+      "stage12_profile": "portable",
+      "run_property_tests": true,
+      "run_differential_tests": true,
+      "run_secret_inventory": true,
+      "run_miri": false,
+      "run_codegen_matrix": false,
+      "require_sbom": true,
+      "require_signature": false
+    },
+    "review": {
+      "require_clean_git": true,
+      "run_stage12": true,
+      "stage12_profile": "full",
+      "run_property_tests": true,
+      "run_differential_tests": true,
+      "run_secret_inventory": true,
+      "run_miri": true,
+      "run_codegen_matrix": true,
+      "require_sbom": true,
+      "require_signature": false
+    },
+    "release": {
+      "require_clean_git": true,
+      "run_stage12": true,
+      "stage12_profile": "soak",
+      "run_property_tests": true,
+      "run_differential_tests": true,
+      "run_secret_inventory": true,
+      "run_miri": true,
+      "run_codegen_matrix": true,
+      "require_sbom": true,
+      "require_signature": true
+    }
+  }
+}

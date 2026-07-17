@@ -1,0 +1,97 @@
+site_id,crate,file,line,kind,source,classification,recommended_primitive,status,rationale
+CTCMP-0001,pqc-ml-kem,crates/pqc-ml-kem/src/conformance.rs,97,equality,.find(|entry| entry.id == id),review,manual,open,Insufficient context for automatic migration.
+CTCMP-0002,pqc-ml-kem,crates/pqc-ml-kem/src/encoding.rs,15,equality,coeffs[i] = if bit == 1 { (Q + 1) / 2 } else { 0 };,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0003,pqc-ml-kem,crates/pqc-ml-kem/src/kpke_decrypt.rs,44,inequality,if ciphertext.len() != expected_ct {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0004,pqc-ml-kem,crates/pqc-ml-kem/src/kpke_encrypt.rs,123,inequality,if CT_BYTES != expected {,security-relevant,ct_eq_bytes-or-ct_eq_slices,open,Name and context indicate cryptographic validation data.
+CTCMP-0005,pqc-ml-kem,crates/pqc-ml-kem/src/kpke_keygen.rs,136,inequality,if PK_BYTES != expected_pk {,security-relevant,ct_eq_bytes-or-ct_eq_slices,open,Name and context indicate cryptographic validation data.
+CTCMP-0006,pqc-ml-kem,crates/pqc-ml-kem/src/kpke_keygen.rs,144,inequality,if SK_BYTES != expected_sk {,security-relevant,ct_eq_bytes-or-ct_eq_slices,open,Name and context indicate cryptographic validation data.
+CTCMP-0007,pqc-ml-kem,crates/pqc-ml-kem/src/kpke_keygen.rs,188,equality,assert!(expand_keygen_seed(&seed) == expand_keygen_seed(&seed));,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0008,pqc-ml-kem,crates/pqc-ml-kem/src/kpke_keygen.rs,199,inequality,assert!(k512 != k768);,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0009,pqc-ml-kem,crates/pqc-ml-kem/src/kpke_keygen.rs,200,inequality,assert!(k768 != k1024);,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0010,pqc-ml-kem,crates/pqc-ml-kem/src/kpke_keygen.rs,201,inequality,assert!(k512 != k1024);,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0011,pqc-ml-kem,crates/pqc-ml-kem/src/kpke_keygen.rs,233,equality,assert!(a == b);,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0012,pqc-ml-kem,crates/pqc-ml-kem/src/kpke_keygen.rs,245,equality,assert!(a == b);,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0013,pqc-ml-kem,crates/pqc-ml-kem/src/kpke_keygen.rs,257,equality,assert!(a == b);,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0014,pqc-ml-kem,crates/pqc-ml-kem/src/matrix.rs,141,iterator_all,assert!(p.coefficients().iter().all(|c| *c >= 0 && *c < Q));,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0015,pqc-ml-kem,crates/pqc-ml-kem/src/ml_kem_decaps.rs,34,inequality,if decapsulation_key.len() != layout.dk_bytes {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0016,pqc-ml-kem,crates/pqc-ml-kem/src/ml_kem_decaps.rs,41,inequality,if ciphertext.len() != layout.ct_bytes {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0017,pqc-ml-kem,crates/pqc-ml-kem/src/ml_kem_encaps.rs,28,inequality,if encapsulation_key.len() != parameter_set.public_key_bytes() {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0018,pqc-ml-kem,crates/pqc-ml-kem/src/ml_kem_key_check.rs,25,inequality,if encapsulation_key.len() != layout.ek_bytes {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0019,pqc-ml-kem,crates/pqc-ml-kem/src/ml_kem_key_check.rs,51,inequality,if decapsulation_key.len() != layout.dk_bytes {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0020,pqc-ml-kem,crates/pqc-ml-kem/src/ntt.rs,70,equality,if e & 1 == 1 {,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0021,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,62,inequality,if t_hat.rank() != parameter_set.k() {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0022,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,66,inequality,if BYTES != expected {,security-relevant,ct_eq_bytes-or-ct_eq_slices,open,Name and context indicate cryptographic validation data.
+CTCMP-0023,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,86,inequality,if t_hat.rank() != parameter_set.k() {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0024,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,90,inequality,if BYTES != expected {,security-relevant,ct_eq_bytes-or-ct_eq_slices,open,Name and context indicate cryptographic validation data.
+CTCMP-0025,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,108,inequality,if s_hat.rank() != parameter_set.k() {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0026,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,112,inequality,if BYTES != expected {,security-relevant,ct_eq_bytes-or-ct_eq_slices,open,Name and context indicate cryptographic validation data.
+CTCMP-0027,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,127,inequality,if input.len() != expected {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0028,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,165,inequality,if input.len() != expected {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0029,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,181,inequality,if input.len() != expected {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0030,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,199,inequality,if s_hat.rank() != parameter_set.k() {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0031,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,203,inequality,if BYTES != expected {,security-relevant,ct_eq_bytes-or-ct_eq_slices,open,Name and context indicate cryptographic validation data.
+CTCMP-0032,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,221,inequality,if u.rank() != parameter_set.k() {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0033,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,225,inequality,if BYTES != expected {,security-relevant,ct_eq_bytes-or-ct_eq_slices,open,Name and context indicate cryptographic validation data.
+CTCMP-0034,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,256,inequality,if input.len() != expected {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0035,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,270,inequality,if input.len() != expected {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0036,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,292,inequality,if input.len() != expected {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0037,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,332,inequality,if input.len() != expected {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0038,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,360,inequality,if out.len() != expected {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0039,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,378,inequality,if out.len() != expected {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0040,pqc-ml-kem,crates/pqc-ml-kem/src/packing.rs,408,inequality,if out.len() != expected {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0041,pqc-ml-kem,crates/pqc-ml-kem/src/poly.rs,138,equality,if ((value >> bit) & 1) == 1 {,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0042,pqc-ml-kem,crates/pqc-ml-kem/src/sampling.rs,13,equality,let nibble = if i % 2 == 0 { byte & 0x0f } else { byte >> 4 };,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0043,pqc-ml-kem,crates/pqc-ml-kem/src/sampling.rs,102,equality,assert!(p.coefficients().iter().all(|x| *x == 0));,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0044,pqc-ml-kem,crates/pqc-ml-kem/src/sampling.rs,102,iterator_all,assert!(p.coefficients().iter().all(|x| *x == 0));,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0045,pqc-ml-kem,crates/pqc-ml-kem/src/zetas.rs,33,iterator_all,ZETAS.iter().all(|z| *z >= -(Q / 2) && *z <= Q / 2),review,manual,open,Insufficient context for automatic migration.
+CTCMP-0046,pqc-ml-dsa,crates/pqc-ml-dsa/src/audit.rs,32,equality,self.challenge_coefficients_scanned == N,security-relevant,ct_eq_bytes-or-ct_eq_slices,open,Name and context indicate cryptographic validation data.
+CTCMP-0047,pqc-ml-dsa,crates/pqc-ml-dsa/src/audit.rs,33,equality,&& self.nonzero_challenge_coefficients == tau,security-relevant,ct_eq_bytes-or-ct_eq_slices,open,Name and context indicate cryptographic validation data.
+CTCMP-0048,pqc-ml-dsa,crates/pqc-ml-dsa/src/audit.rs,34,equality,&& self.polynomial_coefficients_scanned == tau * N,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0049,pqc-ml-dsa,crates/pqc-ml-dsa/src/audit.rs,35,equality,&& self.coefficient_multiplications == tau * N,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0050,pqc-ml-dsa,crates/pqc-ml-dsa/src/audit.rs,36,equality,&& self.total_accumulations() == tau * N,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0051,pqc-ml-dsa,crates/pqc-ml-dsa/src/audit.rs,37,equality,&& self.modular_reductions == N,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0052,pqc-ml-dsa,crates/pqc-ml-dsa/src/audit.rs,54,equality,if *challenge_coefficient == 0 {,security-relevant,ct_eq_bytes-or-ct_eq_slices,open,Name and context indicate cryptographic validation data.
+CTCMP-0053,pqc-ml-dsa,crates/pqc-ml-dsa/src/challenge.rs,34,equality,if tau == 0 || tau > 64 || tau > N {,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0054,pqc-ml-dsa,crates/pqc-ml-dsa/src/challenge.rs,60,equality,coefficients[position] = if signs & 1 == 0 { 1 } else { -1 };,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0055,pqc-ml-dsa,crates/pqc-ml-dsa/src/challenge.rs,72,inequality,.filter(|coefficient| **coefficient != 0),review,manual,open,Insufficient context for automatic migration.
+CTCMP-0056,pqc-ml-dsa,crates/pqc-ml-dsa/src/encoding.rs,156,equality,"x if x == 1 << 17 => Ok((18, POLY_Z_17_BYTES)),",review,manual,open,Insufficient context for automatic migration.
+CTCMP-0057,pqc-ml-dsa,crates/pqc-ml-dsa/src/encoding.rs,157,equality,"x if x == 1 << 19 => Ok((20, POLY_Z_19_BYTES)),",review,manual,open,Insufficient context for automatic migration.
+CTCMP-0058,pqc-ml-dsa,crates/pqc-ml-dsa/src/encoding.rs,215,inequality,if input.len() != bytes {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0059,pqc-ml-dsa,crates/pqc-ml-dsa/src/encoding.rs,233,inequality,if in_index != bytes || acc != 0 {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0060,pqc-ml-dsa,crates/pqc-ml-dsa/src/expand_a.rs,24,inequality,if entries.len() != rows.saturating_mul(columns) {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0061,pqc-ml-dsa,crates/pqc-ml-dsa/src/expand_a.rs,107,equality,if accepted == N {,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0062,pqc-ml-dsa,crates/pqc-ml-dsa/src/hint.rs,14,inequality,u8::from(base != adjusted),review,manual,open,Insufficient context for automatic migration.
+CTCMP-0063,pqc-ml-dsa,crates/pqc-ml-dsa/src/hint.rs,24,equality,if hint == 0 {,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0064,pqc-ml-dsa,crates/pqc-ml-dsa/src/hint.rs,31,equality,if r1 == modulus - 1 {,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0065,pqc-ml-dsa,crates/pqc-ml-dsa/src/hint.rs,36,equality,} else if r1 == 0 {,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0066,pqc-ml-dsa,crates/pqc-ml-dsa/src/hint.rs,68,inequality,let hint = u8::from(*hint_coefficient != 0);,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0067,pqc-ml-dsa,crates/pqc-ml-dsa/src/keygen.rs,140,inequality,if public_key.len() != parameters.public_key_bytes,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0068,pqc-ml-dsa,crates/pqc-ml-dsa/src/keygen.rs,141,inequality,|| private_key.len() != parameters.private_key_bytes,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0069,pqc-ml-dsa,crates/pqc-ml-dsa/src/poly.rs,85,iterator_all,self.coeffs.iter().all(|value| (0..Q).contains(value)),review,manual,open,Insufficient context for automatic migration.
+CTCMP-0070,pqc-ml-dsa,crates/pqc-ml-dsa/src/sample.rs,28,inequality,if eta != 2 && eta != 4 {,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0071,pqc-ml-dsa,crates/pqc-ml-dsa/src/sample.rs,48,equality,if filled == N {,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0072,pqc-ml-dsa,crates/pqc-ml-dsa/src/sample.rs,57,equality,if filled == N {,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0073,pqc-ml-dsa,crates/pqc-ml-dsa/src/signature.rs,262,inequality,if signature.len() != parameters.signature_bytes {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0074,pqc-ml-dsa,crates/pqc-ml-dsa/src/signature.rs,282,inequality,if challenge_seed.len() != expected_challenge_bytes,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0075,pqc-ml-dsa,crates/pqc-ml-dsa/src/signature.rs,283,inequality,|| z.len() != parameters.l,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0076,pqc-ml-dsa,crates/pqc-ml-dsa/src/signature.rs,284,inequality,|| hints.len() != parameters.k,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0077,pqc-ml-dsa,crates/pqc-ml-dsa/src/signature.rs,352,equality,if *challenge_coefficient == 0 {,security-relevant,ct_eq_bytes-or-ct_eq_slices,open,Name and context indicate cryptographic validation data.
+CTCMP-0078,pqc-ml-dsa,crates/pqc-ml-dsa/src/signature.rs,390,inequality,if left.len() != right.len() {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0079,pqc-ml-dsa,crates/pqc-ml-dsa/src/signature.rs,431,inequality,if left.len() != right.len() {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0080,pqc-ml-dsa,crates/pqc-ml-dsa/src/signing.rs,104,inequality,if encoded.len() != parameters.private_key_bytes {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0081,pqc-ml-dsa,crates/pqc-ml-dsa/src/signing.rs,126,inequality,if offset != encoded.len() {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0082,pqc-ml-dsa,crates/pqc-ml-dsa/src/signing.rs,256,equality,"value if value == 1 << 17 => POLY_Z_17_BYTES,",review,manual,open,Insufficient context for automatic migration.
+CTCMP-0083,pqc-ml-dsa,crates/pqc-ml-dsa/src/signing.rs,257,equality,"value if value == 1 << 19 => POLY_Z_19_BYTES,",review,manual,open,Insufficient context for automatic migration.
+CTCMP-0084,pqc-ml-dsa,crates/pqc-ml-dsa/src/signing_core.rs,80,inequality,if matrix.columns() != vector.len() {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0085,pqc-ml-dsa,crates/pqc-ml-dsa/src/signing_core.rs,169,equality,if *challenge_coefficient == 0 {,security-relevant,ct_eq_bytes-or-ct_eq_slices,open,Name and context indicate cryptographic validation data.
+CTCMP-0086,pqc-ml-dsa,crates/pqc-ml-dsa/src/signing_core.rs,199,inequality,if left.len() != right.len() {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0087,pqc-ml-dsa,crates/pqc-ml-dsa/src/signing_core.rs,223,inequality,if left.len() != right.len() {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0088,pqc-ml-dsa,crates/pqc-ml-dsa/src/signing_core.rs,247,inequality,if z.len() != r.len() {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0089,pqc-ml-dsa,crates/pqc-ml-dsa/src/verification.rs,90,inequality,if encoded.len() != parameters.public_key_bytes {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0090,pqc-ml-dsa,crates/pqc-ml-dsa/src/verification.rs,118,inequality,if encoded.len() != parameters.signature_bytes {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0091,pqc-ml-dsa,crates/pqc-ml-dsa/src/verification.rs,124,equality,"value if value == 1 << 17 => POLY_Z_17_BYTES,",review,manual,open,Insufficient context for automatic migration.
+CTCMP-0092,pqc-ml-dsa,crates/pqc-ml-dsa/src/verification.rs,125,equality,"value if value == 1 << 19 => POLY_Z_19_BYTES,",review,manual,open,Insufficient context for automatic migration.
+CTCMP-0093,pqc-ml-dsa,crates/pqc-ml-dsa/src/verification.rs,156,inequality,if encoded.len() != omega + rows {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0094,pqc-ml-dsa,crates/pqc-ml-dsa/src/verification.rs,186,inequality,if encoded[previous_end..omega].iter().any(|value| *value != 0) {,review,manual,open,Insufficient context for automatic migration.
+CTCMP-0095,pqc-ml-dsa,crates/pqc-ml-dsa/src/verification.rs,329,inequality,if left.len() != right.len() {,public-structural,none,accepted-public,"Public length, parameter, mode, or loop-control comparison."
+CTCMP-0096,pqc-ml-dsa,crates/pqc-ml-dsa/src/verification.rs,339,equality,difference == 0,review,manual,open,Insufficient context for automatic migration.
