@@ -2,7 +2,7 @@
 
 use core::fmt;
 
-use super::{ct_assign_bytes, ct_select_bytes, CtMask8};
+use super::{ct_assign_bytes, ct_select_bytes, zeroize_bytes, CtMask8};
 
 /// Fixed-size byte container intended for secret-bearing values.
 ///
@@ -39,10 +39,13 @@ impl<const LENGTH: usize> SecretBytes<LENGTH> {
         &mut self.bytes
     }
 
-    /// Consume the container and return the contained bytes.
+    /// Copy the contained bytes into a fixed-size array.
+    ///
+    /// The returned array is an additional secret-bearing copy and must be
+    /// zeroized separately.
     #[must_use]
     #[inline(always)]
-    pub const fn into_bytes(self) -> [u8; LENGTH] {
+    pub const fn to_bytes(&self) -> [u8; LENGTH] {
         self.bytes
     }
 
@@ -67,6 +70,12 @@ impl<const LENGTH: usize> SecretBytes<LENGTH> {
             *left_byte ^= difference;
             *right_byte ^= difference;
         }
+    }
+}
+
+impl<const LENGTH: usize> Drop for SecretBytes<LENGTH> {
+    fn drop(&mut self) {
+        zeroize_bytes(&mut self.bytes);
     }
 }
 
