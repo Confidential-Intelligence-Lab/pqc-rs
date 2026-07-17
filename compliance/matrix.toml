@@ -1,0 +1,167 @@
+[metadata]
+schema_version = 2
+project = "pqc-rfc9958-rs"
+generated_from = "RFC 9958"
+source_kind = "informational"
+default_owner = "pqc-rs maintainers"
+default_review_due_days = 180
+notes = [
+  "RFC 9958 is an Informational RFC for engineers, not the normative algorithm specification for ML-KEM, ML-DSA, SLH-DSA, or HPKE.",
+  "Entries below trace the implementation to topics and recommendations discussed by RFC 9958. Normative conformance will be recorded separately against FIPS 203, FIPS 204, FIPS 205, RFC 9180, and applicable PQ-HPKE specifications.",
+  "Initial statuses are intentionally conservative. Promote an entry to implemented or verified only after confirming exact code and test paths in the repository."
+]
+
+[[requirement]]
+id = "RFC9958-5.1.1-ML-KEM"
+standard = "RFC9958"
+section = "5.1.1"
+title = "NIST-selected PQC key-encapsulation mechanisms"
+class = "informative"
+status = "mapped"
+statement = "RFC 9958 identifies ML-KEM as the NIST-standardized module-lattice KEM and refers implementers to FIPS 203."
+implementation = ["crates/pqc-ml-kem/**"]
+tests = []
+evidence = []
+references = ["FIPS 203"]
+tags = ["kem", "ml-kem", "nist"]
+notes = ["Normative algorithm traceability belongs in the FIPS 203 matrix."]
+
+[[requirement]]
+id = "RFC9958-5.1.2-ML-DSA"
+standard = "RFC9958"
+section = "5.1.2"
+title = "ML-DSA identification"
+class = "informative"
+status = "mapped"
+statement = "RFC 9958 identifies ML-DSA and refers implementers to FIPS 204."
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = []
+evidence = []
+references = ["FIPS 204"]
+tags = ["signature", "ml-dsa", "nist"]
+notes = ["Normative algorithm traceability belongs in the FIPS 204 matrix."]
+
+[[requirement]]
+id = "RFC9958-5.1.2-SLH-DSA"
+standard = "RFC9958"
+section = "5.1.2"
+title = "SLH-DSA identification"
+class = "informative"
+status = "mapped"
+statement = "RFC 9958 identifies SLH-DSA and refers implementers to FIPS 205."
+implementation = ["crates/pqc-slh-dsa/**"]
+tests = []
+evidence = []
+references = ["FIPS 205"]
+tags = ["signature", "slh-dsa", "nist"]
+notes = ["Normative algorithm traceability belongs in the FIPS 205 matrix."]
+
+[[requirement]]
+id = "RFC9958-9.2.1-IND-CCA2"
+standard = "RFC9958"
+section = "9.2.1"
+title = "KEM IND-CCA2 security context"
+class = "informative"
+status = "mapped"
+statement = "RFC 9958 explains IND-CCA2 as a fundamental KEM security property and states that ML-KEM provides IND-CCA2 security."
+implementation = ["crates/pqc-ml-kem/**"]
+tests = []
+evidence = []
+notes = ["Implementation tests cannot prove IND-CCA2; the claim depends on the standardized construction and its security analysis."]
+
+[[requirement]]
+id = "RFC9958-9.2.2-KDF-BINDING"
+standard = "RFC9958"
+section = "9.2.2"
+title = "Bind KEM outputs through protocol context"
+class = "recommendation"
+status = "mapped"
+statement = "Applications should avoid using a raw KEM shared secret directly and should use an analyzed protocol/KDF that binds the required context."
+implementation = ["crates/pqc-hpke/**", "crates/pqc-hybrid/**"]
+tests = []
+evidence = []
+notes = ["This is primarily a protocol-integration requirement, not an intrinsic ML-KEM API guarantee."]
+
+[[requirement]]
+id = "RFC9958-9.3-HPKE"
+standard = "RFC9958"
+section = "9.3"
+title = "Hybrid Public Key Encryption integration"
+class = "informative"
+status = "mapped"
+statement = "RFC 9958 discusses HPKE as a protocol combining KEM, KDF, and AEAD components and notes extensions for hybrid post-quantum KEMs."
+implementation = ["crates/pqc-hpke/**"]
+tests = []
+evidence = []
+references = ["RFC 9180"]
+tags = ["hpke", "protocol"]
+notes = ["Normative HPKE traceability belongs in an RFC 9180 and PQ-HPKE matrix."]
+
+[[requirement]]
+id = "RFC9958-10.1.1-SIGNATURE-SECURITY"
+standard = "RFC9958"
+section = "10.1.1"
+title = "PQC signature unforgeability context"
+class = "informative"
+status = "mapped"
+statement = "RFC 9958 discusses EUF-CMA and SUF-CMA as signature security notions and identifies ML-DSA and SLH-DSA in that context."
+implementation = ["crates/pqc-ml-dsa/**", "crates/pqc-slh-dsa/**"]
+tests = []
+evidence = []
+notes = ["Functional tests do not establish unforgeability; normative and cryptographic claims are inherited from the standards and analyses."]
+
+[[requirement]]
+id = "RFC9958-10.2-ML-DSA"
+standard = "RFC9958"
+section = "10.2"
+title = "ML-DSA implementation topic mapping"
+class = "informative"
+status = "mapped"
+statement = "RFC 9958 summarizes ML-DSA construction characteristics, including Fiat-Shamir with aborts and rejection sampling."
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = []
+evidence = ["Stage 9F timing characterization", "Stage 12 side-channel validation", "Stage 13 assurance"]
+ci = ["stage11a", "stage12-portable", "stage13-portable"]
+tags = ["ml-dsa", "side-channel", "assurance"]
+notes = []
+
+[[requirement]]
+id = "RFC9958-11-PARAMETER-SELECTION"
+standard = "RFC9958"
+section = "11"
+title = "Security and performance parameter trade-offs"
+class = "recommendation"
+status = "mapped"
+statement = "Consumers should select parameter sets according to required security strength, message sizes, and performance constraints."
+implementation = ["crates/pqc-ml-kem/**", "crates/pqc-ml-dsa/**", "crates/pqc-slh-dsa/**"]
+tests = []
+evidence = []
+notes = ["The public API and documentation must make parameter-set selection explicit."]
+
+[[requirement]]
+id = "RFC9958-13-HYBRID"
+standard = "RFC9958"
+section = "13"
+title = "Post-quantum and traditional hybrid constructions"
+class = "recommendation"
+status = "mapped"
+statement = "RFC 9958 discusses hybrid classical/post-quantum constructions as a transition and risk-management mechanism."
+implementation = ["crates/pqc-hybrid/**"]
+tests = []
+evidence = []
+notes = ["Specific hybrid constructions require their own normative specification and combiner analysis."]
+
+[[requirement]]
+id = "RFC9958-15-SIDE-CHANNELS"
+standard = "RFC9958"
+section = "15"
+title = "Implementation and side-channel security considerations"
+class = "recommendation"
+status = "mapped"
+statement = "Implementations should account for evolving cryptanalysis and side-channel risks."
+implementation = ["sidechannel/**", "assurance/**", "scripts/run-stage12.sh", "scripts/run-stage13.sh"]
+tests = []
+evidence = ["Stage 9F", "Stage 10B", "Stage 11", "Stage 12", "Stage 13"]
+ci = ["stage11a", "stage12-portable", "stage13-portable"]
+tags = ["side-channel", "constant-time", "assurance"]
+notes = ["Empirical validation is evidence, not a proof of whole-library constant-time behavior."]

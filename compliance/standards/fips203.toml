@@ -1,0 +1,436 @@
+[metadata]
+schema_version = 2
+project = "pqc-rfc9958-rs"
+generated_from = "FIPS 203"
+source_kind = "normative"
+default_owner = "pqc-rs maintainers"
+default_review_due_days = 180
+notes = [
+  "FIPS 203 is the normative ML-KEM algorithm specification.",
+  "Statuses are conservative: mapped identifies a traceability target; implemented requires resolvable code; verified additionally requires resolvable tests and named evidence.",
+  "This matrix is implementation traceability and does not assert NIST CAVP, CMVP, or FIPS 140-3 validation."
+]
+
+[[requirement]]
+id = "FIPS203-3.3-SECRET-DATA"
+standard = "FIPS203"
+section = "3.3"
+title = "Protect and destroy secret values"
+class = "normative"
+status = "implemented"
+statement = "Randomness, decapsulation keys, shared secret keys, and equivalent secret seed material shall remain protected and shall be destroyed when no longer needed."
+implementation = ["crates/pqc-core/src/**", "crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-core/tests/typed_bytes.rs"]
+evidence = ["Stage 10B secret containers and zeroization", "Stage 13 secret-lifetime inventory"]
+ci = ["stage13-portable"]
+references = ["FIPS 203 Section 3.3", "SP 800-227"]
+tags = ["secret-lifecycle", "zeroization"]
+
+[[requirement]]
+id = "FIPS203-3.3-FRESH-RANDOMNESS"
+standard = "FIPS203"
+section = "3.3"
+title = "Use fresh approved randomness"
+class = "normative"
+status = "implemented"
+statement = "Key generation and encapsulation shall use fresh private randomness and report random-bit generation failure."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-ml-kem/tests/api.rs"]
+evidence = ["ML-KEM API tests"]
+ci = ["cargo-test-workspace"]
+tags = ["rng", "keygen", "encapsulation"]
+
+[[requirement]]
+id = "FIPS203-3.3-KPKE-NOT-STANDALONE"
+standard = "FIPS203"
+section = "3.3"
+title = "K-PKE is internal only"
+class = "normative"
+status = "mapped"
+statement = "K-PKE shall not be exposed or used as a stand-alone public-key encryption scheme."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = []
+evidence = []
+ci = []
+tags = ["api-surface", "k-pke"]
+notes = ["A1.3 public API audit will confirm that K-PKE internals are not publicly reachable."]
+
+[[requirement]]
+id = "FIPS203-3.3-INTERNAL-INTERFACES"
+standard = "FIPS203"
+section = "3.3"
+title = "Restrict derandomized internal interfaces"
+class = "recommendation"
+status = "mapped"
+statement = "Derandomized internal KeyGen, Encaps, and Decaps interfaces should be unavailable to applications except for testing."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = []
+evidence = []
+ci = []
+tags = ["api-surface", "internal-functions"]
+
+[[requirement]]
+id = "FIPS203-3.3-SHARED-SECRET"
+standard = "FIPS203"
+section = "3.3"
+title = "Return a 256-bit shared secret"
+class = "normative"
+status = "verified"
+statement = "Encapsulation and decapsulation shall return 32-byte shared secret keys; successful matching executions shall agree."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-ml-kem/tests/api.rs", "crates/pqc-ml-kem/tests/conformance_gate.rs"]
+evidence = ["ML-KEM conformance gate"]
+ci = ["cargo-test-workspace"]
+last_verified = "2026-07-17"
+tags = ["shared-secret", "correctness"]
+
+[[requirement]]
+id = "FIPS203-4.1-FIELD-PARAMETERS"
+standard = "FIPS203"
+section = "4.1"
+title = "Use n=256 and q=3329"
+class = "normative"
+status = "implemented"
+statement = "The polynomial ring and finite-field arithmetic shall use n = 256 and q = 3329."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-ml-kem/tests/conformance_gate.rs"]
+evidence = ["ML-KEM conformance gate"]
+ci = ["cargo-test-workspace"]
+tags = ["parameters", "arithmetic"]
+
+[[requirement]]
+id = "FIPS203-4.2-APPROVED-HASH-XOF"
+standard = "FIPS203"
+section = "4.2"
+title = "Use FIPS 202 hash and XOF functions"
+class = "normative"
+status = "implemented"
+statement = "ML-KEM shall instantiate H, J, G, PRF, and XOF using the FIPS 202 SHA-3 and SHAKE functions specified by FIPS 203."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-ml-kem/tests/conformance_gate.rs"]
+evidence = ["ACVP ML-KEM key generation and encapsulation/decapsulation harnesses"]
+ci = ["cargo-test-workspace", "acvp-ml-kem"]
+tags = ["sha3", "shake", "fips202"]
+
+[[requirement]]
+id = "FIPS203-4.2-BYTE-ENCODING"
+standard = "FIPS203"
+section = "4.2"
+title = "Implement byte encoding and decoding"
+class = "normative"
+status = "implemented"
+statement = "ByteEncode and ByteDecode shall follow the specified little-endian coefficient encoding and canonical bounds."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-ml-kem/tests/conformance_gate.rs"]
+evidence = ["ML-KEM conformance gate"]
+ci = ["cargo-test-workspace"]
+tags = ["encoding", "canonicalization"]
+
+[[requirement]]
+id = "FIPS203-4.2-COMPRESSION"
+standard = "FIPS203"
+section = "4.2"
+title = "Implement coefficient compression and decompression"
+class = "normative"
+status = "implemented"
+statement = "Compress and Decompress shall implement the specified rounding behavior for the selected bit width."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-ml-kem/tests/conformance_gate.rs"]
+evidence = ["Coefficient compression round-trip tests"]
+ci = ["cargo-test-workspace"]
+tags = ["compression", "rounding"]
+
+[[requirement]]
+id = "FIPS203-4.3-SAMPLE-NTT"
+standard = "FIPS203"
+section = "4.3"
+title = "Sample NTT-domain polynomials"
+class = "normative"
+status = "implemented"
+statement = "SampleNTT shall use rejection sampling to produce coefficients in the required range."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-ml-kem/tests/conformance_gate.rs"]
+evidence = ["Conformance and rejection-sampling tests"]
+ci = ["cargo-test-workspace"]
+tags = ["sampling", "ntt"]
+
+[[requirement]]
+id = "FIPS203-4.3-SAMPLE-POLY-CBD"
+standard = "FIPS203"
+section = "4.3"
+title = "Sample centered-binomial polynomials"
+class = "normative"
+status = "implemented"
+statement = "SamplePolyCBD shall sample coefficients according to the specified centered binomial distribution."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-ml-kem/tests/conformance_gate.rs"]
+evidence = ["ML-KEM conformance gate"]
+ci = ["cargo-test-workspace"]
+tags = ["sampling", "cbd"]
+
+[[requirement]]
+id = "FIPS203-4.3-NTT"
+standard = "FIPS203"
+section = "4.3"
+title = "Implement NTT and inverse NTT"
+class = "normative"
+status = "verified"
+statement = "NTT and NTT inverse shall produce the specified transforms over Rq."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-ml-kem/tests/conformance_gate.rs"]
+evidence = ["Stage 13 algebraic and differential tests", "ML-KEM conformance gate"]
+ci = ["cargo-test-workspace", "stage13-portable"]
+last_verified = "2026-07-17"
+tags = ["ntt", "arithmetic"]
+
+[[requirement]]
+id = "FIPS203-5-KPKE-KEYGEN"
+standard = "FIPS203"
+section = "5.1"
+title = "Implement K-PKE.KeyGen as an ML-KEM subroutine"
+class = "normative"
+status = "implemented"
+statement = "The internal K-PKE key-generation subroutine shall implement Algorithm 13 or a mathematically equivalent process."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-test-harness/src/bin/ml-kem-acvp-keygen-trace.rs"]
+evidence = ["ACVP intermediate-value trace harness"]
+ci = ["acvp-ml-kem"]
+tags = ["k-pke", "keygen"]
+
+[[requirement]]
+id = "FIPS203-5-KPKE-ENCRYPT"
+standard = "FIPS203"
+section = "5.2"
+title = "Implement K-PKE.Encrypt as an ML-KEM subroutine"
+class = "normative"
+status = "implemented"
+statement = "The internal K-PKE encryption subroutine shall implement Algorithm 14 or a mathematically equivalent process."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-test-harness/src/bin/ml-kem-acvp-encapsulation.rs"]
+evidence = ["ACVP encapsulation harness"]
+ci = ["acvp-ml-kem"]
+tags = ["k-pke", "encryption"]
+
+[[requirement]]
+id = "FIPS203-5-KPKE-DECRYPT"
+standard = "FIPS203"
+section = "5.3"
+title = "Implement K-PKE.Decrypt as an ML-KEM subroutine"
+class = "normative"
+status = "implemented"
+statement = "The internal K-PKE decryption subroutine shall implement Algorithm 15 or a mathematically equivalent process."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-test-harness/src/bin/ml-kem-acvp-decapsulation.rs"]
+evidence = ["ACVP decapsulation harness"]
+ci = ["acvp-ml-kem"]
+tags = ["k-pke", "decryption"]
+
+[[requirement]]
+id = "FIPS203-6.1-KEYGEN-INTERNAL"
+standard = "FIPS203"
+section = "6.1"
+title = "Implement ML-KEM.KeyGen_internal"
+class = "normative"
+status = "verified"
+statement = "ML-KEM.KeyGen_internal shall derive the encapsulation and decapsulation keys from two 32-byte seeds as specified by Algorithm 16."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-test-harness/src/bin/ml-kem-acvp-keygen.rs", "crates/pqc-test-harness/src/bin/ml-kem-acvp-keygen-trace.rs"]
+evidence = ["ACVP key-generation harness", "ACVP intermediate-value trace harness"]
+ci = ["acvp-ml-kem"]
+last_verified = "2026-07-17"
+tags = ["ml-kem", "keygen", "acvp"]
+
+[[requirement]]
+id = "FIPS203-6.2-ENCAPS-INTERNAL"
+standard = "FIPS203"
+section = "6.2"
+title = "Implement ML-KEM.Encaps_internal"
+class = "normative"
+status = "verified"
+statement = "ML-KEM.Encaps_internal shall derive the shared secret and ciphertext from a checked encapsulation key and 32-byte random value as specified by Algorithm 17."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-test-harness/src/bin/ml-kem-acvp-encapsulation.rs"]
+evidence = ["ACVP encapsulation harness"]
+ci = ["acvp-ml-kem"]
+last_verified = "2026-07-17"
+tags = ["ml-kem", "encapsulation", "acvp"]
+
+[[requirement]]
+id = "FIPS203-6.3-DECAPS-INTERNAL"
+standard = "FIPS203"
+section = "6.3"
+title = "Implement ML-KEM.Decaps_internal with implicit rejection"
+class = "normative"
+status = "verified"
+statement = "ML-KEM.Decaps_internal shall re-encrypt, compare ciphertexts, and select the implicit-rejection secret without exposing a ciphertext-validity oracle."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-test-harness/src/bin/ml-kem-acvp-decapsulation.rs", "crates/pqc-ml-kem/tests/conformance_gate.rs"]
+evidence = ["ACVP decapsulation harness", "Stage 10B constant-time primitives", "Stage 12 side-channel validation"]
+ci = ["acvp-ml-kem", "stage12-portable"]
+last_verified = "2026-07-17"
+tags = ["ml-kem", "decapsulation", "implicit-rejection", "constant-time"]
+
+[[requirement]]
+id = "FIPS203-7-PARAMETER-MATCH"
+standard = "FIPS203"
+section = "7"
+title = "Enforce parameter-set consistency"
+class = "normative"
+status = "implemented"
+statement = "KeyGen, Encaps, and Decaps shall use a valid ML-KEM parameter set, and the selected set shall match all provided inputs."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-ml-kem/tests/api.rs"]
+evidence = ["Typed parameter-set API"]
+ci = ["cargo-test-workspace"]
+tags = ["parameters", "type-safety"]
+
+[[requirement]]
+id = "FIPS203-7.1-KEYGEN"
+standard = "FIPS203"
+section = "7.1"
+title = "Implement ML-KEM.KeyGen"
+class = "normative"
+status = "verified"
+statement = "ML-KEM.KeyGen shall internally generate two 32-byte random values, return an error on randomness failure, and output an encapsulation key and decapsulation key of the selected parameter set."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-test-harness/src/bin/ml-kem-acvp-keygen.rs", "crates/pqc-ml-kem/tests/api.rs"]
+evidence = ["ACVP key-generation harness", "ML-KEM API tests"]
+ci = ["acvp-ml-kem", "cargo-test-workspace"]
+last_verified = "2026-07-17"
+tags = ["keygen", "public-api"]
+
+[[requirement]]
+id = "FIPS203-7.2-ENCAPS-KEY-CHECK"
+standard = "FIPS203"
+section = "7.2"
+title = "Check encapsulation-key input"
+class = "normative"
+status = "implemented"
+statement = "The encapsulation key shall be checked for required length and modulus/canonical encoding before use, unless prior assurance of the check is established."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-test-harness/src/bin/ml-kem-acvp-key-check.rs"]
+evidence = ["ACVP key-check harness"]
+ci = ["acvp-ml-kem"]
+tags = ["input-validation", "encapsulation-key"]
+
+[[requirement]]
+id = "FIPS203-7.2-ENCAPS"
+standard = "FIPS203"
+section = "7.2"
+title = "Implement ML-KEM.Encaps"
+class = "normative"
+status = "verified"
+statement = "ML-KEM.Encaps shall generate 32 fresh random bytes, return an error on randomness failure, and output a 32-byte shared secret and correctly sized ciphertext."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-test-harness/src/bin/ml-kem-acvp-encapsulation.rs", "crates/pqc-ml-kem/tests/api.rs"]
+evidence = ["ACVP encapsulation harness", "ML-KEM API tests"]
+ci = ["acvp-ml-kem", "cargo-test-workspace"]
+last_verified = "2026-07-17"
+tags = ["encapsulation", "public-api"]
+
+[[requirement]]
+id = "FIPS203-7.3-DECAPS-INPUT-CHECKS"
+standard = "FIPS203"
+section = "7.3"
+title = "Perform decapsulation input checks"
+class = "normative"
+status = "verified"
+statement = "Decapsulation shall check ciphertext length on every execution, check decapsulation-key length, and verify the stored hash of the embedded encapsulation key."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-test-harness/src/bin/ml-kem-acvp-key-check.rs", "crates/pqc-test-harness/src/bin/ml-kem-acvp-decapsulation.rs"]
+evidence = ["ACVP key-check and decapsulation harnesses"]
+ci = ["acvp-ml-kem"]
+last_verified = "2026-07-17"
+tags = ["input-validation", "decapsulation"]
+
+[[requirement]]
+id = "FIPS203-7.3-DECAPS"
+standard = "FIPS203"
+section = "7.3"
+title = "Implement ML-KEM.Decaps"
+class = "normative"
+status = "verified"
+statement = "ML-KEM.Decaps shall be deterministic, consume no randomness, and return a 32-byte shared secret for every checked ciphertext and decapsulation key."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-test-harness/src/bin/ml-kem-acvp-decapsulation.rs", "crates/pqc-ml-kem/tests/api.rs"]
+evidence = ["ACVP decapsulation harness", "ML-KEM API tests"]
+ci = ["acvp-ml-kem", "cargo-test-workspace"]
+last_verified = "2026-07-17"
+tags = ["decapsulation", "public-api"]
+
+[[requirement]]
+id = "FIPS203-8-ML-KEM-512"
+standard = "FIPS203"
+section = "8"
+title = "Support ML-KEM-512"
+class = "normative"
+status = "verified"
+statement = "The ML-KEM-512 parameter set shall use the parameter and key/ciphertext sizes specified by FIPS 203."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-ml-kem/tests/conformance_gate.rs"]
+evidence = ["ML-KEM conformance gate", "ACVP ML-KEM harnesses"]
+ci = ["cargo-test-workspace", "acvp-ml-kem"]
+last_verified = "2026-07-17"
+tags = ["parameter-set", "ml-kem-512"]
+
+[[requirement]]
+id = "FIPS203-8-ML-KEM-768"
+standard = "FIPS203"
+section = "8"
+title = "Support ML-KEM-768"
+class = "normative"
+status = "verified"
+statement = "The ML-KEM-768 parameter set shall use the parameter and key/ciphertext sizes specified by FIPS 203."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-ml-kem/tests/conformance_gate.rs"]
+evidence = ["ML-KEM conformance gate", "ACVP ML-KEM harnesses"]
+ci = ["cargo-test-workspace", "acvp-ml-kem"]
+last_verified = "2026-07-17"
+tags = ["parameter-set", "ml-kem-768"]
+
+[[requirement]]
+id = "FIPS203-8-ML-KEM-1024"
+standard = "FIPS203"
+section = "8"
+title = "Support ML-KEM-1024"
+class = "normative"
+status = "verified"
+statement = "The ML-KEM-1024 parameter set shall use the parameter and key/ciphertext sizes specified by FIPS 203."
+implementation = ["crates/pqc-ml-kem/src/**"]
+tests = ["crates/pqc-ml-kem/tests/conformance_gate.rs"]
+evidence = ["ML-KEM conformance gate", "ACVP ML-KEM harnesses"]
+ci = ["cargo-test-workspace", "acvp-ml-kem"]
+last_verified = "2026-07-17"
+tags = ["parameter-set", "ml-kem-1024"]
+
+[[requirement]]
+id = "FIPS203-VALIDATION-ACVP-KEYGEN"
+standard = "FIPS203"
+section = "Validation"
+title = "Exercise ML-KEM key generation through ACVP"
+class = "normative"
+status = "verified"
+statement = "Supported ML-KEM parameter sets shall be testable through the NIST ACVP key-generation vector format."
+implementation = ["crates/pqc-test-harness/src/bin/ml-kem-acvp-keygen.rs"]
+tests = ["crates/pqc-test-harness/src/bin/ml-kem-acvp-keygen.rs"]
+evidence = ["ACVP key-generation vector runner"]
+ci = ["acvp-ml-kem"]
+last_verified = "2026-07-17"
+tags = ["acvp", "keygen"]
+notes = ["Passing local ACVP vectors is not a NIST validation certificate."]
+
+[[requirement]]
+id = "FIPS203-VALIDATION-ACVP-ENCAP-DECAP"
+standard = "FIPS203"
+section = "Validation"
+title = "Exercise encapsulation and decapsulation through ACVP"
+class = "normative"
+status = "verified"
+statement = "Supported ML-KEM parameter sets shall be testable through the NIST ACVP encapsulation and decapsulation vector formats."
+implementation = ["crates/pqc-test-harness/src/bin/ml-kem-acvp-encapsulation.rs", "crates/pqc-test-harness/src/bin/ml-kem-acvp-decapsulation.rs"]
+tests = ["crates/pqc-test-harness/src/bin/ml-kem-acvp-encapsulation.rs", "crates/pqc-test-harness/src/bin/ml-kem-acvp-decapsulation.rs"]
+evidence = ["ACVP encapsulation and decapsulation vector runners"]
+ci = ["acvp-ml-kem"]
+last_verified = "2026-07-17"
+tags = ["acvp", "encapsulation", "decapsulation"]
+notes = ["Passing local ACVP vectors is not a NIST validation certificate."]

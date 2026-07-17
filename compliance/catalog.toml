@@ -1,0 +1,21 @@
+[catalog]
+schema_version = 1
+project = "pqc-rfc9958-rs"
+default_owner = "pqc-rs maintainers"
+default_review_due_days = 180
+
+[[document]]
+id = "RFC9958"
+title = "Post-Quantum Cryptography for Engineers"
+kind = "informational"
+source = "compliance/matrix.toml"
+status = "active"
+
+[[document]]
+id = "FIPS203"
+title = "Module-Lattice-Based Key-Encapsulation Mechanism Standard"
+kind = "normative"
+source = "compliance/standards/fips203.toml"
+status = "active"
+published = "2024-08-13"
+issuer = "NIST"

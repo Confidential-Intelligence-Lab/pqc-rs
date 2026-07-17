@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pqc-rs.example/schemas/compliance-requirement-v2.json",
+  "title": "PQC standards traceability requirement",
+  "type": "object",
+  "required": ["id", "standard", "section", "title", "class", "status", "statement"],
+  "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "standard": {"type": "string", "minLength": 1},
+    "section": {"type": "string", "minLength": 1},
+    "title": {"type": "string", "minLength": 1},
+    "class": {"enum": ["informative", "recommendation", "normative"]},
+    "status": {"enum": ["planned", "mapped", "implemented", "verified", "not-applicable"]},
+    "statement": {"type": "string", "minLength": 1},
+    "implementation": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "tests": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "evidence": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "evidence_paths": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "ci": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "references": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "tags": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "notes": {"type": "array", "items": {"type": "string"}},
+    "rationale": {"type": "string", "minLength": 1},
+    "owner": {"type": "string", "minLength": 1},
+    "last_verified": {"type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"},
+    "review_due_days": {"type": "integer", "minimum": 1},
+    "coverage": {"type": "number", "minimum": 0, "maximum": 100}
+  },
+  "additionalProperties": false
+}
