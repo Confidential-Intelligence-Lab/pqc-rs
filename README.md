@@ -1,195 +1,129 @@
 # PQC-rs
 
-**Standards-focused post-quantum cryptography in Rust**
+**Standards-driven post-quantum cryptography in Rust**
 
-PQC-rs is a Rust workspace for post-quantum cryptography and post-quantum key establishment, with an emphasis on correctness, interoperability, explicit secret handling, reproducible validation, and production-oriented engineering.
+PQC-rs is a Rust workspace for post-quantum cryptography and post-quantum key establishment. The project emphasizes standards traceability, interoperability, explicit secret handling, reproducible validation, and production-oriented engineering.
 
-> **Security status:** experimental, pre-audit software. Do not use this release to protect production secrets without an independent security review and an application-specific risk assessment.
+> **Project status:** pre-release and not independently audited. The current code and validation evidence are suitable for research, evaluation, and integration testing. Do not rely on this project to protect production secrets without an independent security review and an application-specific risk assessment.
 
-## Current scope
+## Scope
 
-| Component | Status |
-|---|---|
-| ML-KEM-512 | Implemented and ACVP-vector tested |
-| ML-KEM-768 | Implemented and ACVP-vector tested |
-| ML-KEM-1024 | Implemented and ACVP-vector tested |
-| RFC 9180 HPKE foundation | Implemented |
-| Pure ML-KEM HPKE Base mode | Pinned vector suite passing |
-| PQ/traditional hybrid HPKE Base mode | Pinned vector suite passing |
-| ML-DSA | Planned |
-| SLH-DSA | Planned |
-| HPKE PSK/Auth/AuthPSK modes | Planned |
-| JOSE/COSE, TLS, X.509, PKCS/CMS | Planned |
+The workspace contains implementations and integration infrastructure for:
 
-## Design principles
+- ML-KEM (FIPS 203);
+- ML-DSA (FIPS 204);
+- SLH-DSA (FIPS 205);
+- HPKE foundations and post-quantum KEM integration;
+- post-quantum/traditional hybrid key establishment;
+- ACVP-oriented validation, fuzzing, side-channel regression testing, and release assurance.
 
-1. **Standards first** — implement against NIST and IETF specifications.
-2. **Correctness before optimization** — establish conformance before tuning.
-3. **Explicit secret handling** — minimize accidental copying, formatting, and disclosure.
-4. **Reproducible validation** — preserve deterministic test and benchmark evidence.
-5. **Production-oriented engineering** — fuzzing, sanitizers, dependency policy, and release gates.
+RFC 9958 is used as an informational engineering guide. Normative conformance claims are traced separately to the applicable FIPS, RFC, and future ISO/IEC specifications.
 
 ## Workspace
 
-| Package | Purpose | Release status |
+| Package | Purpose | Publication status |
 |---|---|---|
-| `pqc-rs-core` | Common traits, byte wrappers, errors, and zeroizing secret containers | Release candidate |
-| `pqc-rs-ml-kem` | ML-KEM implementation | Release candidate |
-| `pqc-rs-hpke` | HPKE with pure-PQ and hybrid ML-KEM adapters | Release candidate |
-| `pqc-rs-hybrid` | Experimental hybrid composition support | Not published |
-| `pqc-rs-test-harness` | ACVP and protocol-vector tooling | Not published |
-| `pqc-rs-ml-dsa` | ML-DSA work area | Not published |
-| `pqc-rs-slh-dsa` | SLH-DSA work area | Not published |
+| `pqc-rs-core` | Common traits, byte wrappers, errors, and secret containers | Pre-release |
+| `pqc-rs-ml-kem` | ML-KEM implementation | Pre-release |
+| `pqc-rs-ml-dsa` | ML-DSA implementation | Pre-release |
+| `pqc-rs-slh-dsa` | SLH-DSA implementation | Pre-release |
+| `pqc-rs-hpke` | HPKE and post-quantum KEM integration | Pre-release |
+| `pqc-rs-hybrid` | Experimental hybrid composition support | Experimental |
+| `pqc-rs-test-harness` | ACVP, protocol-vector, and validation tooling | Internal |
 
-The source directories retain their original names, while published package names use the `pqc-rs-*` namespace.
+Package names and publication boundaries remain subject to API review before the first public crate release.
 
-## Validation status
+## Engineering principles
 
-### ML-KEM ACVP
-
-| Test | Result |
-|---|---:|
-| Key generation | 75 / 75 |
-| Encapsulation | 75 / 75 |
-| Decapsulation | 30 / 30 |
-| Encapsulation and decapsulation key checks | 60 / 60 |
-
-### HPKE
-
-| Test suite | Result |
-|---|---:|
-| Pure ML-KEM Base mode | 105 / 105 |
-| PQ/traditional hybrid Base mode | 102 / 102 |
-
-The workspace also includes:
-
-- negative HPKE protocol tests;
-- structured libFuzzer targets;
-- Miri checks;
-- AddressSanitizer checks;
-- Linux UndefinedBehaviorSanitizer checks;
-- `cargo audit`;
-- `cargo deny`;
-- secret-lifetime and zeroization review;
-- reproducible Criterion performance baselines;
-- cryptographic object-size and release-binary-size reports.
-
-These results provide implementation evidence. They are not a certification, formal proof, or independent security audit.
+1. **Standards before claims** — map normative requirements to code, tests, and evidence.
+2. **Correctness before optimization** — establish conformance and interoperability before architecture-specific tuning.
+3. **Explicit secret handling** — minimize accidental copying, formatting, and disclosure.
+4. **Reproducible assurance** — preserve machine-readable test, timing, compiler, and release evidence.
+5. **Conservative security language** — distinguish testing and empirical evidence from formal proof, certification, and independent audit.
 
 ## Build and test
 
 ```bash
 cargo fmt --all -- --check
-
-cargo clippy \
-  --workspace \
-  --all-targets \
-  --all-features \
-  -- \
-  -D warnings
-
+cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-features
 ```
 
-Dependency and advisory checks:
+Generate and validate the standards traceability report:
 
 ```bash
-cargo deny check
-cargo audit
+./scripts/install-a1-1.sh
+python3 scripts/validate-a1-1.py
+cargo xtask compliance --strict
 ```
 
-## Conformance harnesses
+Run the portable assurance campaign:
 
 ```bash
-cargo run -p pqc-rs-test-harness --bin ml-kem-acvp-keygen --release
-cargo run -p pqc-rs-test-harness --bin ml-kem-acvp-encapsulation --release
-cargo run -p pqc-rs-test-harness --bin ml-kem-acvp-decapsulation --release
-cargo run -p pqc-rs-test-harness --bin ml-kem-acvp-key-check --release
-cargo run -p pqc-rs-test-harness --bin hpke-pq-base-vectors --release
-cargo run -p pqc-rs-test-harness --bin hpke-pq-hybrid-vectors --release
+python3 scripts/validate-stage13.py
+./scripts/run-stage13.sh portable
 ```
 
-## Hardening and release gates
+Generated evidence is written below `target/` and is not committed unless a release procedure explicitly requires it.
 
-```bash
-./scripts/run-security-baseline.sh
-./scripts/run-fuzz-smoke.sh
-./scripts/run-stage8c.sh
-./scripts/run-stage8d.sh
-./scripts/run-stage8e.sh
-./scripts/run-stage8-release-gate.sh
-```
+## Standards and compliance
 
-## Performance baseline
+The canonical standards matrix is maintained in `compliance/matrix.toml`. Generated reports link standards topics and requirements to implementation paths, tests, CI gates, and assurance evidence.
 
-Stage 8E records:
+- [Standards documentation](docs/standards/README.md)
+- [Traceability policy](docs/standards/TRACEABILITY.md)
+- [RFC 9958 topic mapping](docs/standards/RFC9958.md)
 
-- ML-KEM KeyGen, Encaps, and Decaps;
-- pure-PQ HPKE sender and receiver setup;
-- 1 KiB `Seal` and `Open`;
-- HPKE exporter performance;
-- hybrid HPKE sender and receiver setup;
-- object sizes;
-- release executable sizes;
-- toolchain and platform metadata.
+The current traceability framework is intentionally conservative: a requirement is promoted from `mapped` to `implemented` or `verified` only when the corresponding machine-checkable evidence is present.
 
-Results are written under:
+## Security and assurance
 
-```text
-target/stage8e/
-target/criterion/
-```
+The project includes layered assurance infrastructure for:
 
-Performance data is platform-specific and must be reported together with the CPU, operating system, compiler, and build profile.
+- ACVP and known-answer validation;
+- malformed-input and negative testing;
+- fuzzing and interpreter/sanitizer-based checks;
+- secret-lifetime and zeroization review;
+- timing-leakage characterization and regression screening;
+- generated-code inspection and compiler-diversity checks;
+- SBOM generation, evidence checksums, and release-signing support.
 
-## Release status
+These activities provide engineering evidence. They do **not** constitute a formal proof, FIPS validation, Common Criteria certification, or independent security audit.
 
-The first public release candidate is:
+See [SECURITY.md](SECURITY.md) for the disclosure policy and supported-version policy.
 
-```text
-0.4.0-rc.1
-```
+## Project documentation
 
-Intended publication order:
-
-1. `pqc-rs-core`
-2. `pqc-rs-ml-kem`
-3. `pqc-rs-hpke`
-
-The test harness and incomplete algorithm crates remain unpublished.
+- [Documentation index](docs/README.md)
+- [Roadmap](ROADMAP.md)
+- [Contributing](CONTRIBUTING.md)
+- [Governance](GOVERNANCE.md)
+- [Support](SUPPORT.md)
+- [Release process](RELEASE.md)
+- [Changelog](CHANGELOG.md)
+- [Citation metadata](CITATION.cff)
 
 ## Roadmap
 
-- ML-DSA / FIPS 204
-- HPKE PSK, Auth, and AuthPSK modes
-- SLH-DSA / FIPS 205
-- DER, PEM, PKCS #8, and SubjectPublicKeyInfo
-- X.509 and CMS
-- JOSE and COSE
-- TLS integration
+Milestone A prepares the existing RFC 9958-oriented workspace for public release through standards traceability, interoperability, API stabilization, documentation, packaging, and signed release evidence.
+
+Future ecosystem milestones add common PQC abstractions, independent algorithm crates, and a unified benchmarking and research platform. Candidate extensions include globally relevant algorithms such as SMAUG-T, HAETAE, and Classic McEliece when suitable normative specifications, test vectors, and licensing conditions are available.
+
+Architecture-specific high-performance engineering remains an explicit future workstream. It is deferred until the API and algorithm portfolio are sufficiently stable to avoid premature optimization and rework.
+
+See [ROADMAP.md](ROADMAP.md) for the maintained plan.
 
 ## Contributing
 
+Cryptographic changes require a specification reference, deterministic tests, malformed-input tests where applicable, conformance evidence, and review of secret-dependent control flow, indexing, formatting, and zeroization.
+
 See [CONTRIBUTING.md](CONTRIBUTING.md).
-
-Cryptographic changes must include:
-
-- a specification reference;
-- deterministic tests;
-- malformed-input tests where applicable;
-- conformance evidence;
-- secret-dependent branch and indexing analysis;
-- zeroization and formatting review.
-
-## Security
-
-See [SECURITY.md](SECURITY.md) for the security policy and responsible disclosure process.
 
 ## License
 
-Licensed under either:
+Licensed under either of:
 
-- Apache License, Version 2.0
-- MIT License
+- Apache License, Version 2.0; or
+- MIT License;
 
 at your option.

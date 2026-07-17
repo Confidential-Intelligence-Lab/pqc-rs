@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software in research, please cite the software release and its archived identifier when one becomes available."
+title: "PQC-rs: Standards-driven post-quantum cryptography in Rust"
+type: software
+authors:
+  - family-names: Cammarota
+    given-names: Rosario
+    alias: Ro
+repository-code: "https://github.com/OWNER/pqc-rfc9958-rs"
+license: "Apache-2.0 OR MIT"
+version: "0.4.0"
+date-released: "2026-07-17"
+keywords:
+  - post-quantum cryptography
+  - Rust
+  - ML-KEM
+  - ML-DSA
+  - SLH-DSA
+  - HPKE
+  - cryptographic engineering

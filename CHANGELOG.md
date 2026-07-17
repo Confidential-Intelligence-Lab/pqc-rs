@@ -1,19 +1,21 @@
 # Changelog
 
-## [0.4.0-rc.1] - Unreleased
+All notable user-visible changes will be documented here.
+
+The project follows the principles of Keep a Changelog and intends to adopt Semantic Versioning before the first stable release.
+
+## [Unreleased]
 
 ### Added
-- ML-KEM-512, ML-KEM-768, and ML-KEM-1024.
-- ACVP KeyGen, Encaps, Decaps, and key-check harnesses.
-- RFC 9180 HPKE foundation.
-- Pure ML-KEM and PQ/traditional hybrid HPKE Base-mode vector execution.
-- Negative tests, fuzzing, Miri, sanitizers, dependency policy, secret wrappers, and performance baselines.
+
+- standards traceability and compliance-reporting framework;
+- layered side-channel and release-assurance infrastructure;
+- public project identity, contribution, security, governance, support, roadmap, citation, and release documentation.
+
+### Changed
+
+- clarified that RFC 9958 is an informational engineering guide and that normative conformance is assessed against the applicable FIPS and RFC specifications.
 
 ### Security
-- Removed general `Debug` support from secret-bearing aggregate types.
-- Migrated selected HPKE and hybrid secrets to zeroizing containers.
 
-### Known limitations
-- No independent audit or formal constant-time proof.
-- HPKE release scope is Base mode.
-- Draft-based PQ/hybrid HPKE support is revision-pinned and experimental.
+- documented conservative security-claim and responsible-disclosure policies.
