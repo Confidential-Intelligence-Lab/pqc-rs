@@ -19,3 +19,12 @@ source = "compliance/standards/fips203.toml"
 status = "active"
 published = "2024-08-13"
 issuer = "NIST"
+
+[[document]]
+id = "FIPS204"
+title = "Module-Lattice-Based Digital Signature Standard"
+kind = "normative"
+source = "compliance/standards/fips204.toml"
+status = "active"
+published = "2024-08-13"
+issuer = "NIST"

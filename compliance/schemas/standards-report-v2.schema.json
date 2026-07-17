@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pqc-rs.example/schemas/standards-report-v2.schema.json",
+  "title": "pqc-rs Standards Engine v2 aggregate report",
+  "type": "object",
+  "required": ["schema_version", "generated_at", "decision", "strict", "metrics", "documents", "findings"],
+  "properties": {
+    "schema_version": {"const": 2},
+    "generated_at": {"type": "string", "format": "date-time"},
+    "decision": {"enum": ["pass", "fail"]},
+    "strict": {"type": "boolean"},
+    "metrics": {"type": "object"},
+    "documents": {"type": "array"},
+    "findings": {"type": "array"}
+  },
+  "additionalProperties": true
+}
