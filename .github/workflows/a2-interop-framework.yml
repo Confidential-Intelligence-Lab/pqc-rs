@@ -1,0 +1,34 @@
+name: A2 Interoperability Framework
+
+on:
+  push:
+    paths:
+      - "interop/**"
+      - "scripts/interop_engine.py"
+      - "scripts/interop/**"
+      - "xtask/**"
+      - ".github/workflows/a2-interop-framework.yml"
+  pull_request:
+    paths:
+      - "interop/**"
+      - "scripts/interop_engine.py"
+      - "scripts/interop/**"
+      - "xtask/**"
+
+jobs:
+  protocol-selftest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install A2.1 xtask command
+        run: python3 scripts/install-a2-1.py
+      - name: Validate framework
+        run: python3 scripts/validate-a2-1.py
+      - name: Run through xtask
+        run: cargo xtask interop --strict
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: interoperability-report
+          path: target/interop/

@@ -1,0 +1,36 @@
+[interop]
+schema_version = 1
+project = "pqc-rfc9958-rs"
+protocol_version = 1
+default_timeout_seconds = 30
+output = "target/interop"
+
+[[provider]]
+id = "selftest"
+title = "Interoperability protocol self-test"
+enabled = true
+command = ["python3", "scripts/interop/providers/selftest_provider.py"]
+required = true
+
+[[provider]]
+id = "liboqs"
+title = "Open Quantum Safe liboqs"
+enabled = false
+command = ["python3", "scripts/interop/providers/liboqs_provider.py"]
+required = false
+notes = "Adapter reserved for A2.2; enable only after liboqs and the adapter are installed."
+
+[[provider]]
+id = "botan"
+title = "Botan"
+enabled = false
+command = ["python3", "scripts/interop/providers/botan_provider.py"]
+required = false
+notes = "Adapter reserved for A2.3; enable only after Botan and the adapter are installed."
+
+[[suite]]
+id = "framework-protocol"
+title = "Provider protocol and normalization conformance"
+vectors = ["interop/vectors/framework/*.json"]
+providers = ["selftest"]
+required = true

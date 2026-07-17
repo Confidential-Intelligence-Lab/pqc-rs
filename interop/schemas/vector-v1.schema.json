@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pqc-rs.example/schemas/interop-vector-v1.json",
+  "title": "pqc-rfc9958-rs interoperability vector",
+  "type": "object",
+  "required": ["schema_version", "vector_id", "suite", "algorithm", "parameter_set", "operation", "inputs", "expected"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "vector_id": {"type": "string", "minLength": 1},
+    "suite": {"type": "string", "minLength": 1},
+    "algorithm": {"type": "string", "minLength": 1},
+    "parameter_set": {"type": "string", "minLength": 1},
+    "operation": {"type": "string", "minLength": 1},
+    "inputs": {"type": "object"},
+    "expected": {"type": "object"},
+    "metadata": {"type": "object"}
+  },
+  "additionalProperties": false
+}

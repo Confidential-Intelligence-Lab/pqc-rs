@@ -162,6 +162,7 @@ fn run() -> Result<(), String> {
         }
         Some("query") => query(args.collect()),
         Some("standards") => standards(args.collect()),
+        Some("interop") => interop(args.collect()),
         Some("--help") | Some("-h") | None => print_help(),
         Some(other) => Err(format!("unknown xtask: {other}")),
     }
@@ -171,10 +172,33 @@ fn print_help() -> Result<(), String> {
     println!("cargo xtask compliance [--matrix PATH] [--output DIR] [--strict]");
     println!("cargo xtask query [--matrix PATH] [--standard NAME] [--status STATUS] [--missing tests|evidence|owner|ci]");
     println!("cargo xtask standards [--catalog PATH] [--output DIR] [--strict]");
+    println!("cargo xtask interop [--manifest PATH] [--output DIR] [--provider ID] [--suite ID] [--strict]");
     Ok(())
 }
 
 
+
+fn interop(args: Vec<String>) -> Result<(), String> {
+    let mut command = Command::new("python3");
+    command.arg("scripts/interop_engine.py").arg("report");
+    let mut iter = args.into_iter();
+    while let Some(arg) = iter.next() {
+        match arg.as_str() {
+            "--manifest" | "--output" | "--provider" | "--suite" => {
+                let value = iter.next().ok_or_else(|| format!("{arg} requires a value"))?;
+                command.arg(arg).arg(value);
+            }
+            "--strict" => { command.arg(arg); }
+            "--help" | "-h" => {
+                println!("cargo xtask interop [--manifest PATH] [--output DIR] [--provider ID] [--suite ID] [--strict]");
+                return Ok(());
+            }
+            other => return Err(format!("unknown interop argument: {other}")),
+        }
+    }
+    let status = command.status().map_err(|e| format!("failed to run interoperability engine: {e}"))?;
+    if status.success() { Ok(()) } else { Err(format!("interoperability engine exited with {status}")) }
+}
 fn standards(args: Vec<String>) -> Result<(), String> {
     let mut command = Command::new("python3");
     command.arg("scripts/standards_engine.py").arg("report");

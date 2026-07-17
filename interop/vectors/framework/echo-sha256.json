@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "vector_id": "framework-echo-sha256-001",
+  "suite": "framework-protocol",
+  "algorithm": "framework.echo",
+  "parameter_set": "sha256",
+  "operation": "digest",
+  "inputs": {
+    "message": "706f73742d7175616e74756d"
+  },
+  "expected": {
+    "digest": "c33472600b32ace662ab6b5e0b9496d61eb5f76e13a5f46dc60c144def587a0c"
+  },
+  "metadata": {
+    "purpose": "Exercise provider execution, hex normalization, deterministic comparison, and reporting."
+  }
+}

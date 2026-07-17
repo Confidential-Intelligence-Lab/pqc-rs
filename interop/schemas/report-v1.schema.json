@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pqc-rs.example/schemas/interop-report-v1.json",
+  "title": "pqc-rfc9958-rs interoperability report",
+  "type": "object",
+  "required": ["schema_version", "project", "decision", "strict", "summary", "providers", "results", "findings"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "project": {"type": "string"},
+    "decision": {"enum": ["pass", "fail"]},
+    "strict": {"type": "boolean"},
+    "summary": {"type": "object"},
+    "providers": {"type": "array"},
+    "results": {"type": "array"},
+    "findings": {"type": "array"}
+  }
+}
