@@ -1,0 +1,440 @@
+schema_version = 2
+standard = "FIPS204"
+title = "Module-Lattice-Based Digital Signature Standard"
+classification = "normative"
+source = "https://doi.org/10.6028/NIST.FIPS.204"
+published = "2024-08-13"
+notes = [
+  "This module records repository traceability to FIPS 204; it does not constitute CAVP, CMVP, or FIPS 140-3 validation.",
+  "Initial statuses are conservative and may be promoted only when implementation, test, and evidence references resolve in the repository."
+]
+
+[[requirement]]
+id = "FIPS204-3-APPROVED-PARAMETER-SETS"
+section = "3"
+class = "shall"
+status = "mapped"
+title = "Support only approved ML-DSA parameter sets"
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**ml_dsa**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "stage13-portable"]
+tags = ["ml-dsa", "parameters"]
+
+[[requirement]]
+id = "FIPS204-3-ML-DSA-44"
+section = "3"
+class = "shall"
+status = "mapped"
+title = "ML-DSA-44 parameter set"
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**ml_dsa**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["ml-dsa-44", "parameters"]
+
+[[requirement]]
+id = "FIPS204-3-ML-DSA-65"
+section = "3"
+class = "shall"
+status = "mapped"
+title = "ML-DSA-65 parameter set"
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**ml_dsa**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["ml-dsa-65", "parameters"]
+
+[[requirement]]
+id = "FIPS204-3-ML-DSA-87"
+section = "3"
+class = "shall"
+status = "mapped"
+title = "ML-DSA-87 parameter set"
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**ml_dsa**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["ml-dsa-87", "parameters"]
+
+[[requirement]]
+id = "FIPS204-4-ARITHMETIC-DOMAIN"
+section = "4"
+class = "shall"
+status = "mapped"
+title = "Polynomial arithmetic uses the specified ring and modulus"
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**ntt**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "stage13-portable"]
+tags = ["arithmetic", "polynomial", "modulus"]
+
+[[requirement]]
+id = "FIPS204-4-NTT"
+section = "4"
+class = "shall"
+status = "mapped"
+title = "NTT and inverse NTT implement the specified transforms"
+implementation = ["crates/pqc-ml-dsa/**ntt**", "crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**ntt**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "stage13-portable"]
+evidence = ["Stage 13 differential and algebraic testing"]
+tags = ["ntt", "arithmetic"]
+
+[[requirement]]
+id = "FIPS204-4-ENCODING"
+section = "4"
+class = "shall"
+status = "mapped"
+title = "Bit and byte encoding follows FIPS 204"
+implementation = ["crates/pqc-ml-dsa/**encoding**", "crates/pqc-ml-dsa/**packing**", "crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**encoding**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["encoding", "serialization"]
+
+[[requirement]]
+id = "FIPS204-5-HASH-FUNCTIONS"
+section = "5"
+class = "shall"
+status = "mapped"
+title = "Use SHAKE128 and SHAKE256 as specified"
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**ml_dsa**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["shake", "hash"]
+
+[[requirement]]
+id = "FIPS204-5-DOMAIN-SEPARATION"
+section = "5"
+class = "shall"
+status = "mapped"
+title = "Apply specified domain separation and input framing"
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**ml_dsa**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["domain-separation", "hash"]
+
+[[requirement]]
+id = "FIPS204-6-KEYGEN"
+section = "6.1"
+class = "shall"
+status = "mapped"
+title = "ML-DSA.KeyGen generates a valid key pair"
+implementation = ["crates/pqc-ml-dsa/**keygen**", "crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**keygen**", "tests/**ml_dsa**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "acvp-ml-dsa-keygen"]
+tags = ["keygen", "public-api"]
+
+[[requirement]]
+id = "FIPS204-6-KEYGEN-RANDOMNESS"
+section = "6.1"
+class = "shall"
+status = "mapped"
+title = "Key generation obtains the required fresh randomness"
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**keygen**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["keygen", "randomness"]
+
+[[requirement]]
+id = "FIPS204-6-SIGN"
+section = "6.2"
+class = "shall"
+status = "mapped"
+title = "ML-DSA.Sign generates signatures according to FIPS 204"
+implementation = ["crates/pqc-ml-dsa/**sign**", "crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**sign**", "tests/**ml_dsa**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "acvp-ml-dsa-siggen", "stage9f"]
+evidence = ["Stage 9F rejection-sampling timing characterization", "Stage 12 comprehensive side-channel validation"]
+tags = ["sign", "public-api"]
+
+[[requirement]]
+id = "FIPS204-6-SIGN-DETERMINISTIC"
+section = "6.2"
+class = "shall"
+status = "mapped"
+title = "Deterministic signing mode follows the specified derivation"
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**deterministic**", "tests/**ml_dsa**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "acvp-ml-dsa-siggen"]
+tags = ["sign", "deterministic"]
+
+[[requirement]]
+id = "FIPS204-6-SIGN-HEDGED"
+section = "6.2"
+class = "shall"
+status = "mapped"
+title = "Hedged signing mode incorporates fresh randomness"
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**randomized**", "tests/**ml_dsa**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "acvp-ml-dsa-siggen"]
+tags = ["sign", "hedged", "randomness"]
+
+[[requirement]]
+id = "FIPS204-6-CONTEXT"
+section = "6.2"
+class = "shall"
+status = "mapped"
+title = "Signing and verification bind the optional context string"
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**context**", "tests/**ml_dsa**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "acvp-ml-dsa-siggen", "acvp-ml-dsa-sigver"]
+tags = ["context", "domain-separation"]
+
+[[requirement]]
+id = "FIPS204-6-CONTEXT-LENGTH"
+section = "6.2"
+class = "shall"
+status = "mapped"
+title = "Context length is limited to at most 255 bytes"
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**context**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["context", "input-validation"]
+
+[[requirement]]
+id = "FIPS204-6-VERIFY"
+section = "6.3"
+class = "shall"
+status = "mapped"
+title = "ML-DSA.Verify accepts valid signatures and rejects invalid signatures"
+implementation = ["crates/pqc-ml-dsa/**verify**", "crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**verify**", "tests/**ml_dsa**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "acvp-ml-dsa-sigver"]
+tags = ["verify", "public-api"]
+
+[[requirement]]
+id = "FIPS204-6-PREHASH"
+section = "6.4"
+class = "shall"
+status = "mapped"
+title = "Pre-hash ML-DSA variants encode the hash identifier and digest correctly"
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**prehash**", "tests/**ml_dsa**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "acvp-ml-dsa-siggen", "acvp-ml-dsa-sigver"]
+tags = ["prehash", "hash"]
+
+[[requirement]]
+id = "FIPS204-7-EXPAND-A"
+section = "7"
+class = "shall"
+status = "mapped"
+title = "ExpandA derives the public matrix using rejection sampling"
+implementation = ["crates/pqc-ml-dsa/**expand_a**", "crates/pqc-ml-dsa/**sampling**", "crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**sampling**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "stage9f"]
+evidence = ["Stage 9F rejection-sampling timing characterization"]
+tags = ["sampling", "matrix"]
+
+[[requirement]]
+id = "FIPS204-7-EXPAND-S"
+section = "7"
+class = "shall"
+status = "mapped"
+title = "ExpandS derives secret vectors with the specified distribution"
+implementation = ["crates/pqc-ml-dsa/**sampling**", "crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**sampling**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "stage12-portable"]
+tags = ["sampling", "secret"]
+
+[[requirement]]
+id = "FIPS204-7-EXPAND-MASK"
+section = "7"
+class = "shall"
+status = "mapped"
+title = "ExpandMask derives masking vectors in the required range"
+implementation = ["crates/pqc-ml-dsa/**sampling**", "crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**sampling**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "stage9f"]
+tags = ["sampling", "mask"]
+
+[[requirement]]
+id = "FIPS204-7-SAMPLE-IN-BALL"
+section = "7"
+class = "shall"
+status = "mapped"
+title = "SampleInBall produces challenge polynomials of the specified weight"
+implementation = ["crates/pqc-ml-dsa/**sample**", "crates/pqc-ml-dsa/**challenge**", "crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**challenge**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "stage9f"]
+evidence = ["Stage 9F challenge-multiplication and conditioned-timing experiments"]
+tags = ["sampling", "challenge"]
+
+[[requirement]]
+id = "FIPS204-7-DECOMPOSE"
+section = "7"
+class = "shall"
+status = "mapped"
+title = "Power2Round, Decompose, HighBits, and LowBits follow FIPS 204"
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**round**", "tests/**decompose**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["rounding", "decomposition"]
+
+[[requirement]]
+id = "FIPS204-7-HINTS"
+section = "7"
+class = "shall"
+status = "mapped"
+title = "MakeHint and UseHint implement the specified hint mechanism"
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**hint**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["hints", "rounding"]
+
+[[requirement]]
+id = "FIPS204-8-INTERNAL-KEYGEN"
+section = "8.1"
+class = "shall"
+status = "mapped"
+title = "ML-DSA.KeyGen_internal follows the specified algorithm"
+implementation = ["crates/pqc-ml-dsa/**keygen**", "crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**keygen**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "acvp-ml-dsa-keygen"]
+tags = ["internal", "keygen"]
+
+[[requirement]]
+id = "FIPS204-8-INTERNAL-SIGN"
+section = "8.2"
+class = "shall"
+status = "mapped"
+title = "ML-DSA.Sign_internal follows the specified rejection-sampling algorithm"
+implementation = ["crates/pqc-ml-dsa/**sign**", "crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**sign**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "acvp-ml-dsa-siggen", "stage9f"]
+evidence = ["Stage 9F conditioned rejection-sampling timing evidence"]
+tags = ["internal", "sign", "rejection-sampling"]
+
+[[requirement]]
+id = "FIPS204-8-INTERNAL-VERIFY"
+section = "8.3"
+class = "shall"
+status = "mapped"
+title = "ML-DSA.Verify_internal follows the specified verification algorithm"
+implementation = ["crates/pqc-ml-dsa/**verify**", "crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**verify**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "acvp-ml-dsa-sigver"]
+tags = ["internal", "verify"]
+
+[[requirement]]
+id = "FIPS204-8-SIGNATURE-ENCODING"
+section = "8"
+class = "shall"
+status = "mapped"
+title = "Signature encoding and decoding enforce canonical form"
+implementation = ["crates/pqc-ml-dsa/**encoding**", "crates/pqc-ml-dsa/**packing**", "crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**encoding**", "tests/**malformed**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "acvp-ml-dsa-sigver"]
+tags = ["signature", "encoding", "canonical"]
+
+[[requirement]]
+id = "FIPS204-8-KEY-ENCODING"
+section = "8"
+class = "shall"
+status = "mapped"
+title = "Public and private key encodings have the specified layout and sizes"
+implementation = ["crates/pqc-ml-dsa/**encoding**", "crates/pqc-ml-dsa/**packing**", "crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**encoding**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "acvp-ml-dsa-keygen"]
+tags = ["keys", "encoding"]
+
+[[requirement]]
+id = "FIPS204-8-REJECTION-BOUNDS"
+section = "8.2"
+class = "shall"
+status = "mapped"
+title = "Signing enforces all norm and weight rejection conditions"
+implementation = ["crates/pqc-ml-dsa/**sign**", "crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**sign**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests", "stage9f"]
+evidence = ["Stage 9F rejection-count and conditioned-timing analysis"]
+tags = ["sign", "rejection-sampling", "bounds"]
+
+[[requirement]]
+id = "FIPS204-9-INPUT-CHECKING"
+section = "9"
+class = "shall"
+status = "mapped"
+title = "Public operations validate input lengths and encodings"
+implementation = ["crates/pqc-ml-dsa/**"]
+tests = ["crates/pqc-ml-dsa/tests/**", "tests/**invalid**", "tests/**malformed**"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["input-validation", "errors"]
+
+[[requirement]]
+id = "FIPS204-9-SECRET-PROTECTION"
+section = "9"
+class = "shall"
+status = "mapped"
+title = "Private key material and intermediate secrets are protected and cleared"
+implementation = ["crates/pqc-ml-dsa/**", "crates/pqc-rs-core/**"]
+tests = ["crates/pqc-ml-dsa/tests/**"]
+owner = "pqc-rs maintainers"
+ci = ["stage10b4-zeroization", "stage12-portable", "stage13-portable"]
+evidence = ["Stage 10B zeroization audit", "Stage 13 secret-lifetime inventory"]
+tags = ["zeroization", "secret-lifetime"]
+
+[[requirement]]
+id = "FIPS204-ACVP-KEYGEN"
+section = "ACVP"
+class = "validation"
+status = "mapped"
+title = "ACVP ML-DSA key-generation vector processing"
+implementation = ["crates/**acvp**", "tests/**acvp**", "scripts/**acvp**"]
+tests = ["tests/**acvp**", "crates/**acvp**"]
+owner = "pqc-rs maintainers"
+ci = ["acvp-ml-dsa-keygen"]
+references = ["NIST ACVP ML-DSA JSON Specification"]
+tags = ["acvp", "keygen"]
+
+[[requirement]]
+id = "FIPS204-ACVP-SIGGEN"
+section = "ACVP"
+class = "validation"
+status = "mapped"
+title = "ACVP ML-DSA signature-generation vector processing"
+implementation = ["crates/**acvp**", "tests/**acvp**", "scripts/**acvp**"]
+tests = ["tests/**acvp**", "crates/**acvp**"]
+owner = "pqc-rs maintainers"
+ci = ["acvp-ml-dsa-siggen"]
+references = ["NIST ACVP ML-DSA JSON Specification"]
+tags = ["acvp", "siggen"]
+
+[[requirement]]
+id = "FIPS204-ACVP-SIGVER"
+section = "ACVP"
+class = "validation"
+status = "mapped"
+title = "ACVP ML-DSA signature-verification vector processing"
+implementation = ["crates/**acvp**", "tests/**acvp**", "scripts/**acvp**"]
+tests = ["tests/**acvp**", "crates/**acvp**"]
+owner = "pqc-rs maintainers"
+ci = ["acvp-ml-dsa-sigver"]
+references = ["NIST ACVP ML-DSA JSON Specification"]
+tags = ["acvp", "sigver"]

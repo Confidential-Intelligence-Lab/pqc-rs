@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "vector_id": "liboqs-ml-kem-1024-roundtrip-001",
+  "suite": "liboqs-smoke",
+  "algorithm": "ML-KEM",
+  "parameter_set": "ML-KEM-1024",
+  "operation": "roundtrip",
+  "inputs": {},
+  "expected": {
+    "roundtrip": true,
+    "public_key_length": 1568,
+    "secret_key_length": 3168,
+    "ciphertext_length": 1568,
+    "shared_secret_length": 32
+  },
+  "metadata": {
+    "comparison": "semantic",
+    "claim": "liboqs adapter execution and internal KEM round trip"
+  }
+}

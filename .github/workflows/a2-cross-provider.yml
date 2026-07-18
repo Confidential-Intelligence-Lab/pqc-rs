@@ -1,0 +1,33 @@
+name: A2.3 cross-provider interoperability
+on:
+  push:
+  pull_request:
+jobs:
+  rust-liboqs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Build liboqs 0.16.0
+        run: |
+          git clone --depth 1 --branch 0.16.0 https://github.com/open-quantum-safe/liboqs.git /tmp/liboqs
+          cmake -S /tmp/liboqs -B /tmp/liboqs/build -GNinja -DBUILD_SHARED_LIBS=ON -DOQS_BUILD_ONLY_LIB=ON
+          cmake --build /tmp/liboqs/build
+          sudo cmake --install /tmp/liboqs/build --prefix /usr/local
+      - name: Quality gates
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --all-targets --all-features -- -D warnings
+          cargo test --all-targets --all-features
+      - name: Cross-provider interoperability
+        env:
+          OQS_PREFIX: /usr/local
+          LD_LIBRARY_PATH: /usr/local/lib
+        run: cargo xtask interop-cross --strict
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a2-3-interop-report
+          path: target/interop-cross/

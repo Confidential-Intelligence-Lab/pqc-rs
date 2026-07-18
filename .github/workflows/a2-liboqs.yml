@@ -1,0 +1,53 @@
+name: A2 liboqs Interoperability
+
+on:
+  push:
+    paths:
+      - "interop/**"
+      - "scripts/interop/**"
+      - "scripts/interop_engine.py"
+      - "scripts/configure-liboqs-interop.py"
+      - "scripts/validate-a2-2.py"
+      - ".github/workflows/a2-liboqs.yml"
+  pull_request:
+    paths:
+      - "interop/**"
+      - "scripts/interop/**"
+      - "scripts/interop_engine.py"
+      - "scripts/configure-liboqs-interop.py"
+      - "scripts/validate-a2-2.py"
+
+jobs:
+  liboqs-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install build dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build libssl-dev
+      - name: Build liboqs 0.16.0
+        run: |
+          git clone --depth 1 --branch 0.16.0 https://github.com/open-quantum-safe/liboqs.git "$RUNNER_TEMP/liboqs"
+          cmake -S "$RUNNER_TEMP/liboqs" -B "$RUNNER_TEMP/liboqs/build" -GNinja \
+            -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/oqs-install" \
+            -DBUILD_SHARED_LIBS=ON \
+            -DOQS_BUILD_ONLY_LIB=ON
+          cmake --build "$RUNNER_TEMP/liboqs/build"
+          cmake --install "$RUNNER_TEMP/liboqs/build"
+      - name: Install A2.2
+        run: python3 scripts/install-a2-2.py
+      - name: Validate adapter boundary
+        run: python3 scripts/validate-a2-2.py
+      - name: Enable real liboqs provider
+        env:
+          OQS_LIBOQS_PATH: ${{ runner.temp }}/oqs-install/lib/liboqs.so
+        run: python3 scripts/configure-liboqs-interop.py enable
+      - name: Run liboqs smoke suite
+        env:
+          OQS_LIBOQS_PATH: ${{ runner.temp }}/oqs-install/lib/liboqs.so
+        run: cargo xtask interop --provider liboqs --suite liboqs-smoke --strict
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: liboqs-interoperability-report
+          path: target/interop/

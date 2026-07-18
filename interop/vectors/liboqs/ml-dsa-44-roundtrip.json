@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "vector_id": "liboqs-ml-dsa-44-roundtrip-001",
+  "suite": "liboqs-smoke",
+  "algorithm": "ML-DSA",
+  "parameter_set": "ML-DSA-44",
+  "operation": "roundtrip",
+  "inputs": {
+    "message": "41322e32206c69626f717320696e7465726f7065726162696c697479"
+  },
+  "expected": {
+    "roundtrip": true,
+    "public_key_length": 1312,
+    "secret_key_length": 2560,
+    "signature_length": 2420
+  },
+  "metadata": {
+    "comparison": "semantic",
+    "claim": "liboqs adapter execution and internal signature round trip"
+  }
+}

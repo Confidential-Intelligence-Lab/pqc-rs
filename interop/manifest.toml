@@ -13,9 +13,17 @@ command = ["python3", "scripts/interop/providers/selftest_provider.py"]
 required = true
 
 [[provider]]
+id = "rust"
+title = "pqc-rfc9958-rs native provider"
+enabled = false
+command = ["python3", "scripts/interop/providers/rust_provider.py"]
+required = false
+notes = "A2.3 native Rust provider; used by cargo xtask interop-cross."
+
+[[provider]]
 id = "liboqs"
 title = "Open Quantum Safe liboqs"
-enabled = false
+enabled = true
 command = ["python3", "scripts/interop/providers/liboqs_provider.py"]
 required = false
 notes = "Adapter reserved for A2.2; enable only after liboqs and the adapter are installed."
@@ -34,3 +42,11 @@ title = "Provider protocol and normalization conformance"
 vectors = ["interop/vectors/framework/*.json"]
 providers = ["selftest"]
 required = true
+
+[[suite]]
+id = "liboqs-smoke"
+title = "liboqs ML-KEM and ML-DSA adapter smoke interoperability"
+vectors = ["interop/vectors/liboqs/*.json"]
+providers = ["liboqs"]
+required = false
+comparison = "semantic"
