@@ -18,3 +18,4 @@ pub mod hybrid_kem;
 pub mod hybrid_setup;
 pub mod ml_kem;
 pub mod setup;
+pub mod suite;

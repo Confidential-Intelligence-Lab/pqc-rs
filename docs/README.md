@@ -17,3 +17,10 @@ Milestone A will add installation, API, interoperability, architecture, and rele
 ## Documentation policy
 
 Documentation must distinguish normative requirements from informational guidance and distinguish test evidence from proof, certification, or independent audit.
+
+- [Implementation matrix](IMPLEMENTATION_MATRIX.md)
+
+## API governance
+
+- [B1.3.1 Public API Review](api/API_REVIEW.md)
+- [Generated Public API Inventory](api/API_INVENTORY.md)

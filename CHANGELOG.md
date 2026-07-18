@@ -19,3 +19,10 @@ The project follows the principles of Keep a Changelog and intends to adopt Sema
 ### Security
 
 - documented conservative security-claim and responsible-disclosure policies.
+
+## B1.3.1 — Public API review
+
+- Added preferred suite-first HPKE Base and PSK setup entry points.
+- Preserved identifier-based setup APIs as compatibility wrappers.
+- Added generated workspace API inventory and classification.
+- Added `cargo xtask api-review [--check]`.

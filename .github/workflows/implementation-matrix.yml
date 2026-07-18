@@ -1,0 +1,30 @@
+name: Implementation matrix
+
+on:
+  push:
+    paths:
+      - "compliance/implementation-matrix.toml"
+      - "docs/IMPLEMENTATION_MATRIX.md"
+      - "xtask/**"
+      - "scripts/validate-b1-2-1.py"
+      - "README.md"
+      - ".github/workflows/implementation-matrix.yml"
+  pull_request:
+    paths:
+      - "compliance/implementation-matrix.toml"
+      - "docs/IMPLEMENTATION_MATRIX.md"
+      - "xtask/**"
+      - "scripts/validate-b1-2-1.py"
+      - "README.md"
+      - ".github/workflows/implementation-matrix.yml"
+
+jobs:
+  implementation-matrix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Validate milestone structure
+        run: python3 scripts/validate-b1-2-1.py
+      - name: Verify generated matrix is current
+        run: cargo xtask implementation-matrix --check

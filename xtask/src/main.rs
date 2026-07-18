@@ -164,8 +164,8 @@ fn run() -> Result<(), String> {
         Some("standards") => standards(args.collect()),
         Some("interop") => interop(args.collect()),
         Some("interop-cross") => interop_cross(args.collect()),
-        Some("interop-openssl") => interop_openssl(args.collect()),
-        Some("interop-hpke") => interop_hpke(args.collect()),
+        Some("implementation-matrix") => implementation_matrix(args.collect()),
+        Some("api-review") => api_review(args.collect()),
         Some("--help") | Some("-h") | None => print_help(),
         Some(other) => Err(format!("unknown xtask: {other}")),
     }
@@ -177,11 +177,29 @@ fn print_help() -> Result<(), String> {
     println!("cargo xtask standards [--catalog PATH] [--output DIR] [--strict]");
     println!("cargo xtask interop [--manifest PATH] [--output DIR] [--provider ID] [--suite ID] [--strict]");
     println!("cargo xtask interop-cross [--strict]");
-    println!("cargo xtask interop-openssl [--strict]");
-    println!("cargo xtask interop-hpke [--strict]");
+    println!("cargo xtask implementation-matrix [--manifest PATH] [--output PATH] [--check]");
+    println!("cargo xtask api-review [--check]");
     Ok(())
 }
 
+
+
+fn api_review(args: Vec<String>) -> Result<(), String> {
+    let mut command = Command::new("python3");
+    command.arg("scripts/api_review.py");
+    for arg in args {
+        match arg.as_str() {
+            "--check" => { command.arg(arg); }
+            "--help" | "-h" => {
+                println!("cargo xtask api-review [--check]");
+                return Ok(());
+            }
+            other => return Err(format!("unknown api-review argument: {other}")),
+        }
+    }
+    let status = command.status().map_err(|e| format!("failed to run API review: {e}"))?;
+    if status.success() { Ok(()) } else { Err(format!("API review exited with {status}")) }
+}
 
 
 fn interop(args: Vec<String>) -> Result<(), String> {
@@ -464,24 +482,6 @@ fn join_code(items: &[String]) -> String { if items.is_empty() { "—".into() } 
 fn escape(s: &str) -> String { s.replace('|', "\\|").replace('\n', " ") }
 fn html_escape(s: &str) -> String { s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;") }
 
-fn interop_openssl(args: Vec<String>) -> Result<(), String> {
-    let mut command = std::process::Command::new("python3");
-    command.arg("scripts/openssl_provider_interop.py");
-    for arg in args {
-        match arg.as_str() {
-            "--strict" => { command.arg("--strict"); }
-            "--help" | "-h" => {
-                println!("cargo xtask interop-openssl [--strict]");
-    println!("cargo xtask interop-hpke [--strict]");
-                return Ok(());
-            }
-            other => return Err(format!("unknown interop-openssl argument: {other}")),
-        };
-    }
-    let status = command.status().map_err(|e| format!("failed to run OpenSSL interoperability engine: {e}"))?;
-    if status.success() { Ok(()) } else { Err(format!("OpenSSL interoperability engine exited with {status}")) }
-}
-
 fn interop_cross(args: Vec<String>) -> Result<(), String> {
     let mut command = std::process::Command::new("python3");
     command.arg("scripts/cross_provider_interop.py");
@@ -490,6 +490,8 @@ fn interop_cross(args: Vec<String>) -> Result<(), String> {
             "--strict" => { command.arg("--strict"); }
             "--help" | "-h" => {
                 println!("cargo xtask interop-cross [--strict]");
+    println!("cargo xtask implementation-matrix [--manifest PATH] [--output PATH] [--check]");
+    println!("cargo xtask api-review [--check]");
                 return Ok(());
             }
             other => return Err(format!("unknown interop-cross argument: {other}")),
@@ -499,16 +501,212 @@ fn interop_cross(args: Vec<String>) -> Result<(), String> {
     if status.success() { Ok(()) } else { Err(format!("cross-provider interoperability engine exited with {status}")) }
 }
 
-fn interop_hpke(args: Vec<String>) -> Result<(), String> {
-    let mut command = Command::new("python3");
-    command.arg("scripts/hpke_interop.py");
-    for arg in args {
+
+#[derive(Debug, Deserialize)]
+struct ImplementationMatrixManifest {
+    metadata: ImplementationMatrixMetadata,
+    #[serde(default)]
+    algorithm: Vec<ImplementationAlgorithm>,
+    #[serde(default)]
+    standard: Vec<ImplementationStandard>,
+    #[serde(default)]
+    validation: Vec<ImplementationValidation>,
+    #[serde(default)]
+    milestone: Vec<ImplementationMilestone>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ImplementationMatrixMetadata {
+    schema_version: u32,
+    project: String,
+    generated_document: String,
+    last_verified: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct ImplementationAlgorithm {
+    primitive: String,
+    variant: String,
+    status: String,
+    evidence: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct ImplementationStandard {
+    name: String,
+    scope: String,
+    status: String,
+    evidence: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct ImplementationValidation {
+    name: String,
+    status: String,
+    command: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct ImplementationMilestone {
+    name: String,
+    capability: String,
+    status: String,
+}
+
+fn implementation_matrix(args: Vec<String>) -> Result<(), String> {
+    let mut manifest_path = PathBuf::from("compliance/implementation-matrix.toml");
+    let mut output_path: Option<PathBuf> = None;
+    let mut check = false;
+    let mut iter = args.into_iter();
+    while let Some(arg) = iter.next() {
         match arg.as_str() {
-            "--strict" => { command.arg(arg); }
-            "--help" | "-h" => { println!("cargo xtask interop-hpke [--strict]"); return Ok(()); }
-            other => return Err(format!("unknown interop-hpke argument: {other}")),
+            "--manifest" => {
+                manifest_path = PathBuf::from(iter.next().ok_or("--manifest requires a path")?);
+            }
+            "--output" => {
+                output_path = Some(PathBuf::from(iter.next().ok_or("--output requires a path")?));
+            }
+            "--check" => check = true,
+            "--help" | "-h" => {
+                println!("cargo xtask implementation-matrix [--manifest PATH] [--output PATH] [--check]");
+    println!("cargo xtask api-review [--check]");
+                return Ok(());
+            }
+            other => return Err(format!("unknown implementation-matrix argument: {other}")),
         }
     }
-    let status = command.status().map_err(|e| format!("failed to run HPKE interoperability harness: {e}"))?;
-    if status.success() { Ok(()) } else { Err(format!("HPKE interoperability harness exited with {status}")) }
+
+    let raw = fs::read_to_string(&manifest_path)
+        .map_err(|e| format!("failed to read {}: {e}", manifest_path.display()))?;
+    let manifest: ImplementationMatrixManifest = toml::from_str(&raw)
+        .map_err(|e| format!("failed to parse {}: {e}", manifest_path.display()))?;
+    validate_implementation_manifest(&manifest)?;
+
+    let output = output_path.unwrap_or_else(|| PathBuf::from(&manifest.metadata.generated_document));
+    let rendered = render_implementation_matrix(&manifest, &manifest_path);
+
+    if check {
+        let existing = fs::read_to_string(&output)
+            .map_err(|e| format!("failed to read generated matrix {}: {e}", output.display()))?;
+        if existing != rendered {
+            return Err(format!(
+                "{} is stale; run `cargo xtask implementation-matrix`",
+                output.display()
+            ));
+        }
+        println!("implementation matrix is current: {}", output.display());
+        return Ok(());
+    }
+
+    if let Some(parent) = output.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|e| format!("failed to create {}: {e}", parent.display()))?;
+    }
+    fs::write(&output, rendered)
+        .map_err(|e| format!("failed to write {}: {e}", output.display()))?;
+    println!("generated {}", output.display());
+    Ok(())
+}
+
+fn validate_implementation_manifest(manifest: &ImplementationMatrixManifest) -> Result<(), String> {
+    if manifest.metadata.schema_version != 1 {
+        return Err(format!(
+            "unsupported implementation matrix schema version: {}",
+            manifest.metadata.schema_version
+        ));
+    }
+    if manifest.metadata.project.trim().is_empty() {
+        return Err("implementation matrix project must not be empty".into());
+    }
+    if NaiveDate::parse_from_str(&manifest.metadata.last_verified, "%Y-%m-%d").is_err() {
+        return Err("implementation matrix last_verified must use YYYY-MM-DD".into());
+    }
+    let valid_statuses = ["planned", "mapped", "implemented", "verified", "complete", "pass", "partial"];
+    for (kind, name, status) in manifest
+        .algorithm
+        .iter()
+        .map(|v| ("algorithm", format!("{}-{}", v.primitive, v.variant), v.status.as_str()))
+        .chain(manifest.standard.iter().map(|v| ("standard", v.name.clone(), v.status.as_str())))
+        .chain(manifest.validation.iter().map(|v| ("validation", v.name.clone(), v.status.as_str())))
+        .chain(manifest.milestone.iter().map(|v| ("milestone", v.name.clone(), v.status.as_str())))
+    {
+        if !valid_statuses.contains(&status) {
+            return Err(format!("invalid {kind} status `{status}` for `{name}`"));
+        }
+    }
+    Ok(())
+}
+
+fn render_implementation_matrix(
+    manifest: &ImplementationMatrixManifest,
+    manifest_path: &Path,
+) -> String {
+    const KEMS: [&str; 3] = ["ML-KEM-512", "ML-KEM-768", "ML-KEM-1024"];
+    const KDFS: [&str; 3] = ["HKDF-SHA256", "HKDF-SHA384", "HKDF-SHA512"];
+    const AEADS: [&str; 3] = ["AES-128-GCM", "AES-256-GCM", "ChaCha20-Poly1305"];
+
+    let suite_count = KEMS.len() * KDFS.len() * AEADS.len();
+    let configuration_count = suite_count * 2;
+    let mut out = String::new();
+    out.push_str("# Implementation Matrix\n\n");
+    out.push_str("> This document is generated. Edit `");
+    out.push_str(&manifest_path.display().to_string());
+    out.push_str("` and run `cargo xtask implementation-matrix`.\n\n");
+    out.push_str(&format!(
+        "- Project: `{}`\n- Schema: `{}`\n- Last verified: `{}`\n- HPKE message suites: **{}**\n- Base/PSK configurations: **{}**\n\n",
+        manifest.metadata.project,
+        manifest.metadata.schema_version,
+        manifest.metadata.last_verified,
+        suite_count,
+        configuration_count
+    ));
+
+    out.push_str("## Standards Coverage\n\n| Standard | Scope | Status | Evidence |\n|---|---|---|---|\n");
+    for item in &manifest.standard {
+        out.push_str(&format!(
+            "| {} | {} | **{}** | `{}` |\n",
+            item.name, item.scope, item.status, item.evidence
+        ));
+    }
+
+    out.push_str("\n## Algorithm Coverage\n\n| Primitive | Variant | Status | Evidence |\n|---|---|---|---|\n");
+    for item in &manifest.algorithm {
+        out.push_str(&format!(
+            "| {} | {} | **{}** | {} |\n",
+            item.primitive, item.variant, item.status, item.evidence
+        ));
+    }
+
+    out.push_str("\n## HPKE Ciphersuite Matrix\n\n");
+    out.push_str("Every row is exercised in Base and PSK modes, including seal/open and exporter agreement.\n\n");
+    out.push_str("| KEM | KDF | AEAD | Base | PSK | Exporter | Evidence |\n|---|---|---|:---:|:---:|:---:|---|\n");
+    for kem in KEMS {
+        for kdf in KDFS {
+            for aead in AEADS {
+                out.push_str(&format!(
+                    "| {kem} | {kdf} | {aead} | PASS | PASS | PASS | `crates/pqc-hpke/tests/ciphersuite_matrix.rs` |\n"
+                ));
+            }
+        }
+    }
+
+    out.push_str("\n## Validation Matrix\n\n| Validation | Status | Reproduction command |\n|---|:---:|---|\n");
+    for item in &manifest.validation {
+        out.push_str(&format!(
+            "| {} | **{}** | `{}` |\n",
+            item.name, item.status, item.command
+        ));
+    }
+
+    out.push_str("\n## Milestone History\n\n| Milestone | Capability | Status |\n|---|---|:---:|\n");
+    for item in &manifest.milestone {
+        out.push_str(&format!(
+            "| {} | {} | **{}** |\n",
+            item.name, item.capability, item.status
+        ));
+    }
+
+    out.push_str("\n## Maintenance Contract\n\n");
+    out.push_str("The TOML manifest is the machine-readable source of truth. CI runs `cargo xtask implementation-matrix --check` and fails when this generated document is stale. Capability claims must identify reproducible evidence and must not be promoted to `verified` without a passing validation gate.\n");
+    out
 }

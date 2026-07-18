@@ -94,6 +94,7 @@ See [SECURITY.md](SECURITY.md) for the disclosure policy and supported-version p
 
 ## Project documentation
 
+- [Implementation matrix](docs/IMPLEMENTATION_MATRIX.md)
 - [Documentation index](docs/README.md)
 - [Roadmap](ROADMAP.md)
 - [Contributing](CONTRIBUTING.md)

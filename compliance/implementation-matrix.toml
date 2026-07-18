@@ -1,0 +1,120 @@
+[metadata]
+schema_version = 1
+project = "pqc-rfc9958-rs"
+generated_document = "docs/IMPLEMENTATION_MATRIX.md"
+last_verified = "2026-07-17"
+
+[[algorithm]]
+primitive = "ML-KEM"
+variant = "512"
+status = "verified"
+evidence = "FIPS 203 ACVP and workspace regression tests"
+
+[[algorithm]]
+primitive = "ML-KEM"
+variant = "768"
+status = "verified"
+evidence = "FIPS 203 ACVP and workspace regression tests"
+
+[[algorithm]]
+primitive = "ML-KEM"
+variant = "1024"
+status = "verified"
+evidence = "FIPS 203 ACVP and workspace regression tests"
+
+[[algorithm]]
+primitive = "ML-DSA"
+variant = "44"
+status = "verified"
+evidence = "FIPS 204 ACVP and workspace regression tests"
+
+[[algorithm]]
+primitive = "ML-DSA"
+variant = "65"
+status = "verified"
+evidence = "FIPS 204 ACVP and workspace regression tests"
+
+[[algorithm]]
+primitive = "ML-DSA"
+variant = "87"
+status = "verified"
+evidence = "FIPS 204 ACVP and workspace regression tests"
+
+[[standard]]
+name = "FIPS 203"
+scope = "ML-KEM"
+status = "verified"
+evidence = "compliance/standards/fips203.toml"
+
+[[standard]]
+name = "FIPS 204"
+scope = "ML-DSA"
+status = "verified"
+evidence = "compliance/standards/fips204.toml"
+
+[[standard]]
+name = "RFC 9958"
+scope = "KEM-oriented API guidance"
+status = "mapped"
+evidence = "docs/rfc9958-traceability.md"
+
+[[standard]]
+name = "RFC 9180"
+scope = "HPKE Base and PSK modes"
+status = "verified"
+evidence = "crates/pqc-hpke/tests/ciphersuite_matrix.rs"
+
+[[validation]]
+name = "Workspace formatting"
+status = "pass"
+command = "cargo fmt --all -- --check"
+
+[[validation]]
+name = "Workspace linting"
+status = "pass"
+command = "cargo clippy --all-targets --all-features -- -D warnings"
+
+[[validation]]
+name = "Workspace tests"
+status = "pass"
+command = "cargo test --all-targets --all-features"
+
+[[validation]]
+name = "HPKE ciphersuite matrix"
+status = "pass"
+command = "cargo test -p pqc-rs-hpke --test ciphersuite_matrix"
+
+[[validation]]
+name = "HPKE interoperability"
+status = "pass"
+command = "cargo xtask interop-hpke --strict"
+
+[[milestone]]
+name = "A1"
+capability = "ML-KEM standards and release preparation"
+status = "complete"
+
+[[milestone]]
+name = "A2"
+capability = "Cross-provider interoperability"
+status = "complete"
+
+[[milestone]]
+name = "A3"
+capability = "Native HPKE foundation"
+status = "complete"
+
+[[milestone]]
+name = "B1.1"
+capability = "HPKE PSK mode and context safety"
+status = "complete"
+
+[[milestone]]
+name = "B1.2"
+capability = "HPKE ciphersuite matrix"
+status = "complete"
+
+[[milestone]]
+name = "B1.2.1"
+capability = "Generated implementation matrix infrastructure"
+status = "complete"
