@@ -164,6 +164,8 @@ fn run() -> Result<(), String> {
         Some("standards") => standards(args.collect()),
         Some("interop") => interop(args.collect()),
         Some("interop-cross") => interop_cross(args.collect()),
+        Some("interop-openssl") => interop_openssl(args.collect()),
+        Some("interop-hpke") => interop_hpke(args.collect()),
         Some("--help") | Some("-h") | None => print_help(),
         Some(other) => Err(format!("unknown xtask: {other}")),
     }
@@ -175,6 +177,8 @@ fn print_help() -> Result<(), String> {
     println!("cargo xtask standards [--catalog PATH] [--output DIR] [--strict]");
     println!("cargo xtask interop [--manifest PATH] [--output DIR] [--provider ID] [--suite ID] [--strict]");
     println!("cargo xtask interop-cross [--strict]");
+    println!("cargo xtask interop-openssl [--strict]");
+    println!("cargo xtask interop-hpke [--strict]");
     Ok(())
 }
 
@@ -460,6 +464,24 @@ fn join_code(items: &[String]) -> String { if items.is_empty() { "—".into() } 
 fn escape(s: &str) -> String { s.replace('|', "\\|").replace('\n', " ") }
 fn html_escape(s: &str) -> String { s.replace('&', "&amp;").replace('<', "&lt;").replace('>', "&gt;") }
 
+fn interop_openssl(args: Vec<String>) -> Result<(), String> {
+    let mut command = std::process::Command::new("python3");
+    command.arg("scripts/openssl_provider_interop.py");
+    for arg in args {
+        match arg.as_str() {
+            "--strict" => { command.arg("--strict"); }
+            "--help" | "-h" => {
+                println!("cargo xtask interop-openssl [--strict]");
+    println!("cargo xtask interop-hpke [--strict]");
+                return Ok(());
+            }
+            other => return Err(format!("unknown interop-openssl argument: {other}")),
+        };
+    }
+    let status = command.status().map_err(|e| format!("failed to run OpenSSL interoperability engine: {e}"))?;
+    if status.success() { Ok(()) } else { Err(format!("OpenSSL interoperability engine exited with {status}")) }
+}
+
 fn interop_cross(args: Vec<String>) -> Result<(), String> {
     let mut command = std::process::Command::new("python3");
     command.arg("scripts/cross_provider_interop.py");
@@ -475,4 +497,18 @@ fn interop_cross(args: Vec<String>) -> Result<(), String> {
     }
     let status = command.status().map_err(|e| format!("failed to run cross-provider interoperability engine: {e}"))?;
     if status.success() { Ok(()) } else { Err(format!("cross-provider interoperability engine exited with {status}")) }
+}
+
+fn interop_hpke(args: Vec<String>) -> Result<(), String> {
+    let mut command = Command::new("python3");
+    command.arg("scripts/hpke_interop.py");
+    for arg in args {
+        match arg.as_str() {
+            "--strict" => { command.arg(arg); }
+            "--help" | "-h" => { println!("cargo xtask interop-hpke [--strict]"); return Ok(()); }
+            other => return Err(format!("unknown interop-hpke argument: {other}")),
+        }
+    }
+    let status = command.status().map_err(|e| format!("failed to run HPKE interoperability harness: {e}"))?;
+    if status.success() { Ok(()) } else { Err(format!("HPKE interoperability harness exited with {status}")) }
 }

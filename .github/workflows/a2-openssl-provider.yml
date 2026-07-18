@@ -1,0 +1,29 @@
+name: A2.4 OpenSSL provider interoperability
+on:
+  push:
+  pull_request:
+jobs:
+  rust-openssl:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Install OpenSSL 3.5 development package
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential pkg-config libssl-dev
+          openssl version -a
+      - name: Quality gates
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --all-targets --all-features -- -D warnings
+          cargo test --all-targets --all-features
+      - name: OpenSSL provider interoperability
+        run: cargo xtask interop-openssl --strict
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a2-4-openssl-interop-report
+          path: target/interop-openssl/

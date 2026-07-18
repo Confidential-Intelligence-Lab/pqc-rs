@@ -1,0 +1,13 @@
+name: A3 HPKE interoperability
+on: [push, pull_request]
+jobs:
+  hpke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.12' }
+      - run: python3 -m pip install cryptography
+      - run: python3 scripts/validate-a3-1.py
+      - run: cargo xtask interop-hpke --strict

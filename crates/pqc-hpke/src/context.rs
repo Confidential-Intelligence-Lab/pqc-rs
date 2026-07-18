@@ -26,6 +26,7 @@ struct ContextState {
     base_nonce: Vec<u8>,
     sequence_number: u64,
     exporter_secret: Vec<u8>,
+    exhausted: bool,
 }
 
 impl SenderContext {
@@ -56,9 +57,17 @@ impl SenderContext {
         self.state.export(exporter_context, length)
     }
 
-    /// Return the next sequence number.
+    /// Return the sequence number that will be used by the next message operation.
+    ///
+    /// When [`Self::is_exhausted`] is true, this value is the final sequence number
+    /// that was consumed and must not be used again.
     pub const fn sequence_number(&self) -> u64 {
         self.state.sequence_number
+    }
+
+    /// Return whether the context has consumed its final sequence number.
+    pub const fn is_exhausted(&self) -> bool {
+        self.state.exhausted
     }
 }
 
@@ -90,9 +99,17 @@ impl ReceiverContext {
         self.state.export(exporter_context, length)
     }
 
-    /// Return the next sequence number.
+    /// Return the sequence number that will be used by the next message operation.
+    ///
+    /// When [`Self::is_exhausted`] is true, this value is the final sequence number
+    /// that was consumed and must not be used again.
     pub const fn sequence_number(&self) -> u64 {
         self.state.sequence_number
+    }
+
+    /// Return whether the context has consumed its final sequence number.
+    pub const fn is_exhausted(&self) -> bool {
+        self.state.exhausted
     }
 }
 
@@ -111,11 +128,12 @@ impl ContextState {
             base_nonce: schedule.base_nonce,
             sequence_number: schedule.sequence_number,
             exporter_secret: schedule.exporter_secret.as_bytes().to_vec(),
+            exhausted: false,
         }
     }
 
     fn compute_nonce(&self) -> Result<Vec<u8>, HpkeError> {
-        if self.sequence_number == u64::MAX {
+        if self.exhausted {
             return Err(HpkeError::MessageLimitReached);
         }
         if self.base_nonce.len() < core::mem::size_of::<u64>() {
@@ -134,10 +152,11 @@ impl ContextState {
     }
 
     fn increment_sequence(&mut self) -> Result<(), HpkeError> {
-        self.sequence_number = self
-            .sequence_number
-            .checked_add(1)
-            .ok_or(HpkeError::MessageLimitReached)?;
+        if self.sequence_number == u64::MAX {
+            self.exhausted = true;
+        } else {
+            self.sequence_number += 1;
+        }
         Ok(())
     }
 
@@ -158,5 +177,44 @@ impl Drop for ContextState {
         self.base_nonce.zeroize();
         self.exporter_secret.zeroize();
         self.sequence_number.zeroize();
+        self.exhausted = true;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::identifiers::{AeadId, KdfId, KemId};
+    use crate::key_schedule::KeyScheduleOutput;
+    use pqc_core::secret::SecretVec;
+
+    fn context_state(sequence_number: u64) -> ContextState {
+        ContextState::new(
+            HpkeSuiteId {
+                kem_id: KemId(0x0041),
+                kdf_id: KdfId::HKDF_SHA256,
+                aead_id: AeadId::AES_128_GCM,
+            },
+            KdfAlgorithm::HkdfSha256,
+            AeadAlgorithm::Aes128Gcm,
+            KeyScheduleOutput {
+                key: SecretVec::new(vec![0u8; 16]),
+                base_nonce: vec![0u8; 12],
+                sequence_number,
+                exporter_secret: SecretVec::new(vec![0u8; 32]),
+                key_schedule_context: Vec::new(),
+                secret: SecretVec::new(vec![0u8; 32]),
+            },
+        )
+    }
+
+    #[test]
+    fn final_sequence_number_is_used_once_then_exhausted() {
+        let mut state = context_state(u64::MAX);
+        assert!(state.compute_nonce().is_ok());
+        state.increment_sequence().unwrap();
+        assert!(state.exhausted);
+        assert_eq!(state.compute_nonce(), Err(HpkeError::MessageLimitReached));
+        assert_eq!(state.increment_sequence(), Ok(()));
     }
 }
