@@ -15,7 +15,7 @@ acvp = ["pqc-core/acvp"]
 bench = ["pqc-core/bench"]
 
 [dependencies]
-pqc-core = { package = "pqc-rs-core", workspace = true }
+pqc-core = { workspace = true }
 rand_core = { workspace = true }
 
 [lib]

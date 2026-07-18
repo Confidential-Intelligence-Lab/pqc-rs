@@ -18,12 +18,12 @@ acvp = ["pqc-core/acvp"]
 bench = ["pqc-core/bench"]
 
 [dependencies]
-pqc-core = { package = "pqc-rs-core", workspace = true }
+pqc-core = { workspace = true }
 rand_core = { workspace = true }
 hkdf = { workspace = true }
 sha2 = { workspace = true }
 hex = { workspace = true }
-pqc-ml-kem = { package = "pqc-rs-ml-kem", workspace = true }
+pqc-ml-kem = { workspace = true }
 sha3 = { workspace = true }
 aes-gcm = { workspace = true }
 chacha20poly1305 = { workspace = true }

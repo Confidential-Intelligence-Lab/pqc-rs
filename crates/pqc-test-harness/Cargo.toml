@@ -15,14 +15,14 @@ acvp = ["pqc-core/acvp"]
 bench = ["pqc-core/bench"]
 
 [dependencies]
-pqc-core = { package = "pqc-rs-core", workspace = true, features = ["std"] }
-pqc-ml-kem = { package = "pqc-rs-ml-kem", path = "../pqc-ml-kem", version = "0.4.0-rc.1", features = ["std"] }
+pqc-core = { workspace = true, features = ["std"] }
+pqc-ml-kem = { workspace = true, features = ["std"] }
 rand_core = { workspace = true }
 hex = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-pqc-hpke = { package = "pqc-rs-hpke", path = "../pqc-hpke", version = "0.4.0-rc.1" }
-pqc-ml-dsa = { package = "pqc-rs-ml-dsa", version = "0.4.0-rc.1", path = "../pqc-ml-dsa" }
+pqc-hpke = { workspace = true }
+pqc-ml-dsa = { workspace = true }
 sha3 = { workspace = true }
 
 [lib]
