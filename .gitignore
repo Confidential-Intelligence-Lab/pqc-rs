@@ -1,5 +1,159 @@
-/target
+# =============================================================================
+# Rust / Cargo
+# =============================================================================
+
+# Cargo build outputs at the workspace root or in nested tool crates
+/target/
+**/target/
+
+# Keep Cargo.lock for reproducible workspace, CI, xtask, and test builds
+# Cargo.lock
+
+# Rust backup files
 **/*.rs.bk
-Cargo.lock
+
+
+# =============================================================================
+# Native build artifacts
+# =============================================================================
+
+# Object and dependency files
+*.o
+*.obj
+*.d
+
+# Static and dynamic libraries
+*.a
+*.lib
+*.so
+*.so.*
+*.dylib
+*.dll
+
+# Native executables
+*.exe
+*.out
+
+# CMake and Ninja outputs
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+compile_commands.json
+build.ninja
+.ninja_deps
+.ninja_log
+
+# Locally compiled interoperability bridges
+scripts/interop/providers/liboqs_bridge
+scripts/interop/providers/liboqs_bridge.bin
+
+
+# =============================================================================
+# Generated interoperability and validation artifacts
+# =============================================================================
+
+# Generated reports and transient outputs
+/target/interop/
+/target/interop-cross/
+/target/standards/
+/reports/
+/artifacts/
+
+# Temporary provider output
+*.interop.tmp
+*.interop.out
+
+# Logs
+*.log
+
+
+# =============================================================================
+# Test, benchmark, profiling, and coverage outputs
+# =============================================================================
+
+# Criterion and benchmark output
+criterion/
+
+# LLVM profiling
+*.profraw
+*.profdata
+
+# Coverage tools
+coverage/
+*.gcda
+*.gcno
+*.lcov
+lcov.info
+tarpaulin-report.html
+cobertura.xml
+
+
+# =============================================================================
+# Python tooling
+# =============================================================================
+
+__pycache__/
+*.py[cod]
+*$py.class
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+
+.venv/
+venv/
+env/
+
+
+# =============================================================================
+# Archives and local repository snapshots
+# =============================================================================
+
+# Milestone and repository archives generated locally
+pqc-rfc9958-rs-*.zip
+pqc-rfc9958-rs-*.tar
+pqc-rfc9958-rs-*.tar.gz
+
+# Generic temporary archives
+*.tmp.zip
+*.tmp.tar
+*.tmp.tar.gz
+
+
+# =============================================================================
+# Editors and operating systems
+# =============================================================================
+
+# macOS
 .DS_Store
-pqc-rfc9958-rs-a2-2-current.zip
+.AppleDouble
+.LSOverride
+
+# Visual Studio Code local configuration
+.vscode/
+
+# JetBrains IDEs
+.idea/
+*.iml
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+\#*\#
+.#*
+
+
+# =============================================================================
+# Temporary files
+# =============================================================================
+
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
