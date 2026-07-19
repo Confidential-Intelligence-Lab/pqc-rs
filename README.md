@@ -23,15 +23,31 @@ RFC 9958 is used as an informational engineering guide. Normative conformance cl
 
 | Package | Purpose | Publication status |
 |---|---|---|
-| `pqc-rs-core` | Common traits, byte wrappers, errors, and secret containers | Pre-release |
-| `pqc-rs-ml-kem` | ML-KEM implementation | Pre-release |
-| `pqc-rs-ml-dsa` | ML-DSA implementation | Pre-release |
-| `pqc-rs-slh-dsa` | SLH-DSA implementation | Pre-release |
-| `pqc-rs-hpke` | HPKE and post-quantum KEM integration | Pre-release |
-| `pqc-rs-hybrid` | Experimental hybrid composition support | Experimental |
-| `pqc-rs-test-harness` | ACVP, protocol-vector, and validation tooling | Internal |
+| `pqc-rs-core` | Common traits, byte wrappers, errors, and secret containers | Published release candidate (`0.4.0-rc.1`) |
+| `pqc-rs-ml-kem` | ML-KEM implementation | Published release candidate (`0.4.0-rc.1`) |
+| `pqc-rs-ml-dsa` | ML-DSA implementation | Internal pre-release; not published |
+| `pqc-rs-slh-dsa` | SLH-DSA workstream | Planned; not published |
+| `pqc-rs-hpke` | HPKE and post-quantum KEM integration | Published release candidate (`0.4.0-rc.1`) |
+| `pqc-rs-hybrid` | Experimental hybrid composition support | Experimental; not published |
+| `pqc-rs-test-harness` | ACVP, protocol-vector, and validation tooling | Internal; not published |
 
-Package names and publication boundaries remain subject to API review before the first public crate release.
+The release-candidate APIs and publication boundaries may change before the
+first stable release.
+
+## Installation
+
+Add only the crates required by your application:
+
+```toml
+[dependencies]
+pqc-rs-core = "0.4.0-rc.1"
+pqc-rs-ml-kem = "0.4.0-rc.1"
+pqc-rs-hpke = "0.4.0-rc.1"
+```
+
+The corresponding Rust library names are `pqc_core`, `pqc_ml_kem`, and
+`pqc_hpke`. These are release-candidate packages and should be evaluated under
+the security limitations stated above.
 
 ## Engineering principles
 
