@@ -1,0 +1,33 @@
+[metadata]
+schema_version=1
+milestone="B1.3.6.6"
+[[capability]]
+category="KEM"
+name="ML-KEM-512/768/1024"
+status="implemented"
+notes="FIPS 203 operations and key checks"
+[[capability]]
+category="Signature"
+name="ML-DSA-44/65/87"
+status="implemented"
+notes="FIPS 204 keygen, sign, verify, HashML-DSA"
+[[capability]]
+category="Protocol"
+name="HPKE with ML-KEM"
+status="implemented"
+notes="RFC 9180 base mode and RFC 9958 integration"
+[[capability]]
+category="Protocol"
+name="Hybrid HPKE"
+status="experimental"
+notes="ML-KEM combined with X25519, P-256, and P-384"
+[[capability]]
+category="Assurance"
+name="ACVP, fuzzing, dynamic analysis, interoperability"
+status="available"
+notes="Repository-local evidence and CI workflows"
+[[capability]]
+category="Performance"
+name="Criterion baseline"
+status="available"
+notes="ML-KEM, ML-DSA, HPKE, hybrid HPKE"

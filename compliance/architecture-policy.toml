@@ -1,0 +1,23 @@
+[metadata]
+schema_version=1
+milestone="B1.3.6.5"
+[[layer]]
+order=1
+name="Public API and protocol profiles"
+responsibility="Application-facing APIs, RFC 9958 and HPKE profiles"
+paths=["crates/pqc-hpke","crates/pqc-hybrid"]
+[[layer]]
+order=2
+name="Post-quantum primitives"
+responsibility="ML-KEM and ML-DSA algorithms and parameter sets"
+paths=["crates/pqc-ml-kem","crates/pqc-ml-dsa"]
+[[layer]]
+order=3
+name="Core security types"
+responsibility="Errors, secret containers, constant-time helpers, serialization boundaries"
+paths=["crates/pqc-core"]
+[[layer]]
+order=4
+name="Assurance and evidence"
+responsibility="Conformance, fuzzing, interoperability, audits, and benchmarks"
+paths=["compliance","fuzz","scripts","docs"]

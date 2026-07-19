@@ -1,0 +1,120 @@
+[metadata]
+schema_version = 1
+project = "pqc-rfc9958-rs"
+review_boundary = "B1.3.5"
+claim = "reproducible engineering baseline; not a cross-platform performance guarantee"
+allowed_statuses = ["active", "planned", "retired"]
+allowed_classes = ["key-generation", "encapsulation", "decapsulation", "signing", "verification", "protocol-setup", "authenticated-encryption", "exporter"]
+regression_review_percent = 10
+regression_block_percent = 20
+minimum_sample_size = 10
+
+[[benchmark]]
+id = "PERF-MLKEM-KEYGEN"
+name = "ml_kem/keygen"
+crate = "pqc-rs-ml-kem"
+bench = "ml_kem"
+class = "key-generation"
+status = "active"
+parameter_sets = ["ML-KEM-512", "ML-KEM-768", "ML-KEM-1024"]
+metrics = ["median latency", "confidence interval", "throughput"]
+source = "crates/pqc-ml-kem/benches/ml_kem.rs"
+
+[[benchmark]]
+id = "PERF-MLKEM-ENCAPS"
+name = "ml_kem/encaps_decaps/encaps"
+crate = "pqc-rs-ml-kem"
+bench = "ml_kem"
+class = "encapsulation"
+status = "active"
+parameter_sets = ["ML-KEM-512", "ML-KEM-768", "ML-KEM-1024"]
+metrics = ["median latency", "confidence interval", "throughput"]
+source = "crates/pqc-ml-kem/benches/ml_kem.rs"
+
+[[benchmark]]
+id = "PERF-MLKEM-DECAPS"
+name = "ml_kem/encaps_decaps/decaps"
+crate = "pqc-rs-ml-kem"
+bench = "ml_kem"
+class = "decapsulation"
+status = "active"
+parameter_sets = ["ML-KEM-512", "ML-KEM-768", "ML-KEM-1024"]
+metrics = ["median latency", "confidence interval", "throughput"]
+source = "crates/pqc-ml-kem/benches/ml_kem.rs"
+
+[[benchmark]]
+id = "PERF-MLDSA-KEYGEN"
+name = "ml_dsa/keygen"
+crate = "pqc-rs-ml-dsa"
+bench = "ml_dsa"
+class = "key-generation"
+status = "active"
+parameter_sets = ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"]
+metrics = ["median latency", "confidence interval", "throughput"]
+source = "crates/pqc-ml-dsa/benches/ml_dsa.rs"
+
+[[benchmark]]
+id = "PERF-MLDSA-SIGN"
+name = "ml_dsa/sign"
+crate = "pqc-rs-ml-dsa"
+bench = "ml_dsa"
+class = "signing"
+status = "active"
+parameter_sets = ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"]
+metrics = ["median latency", "confidence interval", "rejection-loop variability"]
+source = "crates/pqc-ml-dsa/benches/ml_dsa.rs"
+
+[[benchmark]]
+id = "PERF-MLDSA-VERIFY"
+name = "ml_dsa/verify"
+crate = "pqc-rs-ml-dsa"
+bench = "ml_dsa"
+class = "verification"
+status = "active"
+parameter_sets = ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"]
+metrics = ["median latency", "confidence interval", "throughput"]
+source = "crates/pqc-ml-dsa/benches/ml_dsa.rs"
+
+[[benchmark]]
+id = "PERF-HPKE-SETUP"
+name = "hpke/base/setup"
+crate = "pqc-rs-hpke"
+bench = "hpke"
+class = "protocol-setup"
+status = "active"
+parameter_sets = ["ML-KEM-768/HKDF-SHA256/AES-128-GCM"]
+metrics = ["sender setup latency", "receiver setup latency"]
+source = "crates/pqc-hpke/benches/hpke.rs"
+
+[[benchmark]]
+id = "PERF-HPKE-SEAL-OPEN"
+name = "hpke/base/seal_open_1k"
+crate = "pqc-rs-hpke"
+bench = "hpke"
+class = "authenticated-encryption"
+status = "active"
+parameter_sets = ["ML-KEM-768/HKDF-SHA256/AES-128-GCM"]
+metrics = ["1 KiB seal latency", "1 KiB open latency", "throughput"]
+source = "crates/pqc-hpke/benches/hpke.rs"
+
+[[benchmark]]
+id = "PERF-HPKE-EXPORT"
+name = "hpke/base/export_32"
+crate = "pqc-rs-hpke"
+bench = "hpke"
+class = "exporter"
+status = "active"
+parameter_sets = ["ML-KEM-768/HKDF-SHA256/AES-128-GCM"]
+metrics = ["32-byte export latency"]
+source = "crates/pqc-hpke/benches/hpke.rs"
+
+[[benchmark]]
+id = "PERF-HYBRID-SETUP"
+name = "hpke/hybrid/setup"
+crate = "pqc-rs-hpke"
+bench = "hybrid_hpke"
+class = "protocol-setup"
+status = "active"
+parameter_sets = ["MLKEM768-P256", "MLKEM768-X25519", "MLKEM1024-P384"]
+metrics = ["sender setup latency", "receiver setup latency"]
+source = "crates/pqc-hpke/benches/hybrid_hpke.rs"

@@ -1,0 +1,27 @@
+[metadata]
+schema_version=1
+milestone="B1.3.6.2"
+[[check]]
+id="unit_and_conformance"
+category="Correctness"
+evidence=["Cargo.toml","tests"]
+[[check]]
+id="acvp_ml_kem"
+category="FIPS 203"
+evidence=["docs/stage6-4-keygen-acvp-milestone.md","docs/stage6-5b-acvp-encapsulation.md","docs/stage6-5c-decapsulation.md"]
+[[check]]
+id="acvp_ml_dsa"
+category="FIPS 204"
+evidence=["docs/stage9e1-nist-acvp-keygen.md","docs/stage9e2a-nist-acvp-siggen.md","docs/stage9e3-nist-acvp-sigver.md"]
+[[check]]
+id="interoperability"
+category="Interop"
+evidence=["scripts/interop_engine.py","docs/stage7c-hpke-pq-vectors.md"]
+[[check]]
+id="fuzzing"
+category="Robustness"
+evidence=["compliance/fuzz-policy.toml","docs/security/STRUCTURED_FUZZING.md"]
+[[check]]
+id="performance"
+category="Performance"
+evidence=["compliance/performance-policy.toml","docs/performance/PERFORMANCE_BASELINE.md"]

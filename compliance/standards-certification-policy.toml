@@ -1,0 +1,19 @@
+[metadata]
+schema_version=1
+milestone="B1.3.6.4"
+[[standard]]
+name="FIPS 203"
+scope="ML-KEM key generation, encapsulation, decapsulation, key checks"
+evidence=["docs/fips203-traceability.md","docs/stage6-6-acvp-key-check.md"]
+[[standard]]
+name="FIPS 204"
+scope="ML-DSA key generation, signing, verification, HashML-DSA"
+evidence=["docs/stage9d6-validation.md","docs/stage9e5-hash-mldsa.md"]
+[[standard]]
+name="RFC 9180"
+scope="HPKE key schedule and base-mode context"
+evidence=["docs/stage7b1-rfc9180-kdf-key-schedule.md","docs/stage7b4-base-context-aead.md"]
+[[standard]]
+name="RFC 9958"
+scope="ML-KEM integration with HPKE"
+evidence=["docs/rfc9958-traceability.md","docs/rfc9958-traceability-stage7a.md"]

@@ -1,0 +1,54 @@
+[metadata]
+schema_version = 1
+project = "pqc-rfc9958-rs"
+milestone = "B1.3.6.7"
+
+[[check]]
+id = "implementation_matrix"
+command = ["cargo", "xtask", "implementation-matrix", "--check"]
+required = true
+[[check]]
+id = "api_review"
+command = ["cargo", "xtask", "api-review", "--check"]
+required = true
+[[check]]
+id = "zeroization"
+command = ["cargo", "xtask", "zeroization-audit", "--check"]
+required = true
+[[check]]
+id = "constant_time"
+command = ["cargo", "xtask", "constant-time-audit", "--check"]
+required = true
+[[check]]
+id = "fuzzing"
+command = ["cargo", "xtask", "fuzz-audit", "--check"]
+required = true
+[[check]]
+id = "performance"
+command = ["cargo", "xtask", "performance-audit", "--check"]
+required = true
+
+[[check]]
+id = "validation_certification"
+command = ["cargo", "xtask", "validation-certification", "--check"]
+required = true
+
+[[check]]
+id = "security_certification"
+command = ["cargo", "xtask", "security-certification", "--check"]
+required = true
+
+[[check]]
+id = "standards_certification"
+command = ["cargo", "xtask", "standards-certification", "--check"]
+required = true
+
+[[check]]
+id = "architecture_snapshot"
+command = ["cargo", "xtask", "architecture-snapshot", "--check"]
+required = true
+
+[[check]]
+id = "release_manifest"
+command = ["cargo", "xtask", "release-manifest", "--check"]
+required = true

@@ -1,0 +1,19 @@
+name: Release audit
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  release-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo xtask release-audit
+      - run: cargo xtask release-audit --check
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-audit
+          path: |
+            docs/release/RELEASE_READINESS.md
+            target/release-audit.json

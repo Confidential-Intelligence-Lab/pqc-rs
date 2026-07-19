@@ -1,0 +1,156 @@
+[metadata]
+schema_version = 1
+project = "pqc-rfc9958-rs"
+review_boundary = "B1.3.3"
+claim = "documented constant-time engineering posture; not a formal proof"
+allowed_statuses = ["verified", "reviewed", "variable-time-accepted", "unresolved"]
+allowed_classes = ["constant-time-required", "public-variable-time", "algorithmic-variable-time"]
+
+[[target]]
+id = "CT-CORE-COMPARE"
+component = "pqc-core"
+path = "crates/pqc-core/src/ct/compare.rs"
+symbols = ["ct_eq_bytes", "ct_is_zero_bytes", "ct_eq_slices", "ct_is_zero_slice"]
+class = "constant-time-required"
+status = "verified"
+secret_inputs = ["secret byte arrays and slices"]
+public_inputs = ["public lengths"]
+requirements = ["no secret-dependent branch", "no secret-indexed memory", "full-length comparison"]
+evidence = ["docs/security/STAGE10B2_CT_COMPARE.md", "docs/security/CONSTANT_TIME_ENGINEERING.md"]
+validation = ["source review", "unit tests", "generated-code review"]
+notes = "Length mismatch is public and may return early; equal-length contents are compared without early exit."
+
+[[target]]
+id = "CT-CORE-SELECT"
+component = "pqc-core"
+path = "crates/pqc-core/src/ct/select.rs"
+symbols = ["ct_select_bytes", "ct_assign_bytes"]
+class = "constant-time-required"
+status = "verified"
+secret_inputs = ["selection mask", "secret candidate bytes"]
+public_inputs = ["array length"]
+requirements = ["branchless selection", "fixed memory schedule"]
+evidence = ["docs/security/STAGE10B11_CT_PRIMITIVES.md", "docs/security/STAGE10B6B_CONDITIONAL_MIGRATION.md"]
+validation = ["source review", "unit tests", "generated-code review"]
+
+[[target]]
+id = "CT-MLKEM-DECAPS"
+component = "pqc-ml-kem"
+path = "crates/pqc-ml-kem/src/ml_kem_decaps.rs"
+symbols = ["decaps_internal"]
+class = "constant-time-required"
+status = "reviewed"
+secret_inputs = ["decapsulation key", "implicit rejection value z", "derived shared secrets"]
+public_inputs = ["ciphertext bytes", "parameter set"]
+requirements = ["implicit rejection without secret-dependent early return", "constant-time ciphertext comparison", "constant-time shared-secret selection"]
+evidence = ["docs/stage6-5c-decapsulation.md", "docs/security/CONSTANT_TIME_ENGINEERING.md", "docs/security/STAGE10B6_MIGRATION.md"]
+validation = ["ACVP tests", "source review", "conditional-assignment migration"]
+notes = "Malformed ciphertext behavior and parameter selection may vary only with public inputs."
+
+[[target]]
+id = "CT-HPKE-KDF"
+component = "pqc-hpke"
+path = "crates/pqc-hpke/src/key_schedule.rs"
+symbols = ["key_schedule"]
+class = "constant-time-required"
+status = "reviewed"
+secret_inputs = ["KEM shared secret", "PSK", "exporter secret", "AEAD key"]
+public_inputs = ["suite identifier", "info", "PSK identifier"]
+requirements = ["no secret-dependent control flow", "fixed HKDF operations for selected public suite", "no secret-indexed memory"]
+evidence = ["docs/stage7b1-rfc9180-kdf-key-schedule.md", "docs/security/ZEROIZATION_AUDIT.md"]
+validation = ["source review", "HPKE ciphersuite matrix", "exporter agreement tests"]
+
+[[target]]
+id = "CT-HPKE-MLKEM"
+component = "pqc-hpke"
+path = "crates/pqc-hpke/src/ml_kem.rs"
+symbols = ["decapsulate"]
+class = "constant-time-required"
+status = "reviewed"
+secret_inputs = ["ML-KEM private key", "decapsulated shared secret"]
+public_inputs = ["encapsulated key", "suite identifier"]
+requirements = ["delegate to reviewed ML-KEM decapsulation", "no secret-dependent adapter branches"]
+evidence = ["docs/stage7b2-ml-kem-hpke-adapter.md", "docs/security/CONSTANT_TIME_ENGINEERING.md"]
+validation = ["source review", "HPKE interoperability tests"]
+
+[[target]]
+id = "CT-HYBRID-DECAPS"
+component = "pqc-hpke"
+path = "crates/pqc-hpke/src/hybrid_kem.rs"
+symbols = ["decapsulate"]
+class = "constant-time-required"
+status = "reviewed"
+secret_inputs = ["component private keys", "component shared secrets", "combined secret"]
+public_inputs = ["hybrid encapsulated key", "suite selection"]
+requirements = ["no secret-dependent component selection", "fixed combiner schedule", "component failures follow documented public-input policy"]
+evidence = ["docs/stage7d-hybrid-hpke.md", "docs/security/CONSTANT_TIME_ENGINEERING.md"]
+validation = ["source review", "hybrid HPKE tests"]
+
+[[target]]
+id = "CT-MLDSA-SAMPLING"
+component = "pqc-ml-dsa"
+path = "crates/pqc-ml-dsa/src/challenge.rs"
+symbols = ["sample_in_ball", "sample_in_ball_bytes"]
+class = "algorithmic-variable-time"
+status = "variable-time-accepted"
+secret_inputs = []
+public_inputs = ["transcript-derived challenge seed", "public tau parameter"]
+requirements = ["variation depends on transcript-derived randomness, not secret key material", "memory-access behavior reviewed"]
+evidence = ["docs/stage9c3-mldsa-challenge.md", "docs/stage9f2a-challenge-decomposition.md", "audit/stage9f4e/security-finding-register.md"]
+validation = ["timing decomposition", "generated-code review", "finding register"]
+notes = "Variable iteration is algorithmic and transcript-derived; this is not claimed to be fixed-time."
+
+[[target]]
+id = "CT-MLDSA-ETA-SAMPLING"
+component = "pqc-ml-dsa"
+path = "crates/pqc-ml-dsa/src/sample.rs"
+symbols = ["sample_eta_poly", "sample_eta_polyvec"]
+class = "algorithmic-variable-time"
+status = "variable-time-accepted"
+secret_inputs = ["secret-key generation seed material"]
+public_inputs = ["parameter set", "nonce"]
+requirements = ["sampling variation documented", "no secret-indexed table access", "generated-code findings classified"]
+evidence = ["docs/stage9c2-mldsa-secret-sampling.md", "docs/stage9f2-primitive-timing.md", "audit/stage9f4e/security-finding-register.md"]
+validation = ["primitive timing screen", "generated-code review", "finding register"]
+notes = "Sampling is variable-work by construction. Exposure is documented and must be reassessed for hardened deployment profiles."
+
+[[target]]
+id = "CT-MLDSA-SIGN"
+component = "pqc-ml-dsa"
+path = "crates/pqc-ml-dsa/src/signature.rs"
+symbols = ["sign_internal", "sign_internal_message", "sign_internal_mu"]
+class = "algorithmic-variable-time"
+status = "variable-time-accepted"
+secret_inputs = ["signing key", "secret polynomials", "ephemeral masking values"]
+public_inputs = ["message", "context", "parameter set"]
+requirements = ["rejection-loop variation explicitly characterized", "fixed-work primitives reviewed separately", "no unsupported constant-time claim"]
+evidence = ["docs/stage9f1-timing-screen.md", "docs/stage9f3-rejection-loop.md", "docs/stage9f3a-key-class-analysis.md", "docs/stage9f4b-secret-dependency-audit.md"]
+validation = ["fixed-varying timing screen", "attempt-count conditioning", "key-class analysis", "generated-code review"]
+notes = "ML-DSA signing is not represented as fixed-time because FIPS 204 signing uses rejection sampling."
+
+[[target]]
+id = "CT-MLDSA-VERIFY"
+component = "pqc-ml-dsa"
+path = "crates/pqc-ml-dsa/src/verification.rs"
+symbols = ["verify_internal", "verify_internal_message", "verify_internal_mu"]
+class = "public-variable-time"
+status = "verified"
+secret_inputs = []
+public_inputs = ["verification key", "message", "signature", "verification result"]
+requirements = ["branches depend only on public input or public result", "malformed-input behavior does not consume secrets"]
+evidence = ["docs/stage9d5-mldsa-verification.md", "audit/stage9f4e/security-finding-register.md"]
+validation = ["ACVP SigVer", "source review", "generated-code review"]
+
+[[target]]
+id = "CT-MACHINE-CODE-RELEASE"
+component = "release toolchain"
+path = "scripts/run-stage9f4c-machine-code-audit.sh"
+symbols = ["release audit wrappers"]
+class = "constant-time-required"
+status = "reviewed"
+secret_inputs = ["all secret-bearing inputs reaching audited wrappers"]
+public_inputs = ["compiler version", "target triple", "optimization profile"]
+requirements = ["conditional branches classified", "indexed-memory candidates classified", "compiler upgrade triggers re-review"]
+evidence = ["docs/stage9f4c-machine-code-audit.md", "docs/stage9f4d-data-dependency-audit.md", "audit/stage9f4e/security-finding-register.md"]
+validation = ["optimized assembly extraction", "instruction classification", "finding register"]
+notes = "Review is toolchain- and target-specific and must be repeated for release targets."

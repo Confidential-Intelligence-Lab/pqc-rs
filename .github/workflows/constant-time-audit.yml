@@ -1,0 +1,22 @@
+name: Constant-time audit
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  constant-time-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check generated constant-time audit
+        run: cargo xtask constant-time-audit --check
+      - name: Check related security policy gates
+        run: |
+          cargo xtask zeroization-audit --check
+          cargo xtask api-review --check

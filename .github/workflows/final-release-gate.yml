@@ -1,0 +1,31 @@
+name: Final release gate
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    tags: ['v*']
+jobs:
+  final-release-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo fmt --all -- --check
+      - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+      - run: cargo test --workspace --all-features
+      - run: cargo xtask validation-certification --check
+      - run: cargo xtask security-certification --check
+      - run: cargo xtask standards-certification --check
+      - run: cargo xtask architecture-snapshot --check
+      - run: cargo xtask release-manifest --check
+      - run: cargo xtask release-audit
+      - run: cargo xtask release-audit --check
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-certification-package
+          path: |
+            RELEASE_MANIFEST.md
+            docs/release/
+            docs/security/SECURITY_CERTIFICATION.md
+            docs/architecture/ARCHITECTURE.md
+            target/release-audit.json

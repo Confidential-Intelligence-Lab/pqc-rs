@@ -1,0 +1,23 @@
+[metadata]
+schema_version=1
+milestone="B1.3.6.3"
+[[check]]
+id="secret_lifetimes"
+area="Zeroization"
+evidence=["compliance/secret-policy.toml","docs/security/ZEROIZATION_AUDIT.md"]
+[[check]]
+id="constant_time"
+area="Secret dependency"
+evidence=["compliance/constant-time-policy.toml","docs/security/CONSTANT_TIME_AUDIT.md","docs/security/SECRET_DEPENDENCY_REGISTER.md"]
+[[check]]
+id="fuzzing"
+area="Input robustness"
+evidence=["compliance/fuzz-policy.toml","docs/security/FUZZ_TARGET_REGISTER.md"]
+[[check]]
+id="findings"
+area="Open findings"
+evidence=["docs/stage9f4e-security-finding-register.md"]
+[[check]]
+id="dynamic_analysis"
+area="Memory safety"
+evidence=["docs/stage8c-dynamic-analysis.md"]

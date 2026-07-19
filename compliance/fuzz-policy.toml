@@ -1,0 +1,80 @@
+[metadata]
+schema_version = 1
+project = "pqc-rfc9958-rs"
+review_boundary = "B1.3.4"
+claim = "structured robustness testing; not a proof of memory safety or cryptographic security"
+allowed_statuses = ["active", "planned", "retired"]
+allowed_classes = ["parser", "decoder", "state-machine", "cryptographic-boundary", "arithmetic-invariant"]
+smoke_seconds = 30
+campaign_seconds = 3600
+
+[[target]]
+id = "FZ-MLKEM-KEY-CHECKS"
+name = "ml_kem_key_checks"
+path = "fuzz/fuzz_targets/ml_kem_key_checks.rs"
+class = "decoder"
+status = "active"
+components = ["ML-KEM-512", "ML-KEM-768", "ML-KEM-1024"]
+properties = ["arbitrary key bytes never panic", "invalid lengths return structured results"]
+seed_corpus = "fuzz/corpus/ml_kem_key_checks"
+
+[[target]]
+id = "FZ-MLKEM-DECAPS"
+name = "ml_kem_decapsulation"
+path = "fuzz/fuzz_targets/ml_kem_decapsulation.rs"
+class = "cryptographic-boundary"
+status = "active"
+components = ["ML-KEM decapsulation", "implicit rejection"]
+properties = ["malformed keys and ciphertexts never panic", "all parameter sets are exercised"]
+seed_corpus = "fuzz/corpus/ml_kem_decapsulation"
+
+[[target]]
+id = "FZ-HPKE-VECTOR-PARSER"
+name = "hpke_vector_parser"
+path = "fuzz/fuzz_targets/hpke_vector_parser.rs"
+class = "parser"
+status = "active"
+components = ["HPKE-PQ vector JSON"]
+properties = ["malformed JSON is rejected without panic"]
+seed_corpus = "fuzz/corpus/hpke_vector_parser"
+dictionary = "fuzz/dictionaries/json.dict"
+
+[[target]]
+id = "FZ-HPKE-RECEIVER"
+name = "hpke_receiver_open"
+path = "fuzz/fuzz_targets/hpke_receiver_open.rs"
+class = "state-machine"
+status = "active"
+components = ["HPKE receiver context", "AEAD authentication failure"]
+properties = ["failed open does not advance sequence", "arbitrary AAD and ciphertext never panic"]
+seed_corpus = "fuzz/corpus/hpke_receiver_open"
+
+[[target]]
+id = "FZ-HYBRID-KEM"
+name = "hybrid_kem_inputs"
+path = "fuzz/fuzz_targets/hybrid_kem_inputs.rs"
+class = "cryptographic-boundary"
+status = "active"
+components = ["MLKEM768-P256", "MLKEM768-X25519", "MLKEM1024-P384"]
+properties = ["arbitrary randomness lengths fail cleanly", "arbitrary encapsulations fail cleanly"]
+seed_corpus = "fuzz/corpus/hybrid_kem_inputs"
+
+[[target]]
+id = "FZ-MLDSA-PRIMITIVES"
+name = "mldsa_primitives"
+path = "fuzz/fuzz_targets/mldsa_primitives.rs"
+class = "arithmetic-invariant"
+status = "active"
+components = ["challenge sampling", "eta sampling", "rounding", "hints"]
+properties = ["sample bounds hold", "challenge weight holds", "rounding identities hold"]
+seed_corpus = "fuzz/corpus/mldsa_primitives"
+
+[[target]]
+id = "FZ-MLDSA-VERIFY"
+name = "mldsa_verification"
+path = "fuzz/fuzz_targets/mldsa_verification.rs"
+class = "cryptographic-boundary"
+status = "active"
+components = ["ML-DSA-44 verification", "ML-DSA-65 verification", "ML-DSA-87 verification"]
+properties = ["arbitrary public keys and signatures never panic", "malformed encodings return false or structured error"]
+seed_corpus = "fuzz/corpus/mldsa_verification"
