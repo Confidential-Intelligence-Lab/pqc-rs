@@ -35,7 +35,7 @@ fuzz_target!(|data: &[u8]| {
     );
 
     let _ = kem.decapsulate(
-        &key_pair.private_seed,
+        key_pair.private_seed.as_bytes(),
         candidate_encapsulation,
     );
 });

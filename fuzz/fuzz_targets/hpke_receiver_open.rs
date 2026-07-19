@@ -34,7 +34,7 @@ fuzz_target!(|data: &[u8]| {
     let mut receiver = match setup_base_receiver(
         kem,
         suite,
-        &key_pair.private_key_seed,
+        key_pair.private_key_seed.as_bytes(),
         &sender.encapsulated_key,
         b"stage8b-fuzz",
     ) {

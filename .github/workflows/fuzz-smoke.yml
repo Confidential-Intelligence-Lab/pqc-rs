@@ -10,9 +10,17 @@ permissions:
   contents: read
 
 jobs:
+  fuzz-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Validate fuzz policy and generated documentation
+        run: cargo xtask fuzz-audit --check
+
   fuzz-smoke:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@nightly

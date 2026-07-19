@@ -61,3 +61,10 @@ path = "fuzz_targets/mldsa_primitives.rs"
 test = false
 doc = false
 bench = false
+
+[[bin]]
+name = "mldsa_verification"
+path = "fuzz_targets/mldsa_verification.rs"
+test = false
+doc = false
+bench = false

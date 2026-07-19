@@ -24,3 +24,19 @@ Documentation must distinguish normative requirements from informational guidanc
 
 - [B1.3.1 Public API Review](api/API_REVIEW.md)
 - [Generated Public API Inventory](api/API_INVENTORY.md)
+
+## Security assurance
+
+- [Secret inventory](security/SECRET_INVENTORY.md) and [zeroization audit](security/ZEROIZATION_AUDIT.md) — B1.3.2 secret-lifetime policy and review.
+
+## B1.3.3 security assurance
+
+- [Constant-time audit](security/CONSTANT_TIME_AUDIT.md)
+- [Secret-dependency register](security/SECRET_DEPENDENCY_REGISTER.md)
+- [B1.3.3 milestone](../README-b1-3-3.md)
+
+## B1.3.5 performance assurance
+
+- [Performance baseline](performance/PERFORMANCE_BASELINE.md)
+- [Benchmark register](performance/BENCHMARK_REGISTER.md)
+- [B1.3.5 milestone](../README-b1-3-5.md)

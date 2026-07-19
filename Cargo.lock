@@ -754,6 +754,7 @@ dependencies = [
 name = "pqc-rs-ml-dsa"
 version = "0.4.0-rc.1"
 dependencies = [
+ "criterion",
  "pqc-rs-core",
  "rand_core",
  "sha2",
