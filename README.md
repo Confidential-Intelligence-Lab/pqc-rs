@@ -8,7 +8,7 @@ PQC-rs is a Rust workspace for post-quantum cryptography and post-quantum key es
 
 ## Scope
 
-The workspace contains implementations and integration infrastructure for:
+The workspace contains implemented, experimental, and planned workstreams for:
 
 - ML-KEM (FIPS 203);
 - ML-DSA (FIPS 204);
@@ -23,11 +23,11 @@ RFC 9958 is used as an informational engineering guide. Normative conformance cl
 
 | Package | Purpose | Publication status |
 |---|---|---|
-| `pqc-rs-core` | Common traits, byte wrappers, errors, and secret containers | Published release candidate (`0.4.0-rc.1`) |
-| `pqc-rs-ml-kem` | ML-KEM implementation | Published release candidate (`0.4.0-rc.1`) |
+| [`pqc-rs-core`](https://crates.io/crates/pqc-rs-core) | Common traits, byte wrappers, errors, and secret containers | Published release candidate (`0.4.0-rc.1`) |
+| [`pqc-rs-ml-kem`](https://crates.io/crates/pqc-rs-ml-kem) | ML-KEM implementation | Published release candidate (`0.4.0-rc.1`) |
 | `pqc-rs-ml-dsa` | ML-DSA implementation | Internal pre-release; not published |
 | `pqc-rs-slh-dsa` | SLH-DSA workstream | Planned; not published |
-| `pqc-rs-hpke` | HPKE and post-quantum KEM integration | Published release candidate (`0.4.0-rc.1`) |
+| [`pqc-rs-hpke`](https://crates.io/crates/pqc-rs-hpke) | HPKE and post-quantum KEM integration | Published release candidate (`0.4.0-rc.1`) |
 | `pqc-rs-hybrid` | Experimental hybrid composition support | Experimental; not published |
 | `pqc-rs-test-harness` | ACVP, protocol-vector, and validation tooling | Internal; not published |
 
@@ -122,9 +122,15 @@ See [SECURITY.md](SECURITY.md) for the disclosure policy and supported-version p
 
 ## Roadmap
 
-Milestone A prepares the existing RFC 9958-oriented workspace for public release through standards traceability, interoperability, API stabilization, documentation, packaging, and signed release evidence.
+The foundation track publishes ML-DSA, SLH-DSA, and reusable hybrid
+composition before stabilizing the NIST-centered APIs at version 1.0.
 
-Future ecosystem milestones add common PQC abstractions, independent algorithm crates, and a unified benchmarking and research platform. Candidate extensions include globally relevant algorithms such as SMAUG-T, HAETAE, and Classic McEliece when suitable normative specifications, test vectors, and licensing conditions are available.
+Independent diversity tracks cover Classic McEliece and FrodoKEM under the
+ISO/IEC and European-aligned roadmap, NIST's forthcoming FN-DSA and HQC
+standards, and the Korean KpqC algorithms SMAUG-T, NTRU+, HAETAE, and AIMer.
+Each future crate remains gated on a suitable normative specification,
+authoritative vectors, interoperability, licensing review, and the project's
+security and release-assurance requirements.
 
 Architecture-specific high-performance engineering remains an explicit future workstream. It is deferred until the API and algorithm portfolio are sufficiently stable to avoid premature optimization and rework.
 

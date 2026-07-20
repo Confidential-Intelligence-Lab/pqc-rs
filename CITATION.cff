@@ -6,10 +6,10 @@ authors:
   - family-names: Cammarota
     given-names: Rosario
     alias: Ro
-repository-code: "https://github.com/OWNER/pqc-rfc9958-rs"
+repository-code: "https://github.oit.uci.edu/rcammaro/pqc-rfc9958-rs"
 license: "Apache-2.0 OR MIT"
-version: "0.4.0"
-date-released: "2026-07-17"
+version: "0.4.0-rc.1"
+date-released: "2026-07-18"
 keywords:
   - post-quantum cryptography
   - Rust
