@@ -22,8 +22,8 @@ jobs:
   implementation-matrix:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
       - name: Validate milestone structure
         run: python3 scripts/validate-b1-2-1.py
       - name: Verify generated matrix is current

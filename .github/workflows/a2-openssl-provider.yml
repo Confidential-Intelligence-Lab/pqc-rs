@@ -6,8 +6,8 @@ jobs:
   rust-openssl:
     runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
         with:
           components: rustfmt, clippy
       - name: Install OpenSSL 3.5 development package
@@ -25,7 +25,7 @@ jobs:
         run: |
           python3 scripts/validate-a2-4.py
           cargo xtask interop-openssl --strict
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:
           name: a2-4-openssl-interop-report
