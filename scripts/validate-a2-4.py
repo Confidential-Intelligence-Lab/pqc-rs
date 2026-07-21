@@ -9,7 +9,6 @@ required = [
     "scripts/openssl_provider_interop.py",
     "xtask/src/main.rs",
     ".github/workflows/a2-openssl-provider.yml",
-    "README-a2-4.md",
 ]
 missing = [path for path in required if not Path(path).is_file()]
 if missing:

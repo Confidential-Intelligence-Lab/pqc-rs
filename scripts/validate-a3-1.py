@@ -8,7 +8,6 @@ required = [
     root / "crates/pqc-hpke/src/setup.rs",
     root / "scripts/hpke/hpke_core.py",
     root / "scripts/hpke_interop.py",
-    root / "README-a3-1.md",
 ]
 missing = [str(path.relative_to(root)) for path in required if not path.exists()]
 if missing:

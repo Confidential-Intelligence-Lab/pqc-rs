@@ -4,7 +4,7 @@ on:
   pull_request:
 jobs:
   rust-openssl:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -15,13 +15,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential pkg-config libssl-dev
           openssl version -a
+          dpkg --compare-versions "$(openssl version | awk '{print $2}')" ge 3.5.0
       - name: Quality gates
         run: |
           cargo fmt --all -- --check
           cargo clippy --all-targets --all-features -- -D warnings
           cargo test --all-targets --all-features
       - name: OpenSSL provider interoperability
-        run: cargo xtask interop-openssl --strict
+        run: |
+          python3 scripts/validate-a2-4.py
+          cargo xtask interop-openssl --strict
       - uses: actions/upload-artifact@v4
         if: always()
         with:

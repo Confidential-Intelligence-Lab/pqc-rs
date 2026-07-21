@@ -174,6 +174,8 @@ fn run() -> Result<(), String> {
         Some("standards") => standards(args.collect()),
         Some("interop") => interop(args.collect()),
         Some("interop-cross") => interop_cross(args.collect()),
+        Some("interop-openssl") => interop_openssl(args.collect()),
+        Some("interop-hpke") => interop_hpke(args.collect()),
         Some("implementation-matrix") => implementation_matrix(args.collect()),
         Some("api-review") => api_review(args.collect()),
         Some("zeroization-audit") => zeroization_audit(args.collect()),
@@ -197,6 +199,8 @@ fn print_help() -> Result<(), String> {
     println!("cargo xtask standards [--catalog PATH] [--output DIR] [--strict]");
     println!("cargo xtask interop [--manifest PATH] [--output DIR] [--provider ID] [--suite ID] [--strict]");
     println!("cargo xtask interop-cross [--strict]");
+    println!("cargo xtask interop-openssl [--strict]");
+    println!("cargo xtask interop-hpke [--strict]");
     println!("cargo xtask implementation-matrix [--manifest PATH] [--output PATH] [--check]");
     println!("cargo xtask api-review [--check]");
     println!("cargo xtask zeroization-audit [--check]");
@@ -210,6 +214,54 @@ fn print_help() -> Result<(), String> {
     println!("cargo xtask validation-certification [--check]");
     println!("cargo xtask release-audit [--check]");
     Ok(())
+}
+
+fn interop_openssl(args: Vec<String>) -> Result<(), String> {
+    run_python_interop(
+        "scripts/openssl_provider_interop.py",
+        "OpenSSL interoperability",
+        "interop-openssl",
+        args,
+    )
+}
+
+fn interop_hpke(args: Vec<String>) -> Result<(), String> {
+    run_python_interop(
+        "scripts/hpke_interop.py",
+        "HPKE interoperability",
+        "interop-hpke",
+        args,
+    )
+}
+
+fn run_python_interop(
+    script: &str,
+    description: &str,
+    subcommand: &str,
+    args: Vec<String>,
+) -> Result<(), String> {
+    let mut command = Command::new("python3");
+    command.arg(script);
+    for arg in args {
+        match arg.as_str() {
+            "--strict" => {
+                command.arg(arg);
+            }
+            "--help" | "-h" => {
+                println!("cargo xtask {subcommand} [--strict]");
+                return Ok(());
+            }
+            other => return Err(format!("unknown {subcommand} argument: {other}")),
+        }
+    }
+    let status = command
+        .status()
+        .map_err(|error| format!("failed to run {description}: {error}"))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("{description} exited with {status}"))
+    }
 }
 
 fn release_audit(args: Vec<String>) -> Result<(), String> {

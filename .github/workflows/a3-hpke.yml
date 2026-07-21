@@ -2,12 +2,38 @@ name: A3 HPKE interoperability
 on: [push, pull_request]
 jobs:
   hpke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
       - uses: actions/setup-python@v5
         with: { python-version: '3.12' }
+      - name: Install native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build pkg-config libssl-dev
+          openssl version -a
+          dpkg --compare-versions "$(openssl version | awk '{print $2}')" ge 3.5.0
+      - name: Build liboqs 0.16.0
+        run: |
+          git clone --depth 1 --branch 0.16.0 \
+            https://github.com/open-quantum-safe/liboqs.git \
+            "$RUNNER_TEMP/liboqs"
+          cmake -S "$RUNNER_TEMP/liboqs" -B "$RUNNER_TEMP/liboqs/build" -GNinja \
+            -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/oqs-install" \
+            -DBUILD_SHARED_LIBS=ON \
+            -DOQS_BUILD_ONLY_LIB=ON
+          cmake --build "$RUNNER_TEMP/liboqs/build"
+          cmake --install "$RUNNER_TEMP/liboqs/build"
       - run: python3 -m pip install cryptography
       - run: python3 scripts/validate-a3-1.py
-      - run: cargo xtask interop-hpke --strict
+      - name: Run HPKE interoperability
+        env:
+          OQS_PREFIX: ${{ runner.temp }}/oqs-install
+          LD_LIBRARY_PATH: ${{ runner.temp }}/oqs-install/lib
+        run: cargo xtask interop-hpke --strict
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: a3-hpke-interop-report
+          path: target/interop-hpke/
