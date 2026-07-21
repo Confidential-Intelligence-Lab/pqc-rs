@@ -23,15 +23,14 @@ automation or release script may make that change implicitly.
 
 ## Hosting decision
 
-Choose one canonical public source before changing URLs:
+The canonical public source is:
 
-1. **UCI GitHub Enterprise:** retain the current canonical repository only if
-   anonymous clone, issue, security-reporting, and release-asset access can be
-   enabled and the required CI service is available.
-2. **Public mirror:** create a public mirror on a service that supports
-   anonymous access and CI. Preserve the complete Git history, annotated tag,
-   and release assets. Update repository, homepage, changelog, citation, and
-   documentation URLs together in a dedicated migration commit.
+`https://github.com/Confidential-Intelligence-Lab/pqc-rs`
+
+The UCI GitHub Enterprise repository remains the internal development origin.
+The public GitHub organization provides anonymous access, CI/CD, public issue
+tracking, security reporting, and release distribution. The mirror must
+preserve the complete Git history, annotated tags, and signed release assets.
 
 Do not maintain two repositories that both appear canonical. Identify the
 authoritative issue tracker, security channel, release page, and contribution
@@ -39,7 +38,7 @@ path in the README.
 
 ## Required pre-publication gates
 
-- [ ] Select and record the canonical public host and repository URL.
+- [x] Select and record the canonical public host and repository URL.
 - [ ] Scan the complete Git history, tags, and current tree for credentials,
       private keys, tokens, confidential data, and unintended large artifacts.
 - [ ] Confirm that committed test vectors and external materials have

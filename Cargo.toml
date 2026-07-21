@@ -13,11 +13,11 @@ members = [
 [workspace.package]
 edition = "2021"
 license = "Apache-2.0 OR MIT"
-repository = "https://github.oit.uci.edu/rcammaro/pqc-rfc9958-rs"
+repository = "https://github.com/Confidential-Intelligence-Lab/pqc-rs"
 rust-version = "1.80"
 authors = ["Rosario Cammarota"]
 version = "0.4.0-rc.1"
-homepage = "https://github.oit.uci.edu/rcammaro/pqc-rfc9958-rs"
+homepage = "https://github.com/Confidential-Intelligence-Lab/pqc-rs"
 
 [workspace.dependencies]
 pqc-core = { package = "pqc-rs-core", path = "crates/pqc-core", version = "0.4.0-rc.1" }

@@ -6,7 +6,7 @@ from pathlib import Path
 
 ROOT = Path.cwd()
 RC_VERSION = "0.4.0-rc.1"
-REPOSITORY = "https://github.oit.uci.edu/rcammaro/pqc-rfc9958-rs"
+REPOSITORY = "https://github.com/Confidential-Intelligence-Lab/pqc-rs"
 AUTHOR = "Rosario Cammarota"
 
 PACKAGE_RENAMES = {
