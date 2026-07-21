@@ -7,6 +7,7 @@ on:
       - "scripts/interop/**"
       - "scripts/interop_engine.py"
       - "scripts/configure-liboqs-interop.py"
+      - "scripts/install-a2-2.py"
       - "scripts/validate-a2-2.py"
       - ".github/workflows/a2-liboqs.yml"
   pull_request:
@@ -15,6 +16,7 @@ on:
       - "scripts/interop/**"
       - "scripts/interop_engine.py"
       - "scripts/configure-liboqs-interop.py"
+      - "scripts/install-a2-2.py"
       - "scripts/validate-a2-2.py"
 
 jobs:
@@ -37,6 +39,8 @@ jobs:
       - name: Install A2.2
         run: python3 scripts/install-a2-2.py
       - name: Validate adapter boundary
+        env:
+          OQS_PREFIX: ${{ runner.temp }}/oqs-install
         run: python3 scripts/validate-a2-2.py
       - name: Enable real liboqs provider
         env:

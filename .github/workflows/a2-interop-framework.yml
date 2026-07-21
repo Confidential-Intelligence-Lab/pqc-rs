@@ -6,6 +6,8 @@ on:
       - "interop/**"
       - "scripts/interop_engine.py"
       - "scripts/interop/**"
+      - "scripts/install-a2-1.py"
+      - "scripts/validate-a2-1.py"
       - "xtask/**"
       - ".github/workflows/a2-interop-framework.yml"
   pull_request:
@@ -13,6 +15,8 @@ on:
       - "interop/**"
       - "scripts/interop_engine.py"
       - "scripts/interop/**"
+      - "scripts/install-a2-1.py"
+      - "scripts/validate-a2-1.py"
       - "xtask/**"
 
 jobs:
@@ -26,7 +30,7 @@ jobs:
       - name: Validate framework
         run: python3 scripts/validate-a2-1.py
       - name: Run through xtask
-        run: cargo xtask interop --strict
+        run: cargo xtask interop --provider selftest --suite framework-protocol --strict
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         if: always()
         with:

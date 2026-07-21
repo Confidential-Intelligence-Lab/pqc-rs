@@ -29,7 +29,16 @@ assert len({p["id"] for p in providers}) == len(providers)
 for schema in ("vector-v1.schema.json", "report-v1.schema.json"):
     json.loads((root / "interop/schemas" / schema).read_text())
 completed = subprocess.run(
-    [sys.executable, "scripts/interop_engine.py", "report", "--strict"],
+    [
+        sys.executable,
+        "scripts/interop_engine.py",
+        "report",
+        "--provider",
+        "selftest",
+        "--suite",
+        "framework-protocol",
+        "--strict",
+    ],
     cwd=root,
     text=True,
     capture_output=True,

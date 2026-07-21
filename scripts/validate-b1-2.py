@@ -6,7 +6,6 @@ root = Path(__file__).resolve().parents[1]
 checks = {
     "suite registry": root / "crates/pqc-hpke/src/suite.rs",
     "matrix tests": root / "crates/pqc-hpke/tests/ciphersuite_matrix.rs",
-    "milestone documentation": root / "README-b1-2.md",
 }
 
 missing = [name for name, path in checks.items() if not path.is_file()]

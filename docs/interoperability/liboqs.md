@@ -1,6 +1,7 @@
 # liboqs interoperability adapter
 
-A2.2 adds a provider implemented with Python `ctypes` over the public liboqs C API. No Python wrapper package is required.
+A2.2 adds a Python protocol provider backed by a small C bridge over the public
+liboqs C API. No Python wrapper package is required.
 
 ## Install liboqs
 
@@ -22,6 +23,13 @@ export OQS_LIBOQS_PATH=/absolute/path/to/liboqs.dylib
 ```
 
 Use `.so` on Linux.
+
+Alternatively, point the bridge at an installation prefix containing
+`include/oqs/oqs.h` and `lib/liboqs`:
+
+```bash
+export OQS_PREFIX=/absolute/path/to/liboqs-prefix
+```
 
 ## Enable and run
 

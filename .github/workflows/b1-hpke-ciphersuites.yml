@@ -5,13 +5,11 @@ on:
     paths:
       - "crates/pqc-hpke/**"
       - "scripts/validate-b1-2.py"
-      - "README-b1-2.md"
       - ".github/workflows/b1-hpke-ciphersuites.yml"
   pull_request:
     paths:
       - "crates/pqc-hpke/**"
       - "scripts/validate-b1-2.py"
-      - "README-b1-2.md"
       - ".github/workflows/b1-hpke-ciphersuites.yml"
 
 jobs:
@@ -22,7 +20,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
         with:
           components: rustfmt, clippy
-      - name: Validate milestone structure
+      - name: Validate ciphersuite matrix structure
         run: python3 scripts/validate-b1-2.py
       - name: Check formatting
         run: cargo fmt --all -- --check

@@ -1,16 +1,14 @@
 #!/usr/bin/env python3
 """Structural and executable validation for A2.2.
 
-A small ABI-compatible mock library exercises the ctypes boundary without
-claiming cryptographic interoperability. Real liboqs execution occurs in the
-A2.2 CI workflow and on developer machines with a shared liboqs installation.
+The validator exercises the current C bridge against a real shared liboqs
+installation. Set OQS_PREFIX or OQS_LIBOQS_PATH when liboqs is not installed
+under /usr/local or Homebrew's default prefix.
 """
 from __future__ import annotations
 import json
 import os
 import pathlib
-import platform
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -19,9 +17,9 @@ import tomllib
 root = pathlib.Path(__file__).resolve().parents[1]
 required = [
     "scripts/interop/providers/liboqs_provider.py",
+    "scripts/interop/providers/liboqs_bridge.c",
     "scripts/configure-liboqs-interop.py",
     "scripts/install-a2-2.py",
-    "scripts/interop/testing_mock_liboqs.c",
     "docs/interoperability/liboqs.md",
     ".github/workflows/a2-liboqs.yml",
 ]
@@ -46,33 +44,23 @@ for path in sorted((root / "interop/vectors/liboqs").glob("*.json")):
 assert len(vectors) == 6
 assert len({v["vector_id"] for v in vectors}) == 6
 
-compiler = shutil.which("cc") or shutil.which("clang") or shutil.which("gcc")
-if not compiler:
-    raise SystemExit("a C compiler is required to validate the liboqs ABI adapter")
 with tempfile.TemporaryDirectory(prefix="a22-") as tmp:
     tmpdir = pathlib.Path(tmp)
-    suffix = ".dylib" if platform.system() == "Darwin" else ".so"
-    library = tmpdir / f"liboqs{suffix}"
-    command = [compiler]
-    if platform.system() == "Darwin":
-        command += ["-dynamiclib"]
-    else:
-        command += ["-shared", "-fPIC"]
-    command += [str(root / "scripts/interop/testing_mock_liboqs.c"), "-o", str(library)]
-    subprocess.run(command, check=True)
-
-    env = {**os.environ, "OQS_LIBOQS_PATH": str(library)}
+    env = os.environ.copy()
     request = json.dumps({"protocol_version": 1, "action": "capabilities"})
     completed = subprocess.run(
         [sys.executable, "scripts/interop/providers/liboqs_provider.py"], cwd=root,
         input=request, text=True, capture_output=True, env=env, check=False,
     )
     if completed.returncode != 0:
+        print(completed.stdout, file=sys.stderr)
         print(completed.stderr, file=sys.stderr)
         raise SystemExit(completed.returncode)
     response = json.loads(completed.stdout)
     assert response["ok"] is True
-    assert response["provider_version"] == "a2.2-mock"
+    assert response["provider"] == "liboqs"
+    capabilities = response["capabilities"]
+    assert {item["algorithm"] for item in capabilities} == {"ML-KEM", "ML-DSA"}
 
     temp_manifest = root / "target/a2-2-validation-manifest.toml"
     temp_manifest.parent.mkdir(parents=True, exist_ok=True)
@@ -80,8 +68,13 @@ with tempfile.TemporaryDirectory(prefix="a22-") as tmp:
     marker = 'id = "liboqs"'
     start = text.index(marker)
     end = text.find("\n[[", start + len(marker))
+    if end < 0:
+        end = len(text)
     block = text[start:end]
-    block = block.replace("enabled = false", "enabled = true", 1)
+    if "enabled = false" in block:
+        block = block.replace("enabled = false", "enabled = true", 1)
+    elif "enabled = true" not in block:
+        raise SystemExit("liboqs provider block has no enabled field")
     text = text[:start] + block + text[end:]
     temp_manifest.write_text(text)
     completed = subprocess.run(
