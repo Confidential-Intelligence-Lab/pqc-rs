@@ -7,7 +7,7 @@ pub mod acvp_encap_decap;
 pub mod standards_scope;
 
 /// A parsed known-answer-test vector.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct KatVector {
     /// Vector name or identifier.
     pub id: String,
@@ -25,8 +25,19 @@ pub struct KatVector {
     pub shared_secret: Vec<u8>,
 }
 
+impl core::fmt::Debug for KatVector {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("KatVector")
+            .field("id", &self.id)
+            .field("parameter_set", &self.parameter_set)
+            .field("sensitive_fields", &"<redacted>")
+            .finish()
+    }
+}
+
 /// K-PKE intermediate-value record.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct KpkeIntermediateVector {
     /// Vector name.
     pub id: String,
@@ -48,6 +59,17 @@ pub struct KpkeIntermediateVector {
     pub secret_key: Vec<u8>,
     /// Encoded ciphertext component.
     pub ciphertext: Vec<u8>,
+}
+
+impl core::fmt::Debug for KpkeIntermediateVector {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("KpkeIntermediateVector")
+            .field("id", &self.id)
+            .field("parameter_set", &self.parameter_set)
+            .field("sensitive_fields", &"<redacted>")
+            .finish()
+    }
 }
 
 /// Validation category.

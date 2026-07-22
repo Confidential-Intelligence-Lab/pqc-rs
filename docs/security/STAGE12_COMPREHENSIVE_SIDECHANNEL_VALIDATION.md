@@ -4,6 +4,11 @@ Stage 12 promotes the Stage 11 regression harness into a release-oriented valida
 
 ## Profiles
 
+`ci` runs the same enabled experiments as `portable`, but treats statistical
+timing thresholds as evidence rather than hard gates. Deterministic,
+zeroization, generated-code, and compiler failures remain gating. This profile
+is intended for noisy, shared GitHub-hosted runners.
+
 `portable` runs the enabled Stage 9F/10B experiments with three repetitions and the installed stable compiler gate. It is suitable for Apple ARM64 and ordinary developer hosts.
 
 `full` uses five repetitions, requires a clean Git tree, checks every locally installed Rust channel, and attempts Linux `perf` collection. `soak` increases statistical repetitions to ten and is intended for controlled release runners.
@@ -15,6 +20,7 @@ A passing campaign means that the measured experiments stayed within their versi
 ## Execution
 
 ```bash
+./scripts/run-stage12.sh ci
 ./scripts/run-stage12.sh portable
 ./scripts/run-stage12.sh full
 ./scripts/run-stage12.sh soak

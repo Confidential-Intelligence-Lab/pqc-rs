@@ -85,7 +85,7 @@ pub struct EncapDecapPromptGroup {
 /// Fields are optional at the JSON layer because their presence depends on the
 /// group's function. [`join_encap_decap_cases`] enforces the normative
 /// function-specific requirements.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct EncapDecapPromptCase {
     /// Test-case identifier.
@@ -98,6 +98,16 @@ pub struct EncapDecapPromptCase {
     pub m: Option<String>,
     /// Ciphertext, as hexadecimal.
     pub c: Option<String>,
+}
+
+impl core::fmt::Debug for EncapDecapPromptCase {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("EncapDecapPromptCase")
+            .field("tc_id", &self.tc_id)
+            .field("sensitive_fields", &"<redacted>")
+            .finish()
+    }
 }
 
 /// Parsed ACVP expected results.
@@ -127,7 +137,7 @@ pub struct EncapDecapExpectedGroup {
 }
 
 /// One expected result.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct EncapDecapExpectedCase {
     /// Test-case identifier.
@@ -140,8 +150,20 @@ pub struct EncapDecapExpectedCase {
     pub test_passed: Option<bool>,
 }
 
+impl core::fmt::Debug for EncapDecapExpectedCase {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("EncapDecapExpectedCase")
+            .field("tc_id", &self.tc_id)
+            .field("c", &self.c.as_ref().map(|_| "<redacted>"))
+            .field("k", &self.k.as_ref().map(|_| "<redacted>"))
+            .field("test_passed", &self.test_passed)
+            .finish()
+    }
+}
+
 /// Joined, decoded ACVP case.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct EncapDecapCase {
     /// Test-group identifier.
     pub tg_id: u64,
@@ -167,6 +189,21 @@ pub struct EncapDecapCase {
     pub expected_shared_secret: Option<Vec<u8>>,
     /// Expected key-check result, when supplied.
     pub expected_test_passed: Option<bool>,
+}
+
+impl core::fmt::Debug for EncapDecapCase {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("EncapDecapCase")
+            .field("tg_id", &self.tg_id)
+            .field("tc_id", &self.tc_id)
+            .field("test_type", &self.test_type)
+            .field("parameter_set", &self.parameter_set)
+            .field("function", &self.function)
+            .field("sensitive_fields", &"<redacted>")
+            .field("expected_test_passed", &self.expected_test_passed)
+            .finish()
+    }
 }
 
 /// Inventory information for a parsed vector set.
