@@ -9,12 +9,12 @@ RUSTDOCFLAGS="-D warnings" cargo doc --workspace --all-features --no-deps
 cargo deny check
 cargo audit
 
-cargo run -p pqc-test-harness --bin ml-kem-acvp-keygen --release
-cargo run -p pqc-test-harness --bin ml-kem-acvp-encapsulation --release
-cargo run -p pqc-test-harness --bin ml-kem-acvp-decapsulation --release
-cargo run -p pqc-test-harness --bin ml-kem-acvp-key-check --release
-cargo run -p pqc-test-harness --bin hpke-pq-base-vectors --release
-cargo run -p pqc-test-harness --bin hpke-pq-hybrid-vectors --release
+cargo run -p pqc-rs-test-harness --bin ml-kem-acvp-keygen --release
+cargo run -p pqc-rs-test-harness --bin ml-kem-acvp-encapsulation --release
+cargo run -p pqc-rs-test-harness --bin ml-kem-acvp-decapsulation --release
+cargo run -p pqc-rs-test-harness --bin ml-kem-acvp-key-check --release
+cargo run -p pqc-rs-test-harness --bin hpke-pq-base-vectors --release
+cargo run -p pqc-rs-test-harness --bin hpke-pq-hybrid-vectors --release
 
 cargo package -p pqc-rs-core
 cargo package -p pqc-rs-ml-kem --no-verify

@@ -69,7 +69,7 @@ pub struct MlKemKeygenPromptGroup {
 }
 
 /// One ML-KEM key-generation prompt case.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct MlKemKeygenPromptCase {
     /// Test-case identifier.
@@ -78,6 +78,16 @@ pub struct MlKemKeygenPromptCase {
     pub z: String,
     /// 32-byte key-generation randomness, encoded as hex.
     pub d: String,
+}
+
+impl core::fmt::Debug for MlKemKeygenPromptCase {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("MlKemKeygenPromptCase")
+            .field("tc_id", &self.tc_id)
+            .field("sensitive_fields", &"<redacted>")
+            .finish()
+    }
 }
 
 /// Parsed ML-KEM key-generation expected results.
@@ -107,7 +117,7 @@ pub struct MlKemKeygenExpectedGroup {
 }
 
 /// One ML-KEM key-generation expected result.
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq)]
+#[derive(Clone, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct MlKemKeygenExpectedCase {
     /// Test-case identifier.
@@ -118,8 +128,18 @@ pub struct MlKemKeygenExpectedCase {
     pub dk: String,
 }
 
+impl core::fmt::Debug for MlKemKeygenExpectedCase {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("MlKemKeygenExpectedCase")
+            .field("tc_id", &self.tc_id)
+            .field("sensitive_fields", &"<redacted>")
+            .finish()
+    }
+}
+
 /// Joined key-generation case with prompt and expected outputs.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct MlKemKeygenCase {
     /// Parameter-set name.
     pub parameter_set: String,
@@ -135,6 +155,18 @@ pub struct MlKemKeygenCase {
     pub ek: Vec<u8>,
     /// Decoded decapsulation key.
     pub dk: Vec<u8>,
+}
+
+impl core::fmt::Debug for MlKemKeygenCase {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("MlKemKeygenCase")
+            .field("parameter_set", &self.parameter_set)
+            .field("tg_id", &self.tg_id)
+            .field("tc_id", &self.tc_id)
+            .field("sensitive_fields", &"<redacted>")
+            .finish()
+    }
 }
 
 /// ACVP parsing or joining error.

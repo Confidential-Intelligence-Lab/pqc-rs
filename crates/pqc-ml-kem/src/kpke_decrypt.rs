@@ -18,10 +18,19 @@ use crate::polyvec::PolyVec;
 use crate::MlKemParameterSet;
 
 /// Structural K-PKE decryption output.
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct KpkeDecryptOutput {
     /// Recovered message.
     pub message: Message,
+}
+
+impl core::fmt::Debug for KpkeDecryptOutput {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("KpkeDecryptOutput")
+            .field("message", &"<redacted>")
+            .finish()
+    }
 }
 
 /// Compute structural `w = v - s^T u`.
