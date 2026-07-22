@@ -23,7 +23,20 @@ def main()->int:
         return 1
     checks=[]
     if cfg["run_stage12"]:
-        checks.append(run("stage12",["bash","scripts/run-stage12.sh",cfg["stage12_profile"]],out))
+        stage12_profile=cfg["stage12_profile"]
+        stage12_bundle=Path("target/stage12")/f"stage12-{stage12_profile}-evidence.tar.gz"
+        nested_dir=out/"nested-evidence"
+        stage12_bundle.unlink(missing_ok=True)
+        if nested_dir.exists(): shutil.rmtree(nested_dir)
+        nested_dir.mkdir(parents=True,exist_ok=True)
+        stage12_check=run("stage12",["bash","scripts/run-stage12.sh",stage12_profile],out)
+        if stage12_bundle.is_file():
+            nested_bundle=nested_dir/stage12_bundle.name
+            shutil.copy2(stage12_bundle,nested_bundle)
+            stage12_check["evidence_bundle"]=str(nested_bundle)
+        else:
+            stage12_check["evidence_bundle_status"]="missing"
+        checks.append(stage12_check)
     if cfg["run_property_tests"]:
         checks.append(run("property-tests",["cargo","test","--workspace","--all-features","--locked"],out))
     if cfg["run_differential_tests"]:
@@ -71,5 +84,7 @@ def main()->int:
         (out/"signature-status.txt").write_text(signature_status+"\n")
         if signature_status!="pass": return 1
     print(f"decision={summary['decision']}"); print(f"evidence={bundle}"); print(f"signature={signature_status}")
+    for check in failed:
+        print(f"failed_check={check['id']} return_code={check.get('return_code','unknown')}")
     return 1 if failed else 0
 if __name__=="__main__": raise SystemExit(main())

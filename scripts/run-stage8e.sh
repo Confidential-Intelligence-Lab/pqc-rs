@@ -10,11 +10,11 @@ cargo build --workspace --release
 find target/release -maxdepth 1 -type f -perm -111 -exec ls -lh {} \; | tee target/stage8e/release-binaries.txt
 echo 'Stage 8E reports written to target/stage8e/'
 
-cargo bench -p pqc-ml-kem --bench ml_kem \
+cargo bench -p pqc-rs-ml-kem --bench ml_kem \
   | tee target/stage8e/ml-kem-bench.txt
 
-cargo bench -p pqc-hpke --bench hpke \
+cargo bench -p pqc-rs-hpke --bench hpke \
   | tee target/stage8e/hpke-bench.txt
 
-cargo bench -p pqc-hpke --bench hybrid_hpke \
+cargo bench -p pqc-rs-hpke --bench hybrid_hpke \
   | tee target/stage8e/hybrid-hpke-bench.txt

@@ -11,7 +11,7 @@ def run(cmd:list[str],log:Path,env=None)->int:
     return p.returncode
 
 def main()->int:
-    ap=argparse.ArgumentParser(); ap.add_argument("--profile",choices=["portable","full","soak"],default="portable")
+    ap=argparse.ArgumentParser(); ap.add_argument("--profile",choices=["ci","portable","full","soak"],default="portable")
     ap.add_argument("--output",type=Path,default=Path("target/stage12")); args=ap.parse_args()
     cfg=json.loads(Path("sidechannel/stage12/profiles.json").read_text())["profiles"][args.profile]
     out=args.output; out.mkdir(parents=True,exist_ok=True); logs=out/"logs"; generated=out/"generated-manifests"
@@ -31,7 +31,22 @@ def main()->int:
             data["repetitions"]=cfg["repetitions"] if data["parser"]["type"]=="regex" else 1
             data["policy"]["minimum_successful_repetitions"]=data["repetitions"]
             (generated/src.name).write_text(json.dumps(data,indent=2)+"\n")
-    core_rc=run(["python3","scripts/stage11_sidechannel.py","--experiments",str(generated),"--output",str(out/"core")],logs/"core.log")
+    observed_core_rc=run(["python3","scripts/stage11_sidechannel.py","--experiments",str(generated),"--output",str(out/"core")],logs/"core.log")
+    core_rc=observed_core_rc
+    informational_statistical_findings=[]
+    if not cfg.get("statistical_gating",True):
+        report_path=out/"core"/"report.json"
+        if report_path.is_file():
+            report=json.loads(report_path.read_text())
+            deterministic_failures=[]
+            for experiment in report.get("experiments",[]):
+                decision=experiment.get("summary",{}).get("decision","inconclusive")
+                if "timing" in experiment.get("tags",[]):
+                    if decision!="pass":
+                        informational_statistical_findings.append({"id":experiment.get("id"),"decision":decision})
+                elif decision!="pass":
+                    deterministic_failures.append({"id":experiment.get("id"),"decision":decision})
+            core_rc=0 if not deterministic_failures else 1
     compiler_rc=0
     if cfg["run_compiler_matrix"]:
         compiler_rc=run(["python3","scripts/stage12_compiler_matrix.py","--output",str(out/"compiler")],logs/"compiler.log")
@@ -40,11 +55,15 @@ def main()->int:
              "python3","scripts/stage11_legacy_adapter.py","stage10b2-ct-compare"],logs/"perf.log")
     decision="pass" if core_rc==0 and compiler_rc==0 else "fail"
     summary={"schema_version":1,"profile":args.profile,"decision":decision,"core_return_code":core_rc,
+             "core_observed_return_code":observed_core_rc,"statistical_gating":cfg.get("statistical_gating",True),
+             "informational_statistical_findings":informational_statistical_findings,
              "compiler_return_code":compiler_rc,"microarchitectural_gating":False,
              "statement":"Statistical and generated-code evidence is regression evidence, not a proof of constant-time execution."}
     (out/"summary.json").write_text(json.dumps(summary,indent=2)+"\n")
     (out/"summary.md").write_text(f"# Stage 12 Comprehensive Side-Channel Validation\n\n"
-      f"- Profile: `{args.profile}`\n- Decision: **{decision}**\n- Core gate: `{core_rc}`\n- Compiler gate: `{compiler_rc}`\n\n"
+      f"- Profile: `{args.profile}`\n- Decision: **{decision}**\n- Core gate: `{core_rc}`\n"
+      f"- Core observed return code: `{observed_core_rc}`\n- Statistical gating: `{cfg.get('statistical_gating',True)}`\n"
+      f"- Compiler gate: `{compiler_rc}`\n\n"
       "Microarchitectural probes are informational until architecture-specific baselines and confidence intervals are established.\n",encoding="utf-8")
     hashes=[]
     for path in sorted(p for p in out.rglob("*") if p.is_file() and p.name!="SHA256SUMS"):

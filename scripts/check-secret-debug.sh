@@ -19,7 +19,9 @@ declaration = re.compile(
 
 secret_name = re.compile(
     r"(secret|private|decapsulation|keypair|key_pair|"
-    r"encapsulationoutput|encapsulation_output|seedmaterial|seed_material)",
+    r"encapsulationoutput|encapsulation_output|seedmaterial|seed_material|"
+    r"keygen(?:prompt|expected)?case|encapdecappromptcase|"
+    r"hpkeexportvector|kpkedecryptoutput)",
     re.IGNORECASE,
 )
 
@@ -29,6 +31,8 @@ secret_field = re.compile(
     r"secret_key|sigma)\b",
     re.IGNORECASE,
 )
+
+block_comment = re.compile(r"/\*.*?\*/", re.DOTALL)
 
 safe_error_type = re.compile(r"Error$")
 
@@ -80,8 +84,12 @@ for path in Path("crates").rglob("*.rs"):
                 cursor += 1
 
             block = "\n".join(block_lines)
+            code_only = block_comment.sub("", block)
+            code_only = "\n".join(
+                line.split("//", 1)[0] for line in code_only.splitlines()
+            )
 
-            if secret_name.search(type_name) or secret_field.search(block):
+            if secret_name.search(type_name) or secret_field.search(code_only):
                 context_start = max(0, derive_line - 2)
                 context_end = min(len(lines), cursor)
 

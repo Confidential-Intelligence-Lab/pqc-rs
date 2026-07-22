@@ -4,7 +4,7 @@ use serde::Deserialize;
 use std::path::Path;
 
 /// One HPKE-PQ test-vector suite.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct HpkePqVector {
     /// HPKE mode.
     pub mode: u8,
@@ -55,6 +55,21 @@ pub struct HpkePqVector {
     pub exports: Vec<HpkeExportVector>,
 }
 
+impl core::fmt::Debug for HpkePqVector {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("HpkePqVector")
+            .field("mode", &self.mode)
+            .field("kem_id", &self.kem_id)
+            .field("kdf_id", &self.kdf_id)
+            .field("aead_id", &self.aead_id)
+            .field("sensitive_fields", &"<redacted>")
+            .field("encryptions", &self.encryptions.len())
+            .field("exports", &self.exports.len())
+            .finish()
+    }
+}
+
 /// One HPKE message-encryption vector.
 #[derive(Clone, Debug, Deserialize)]
 pub struct HpkeEncryptionVector {
@@ -75,7 +90,7 @@ pub struct HpkeEncryptionVector {
 }
 
 /// One HPKE exporter vector.
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Deserialize)]
 pub struct HpkeExportVector {
     /// Exporter context.
     pub exporter_context: String,
@@ -84,6 +99,16 @@ pub struct HpkeExportVector {
     pub length: usize,
     /// Exported value.
     pub exported_value: String,
+}
+
+impl core::fmt::Debug for HpkeExportVector {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("HpkeExportVector")
+            .field("length", &self.length)
+            .field("sensitive_fields", &"<redacted>")
+            .finish()
+    }
 }
 
 /// Vector parser error.

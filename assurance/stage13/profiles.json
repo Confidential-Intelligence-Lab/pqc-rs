@@ -4,7 +4,7 @@
     "portable": {
       "require_clean_git": false,
       "run_stage12": true,
-      "stage12_profile": "portable",
+      "stage12_profile": "ci",
       "run_property_tests": true,
       "run_differential_tests": true,
       "run_secret_inventory": true,

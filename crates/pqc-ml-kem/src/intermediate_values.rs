@@ -29,7 +29,7 @@ impl PolynomialDigest {
 }
 
 /// Internal intermediate-value fixture.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Eq, PartialEq)]
 pub struct IntermediateFixture {
     /// Fixture identifier.
     pub id: &'static str,
@@ -57,6 +57,17 @@ pub struct IntermediateFixture {
     pub secret_key: Vec<u8>,
     /// Ciphertext bytes.
     pub ciphertext: Vec<u8>,
+}
+
+impl core::fmt::Debug for IntermediateFixture {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        formatter
+            .debug_struct("IntermediateFixture")
+            .field("id", &self.id)
+            .field("parameter_set", &self.parameter_set)
+            .field("sensitive_fields", &"<redacted>")
+            .finish()
+    }
 }
 
 /// Build an internal fixture for ML-KEM-512.
