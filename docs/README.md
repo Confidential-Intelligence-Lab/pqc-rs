@@ -10,6 +10,8 @@ The documentation is organized by audience and assurance purpose.
 
 Security methodology, side-channel experiments, machine-code reviews, zeroization reviews, and assurance reports are maintained in the existing security, audit, side-channel, and assurance directories.
 
+- [Stage 10B-5 cross-architecture validation](security/STAGE10B5_CROSS_ARCHITECTURE.md)
+
 ## User and developer documentation
 
 Milestone A will add installation, API, interoperability, architecture, and release guides. Until those guides are complete, the root README and rustdoc are the primary entry points.
