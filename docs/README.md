@@ -14,6 +14,14 @@ Security methodology, side-channel experiments, machine-code reviews, zeroizatio
 
 Milestone A will add installation, API, interoperability, architecture, and release guides. Until those guides are complete, the root README and rustdoc are the primary entry points.
 
+## Release planning and external review
+
+- [Project roadmap](../ROADMAP.md)
+- [v0.4.0 release checklist](release-checklist.md)
+- [v0.4.0 external reviewer packet](release/V0.4.0_EXTERNAL_REVIEW.md)
+- [Personal outreach templates](release/EXTERNAL_REVIEW_OUTREACH.md)
+- [PQUIP and HPKE announcement drafts](release/IETF_REVIEW_ANNOUNCEMENTS.md)
+
 ## Documentation policy
 
 Documentation must distinguish normative requirements from informational guidance and distinguish test evidence from proof, certification, or independent audit.
