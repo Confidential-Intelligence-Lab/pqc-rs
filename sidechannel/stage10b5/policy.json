@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "targets": [
+    {
+      "id": "linux-x86_64",
+      "runner": "ubuntu-24.04",
+      "system": "Linux",
+      "machine_pattern": "^(x86_64|amd64)$",
+      "rust_host_pattern": "^x86_64-.*-linux-gnu$"
+    },
+    {
+      "id": "linux-aarch64",
+      "runner": "ubuntu-24.04-arm",
+      "system": "Linux",
+      "machine_pattern": "^(aarch64|arm64)$",
+      "rust_host_pattern": "^aarch64-.*-linux-gnu$"
+    },
+    {
+      "id": "apple-aarch64",
+      "runner": "macos-15",
+      "system": "Darwin",
+      "machine_pattern": "^(aarch64|arm64)$",
+      "rust_host_pattern": "^aarch64-apple-darwin$"
+    }
+  ],
+  "binaries": [
+    {
+      "name": "ct-stage10b11-audit",
+      "wrappers": [
+        {
+          "name": "audit_scalar_masks",
+          "control_policy": "branchless"
+        },
+        {
+          "name": "audit_array_selection",
+          "control_policy": "branchless"
+        },
+        {
+          "name": "audit_array_assignment",
+          "control_policy": "branchless"
+        }
+      ]
+    },
+    {
+      "name": "ct-stage10b2-audit",
+      "wrappers": [
+        {
+          "name": "audit_eq_32",
+          "control_policy": "branchless"
+        },
+        {
+          "name": "audit_zero_32",
+          "control_policy": "branchless"
+        },
+        {
+          "name": "audit_eq_slice",
+          "control_policy": "public-control"
+        },
+        {
+          "name": "audit_zero_slice",
+          "control_policy": "public-control"
+        }
+      ]
+    },
+    {
+      "name": "ct-stage10b3-audit",
+      "wrappers": [
+        {
+          "name": "audit_secret_assign",
+          "control_policy": "branchless"
+        },
+        {
+          "name": "audit_secret_swap",
+          "control_policy": "branchless"
+        },
+        {
+          "name": "audit_typed_assign",
+          "control_policy": "branchless"
+        }
+      ]
+    },
+    {
+      "name": "ct-stage10b4-audit",
+      "wrappers": [
+        {
+          "name": "audit_zeroize_bytes",
+          "control_policy": "zeroization"
+        },
+        {
+          "name": "audit_zeroize_words",
+          "control_policy": "zeroization"
+        },
+        {
+          "name": "audit_secret_drop",
+          "control_policy": "zeroization"
+        }
+      ],
+      "require_zeroization_store": true
+    }
+  ],
+  "timing": {
+    "threshold_absolute_welch_t": 4.5,
+    "gating": false
+  }
+}

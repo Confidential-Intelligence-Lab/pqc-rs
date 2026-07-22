@@ -11,7 +11,7 @@ fn audit_secret_assign(mask: CtMask8, destination: &mut SecretBytes<32>, source:
 
 #[inline(never)]
 fn audit_secret_swap(mask: CtMask8, left: &mut SecretBytes<32>, right: &mut SecretBytes<32>) {
-    SecretBytes::conditional_swap(black_box(mask), black_box(left), black_box(right));
+    SecretBytes::conditional_swap(black_box(mask), left, right);
 }
 
 #[inline(never)]

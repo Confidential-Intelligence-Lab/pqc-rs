@@ -1,0 +1,127 @@
+name: Stage 10B-5 Cross Architecture
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - ".cargo/**"
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "rustfmt.toml"
+      - "crates/pqc-core/**"
+      - "crates/pqc-ml-kem/**"
+      - "crates/pqc-hpke/**"
+      - "crates/pqc-hybrid/**"
+      - "crates/pqc-test-harness/Cargo.toml"
+      - "crates/pqc-test-harness/src/bin/ct-stage10b*.rs"
+      - "scripts/*stage10b5*"
+      - "sidechannel/stage10b5/**"
+      - ".github/workflows/stage10b5-cross-architecture.yml"
+  push:
+    branches: [main]
+    paths:
+      - ".cargo/**"
+      - "Cargo.lock"
+      - "Cargo.toml"
+      - "rustfmt.toml"
+      - "crates/pqc-core/**"
+      - "crates/pqc-ml-kem/**"
+      - "crates/pqc-hpke/**"
+      - "crates/pqc-hybrid/**"
+      - "crates/pqc-test-harness/Cargo.toml"
+      - "crates/pqc-test-harness/src/bin/ct-stage10b*.rs"
+      - "scripts/*stage10b5*"
+      - "sidechannel/stage10b5/**"
+      - ".github/workflows/stage10b5-cross-architecture.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stage10b5-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  architecture:
+    name: ${{ matrix.target_id }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target_id: linux-x86_64
+            runner: ubuntu-24.04
+          - target_id: linux-aarch64
+            runner: ubuntu-24.04-arm
+          - target_id: apple-aarch64
+            runner: macos-15
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+        with:
+          components: rustfmt, clippy, llvm-tools-preview
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.x"
+
+      - name: Validate Stage 10B-5 overlay
+        run: python3 scripts/validate-stage10b5.py
+
+      - name: Run architecture campaign
+        env:
+          PQC_STAGE10B5_SOURCE_COMMIT: ${{ github.sha }}
+        run: ./scripts/run-stage10b5-cross-architecture.sh "${{ matrix.target_id }}"
+
+      - name: Upload architecture evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: stage10b5-${{ matrix.target_id }}-${{ github.sha }}
+          path: |
+            target/stage10b5/${{ matrix.target_id }}/
+            target/stage10b5/stage10b5-${{ matrix.target_id }}-evidence.tar.gz
+          if-no-files-found: warn
+          retention-days: 90
+
+  aggregate:
+    name: aggregate
+    if: always()
+    needs: architecture
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: "3.x"
+
+      - name: Download architecture evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: stage10b5-*-${{ github.sha }}
+          path: target/stage10b5-collected
+          merge-multiple: false
+
+      - name: Validate and combine evidence
+        run: |
+          python3 scripts/validate-stage10b5-evidence.py \
+            --policy sidechannel/stage10b5/policy.json \
+            --collected target/stage10b5-collected \
+            --expected-commit "${{ github.sha }}" \
+            --output target/stage10b5-aggregate \
+            --archive target/stage10b5-cross-architecture-evidence.tar.gz
+
+      - name: Upload combined evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: stage10b5-cross-architecture-${{ github.sha }}
+          path: |
+            target/stage10b5-aggregate/
+            target/stage10b5-cross-architecture-evidence.tar.gz
+          if-no-files-found: warn
+          retention-days: 90
