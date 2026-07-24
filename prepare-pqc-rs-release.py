@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path.cwd()
-REPOSITORY = "https://github.oit.uci.edu/rcammaro/pqc-rfc9958-rs"
+REPOSITORY = "https://github.com/Confidential-Intelligence-Lab/pqc-rs"
 HOMEPAGE = REPOSITORY
 AUTHOR = "Rosario Cammarota"
 RC_VERSION = "0.4.0"
