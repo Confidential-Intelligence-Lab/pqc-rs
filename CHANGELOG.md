@@ -6,6 +6,22 @@ The project follows the principles of Keep a Changelog and intends to adopt Sema
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-07-22
+
+### Changed
+
+- promoted the three published `0.4.0-rc.1` packages to the
+  non-prerelease `0.4.0` line without changing their cryptographic
+  implementations;
+- updated workspace dependency requirements, documentation, and release
+  tooling for the stable promotion.
+
+### Security
+
+- retained the existing conservative security qualifications and kept
+  ML-DSA, SLH-DSA, the experimental hybrid placeholder, and the test
+  harness outside the public release boundary.
+
 ## [0.4.0-rc.1] - 2026-07-18
 
 ### Added
@@ -59,5 +75,6 @@ The project follows the principles of Keep a Changelog and intends to adopt Sema
 - Added environment and toolchain provenance capture for reproducible benchmark campaigns.
 - Added `cargo xtask performance-audit --check` and benchmark smoke enforcement in CI.
 
-[Unreleased]: https://github.oit.uci.edu/rcammaro/pqc-rfc9958-rs/compare/v0.4.0-rc.1...HEAD
+[Unreleased]: https://github.oit.uci.edu/rcammaro/pqc-rfc9958-rs/compare/v0.4.0...HEAD
+[0.4.0]: https://github.oit.uci.edu/rcammaro/pqc-rfc9958-rs/compare/v0.4.0-rc.1...v0.4.0
 [0.4.0-rc.1]: https://github.oit.uci.edu/rcammaro/pqc-rfc9958-rs/releases/tag/v0.4.0-rc.1

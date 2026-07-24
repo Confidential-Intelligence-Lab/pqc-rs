@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly VERSION="0.4.0-rc.1"
+readonly VERSION="0.4.0"
 readonly OUT_DIR="target/release-candidate"
 
 mkdir -p "${OUT_DIR}"

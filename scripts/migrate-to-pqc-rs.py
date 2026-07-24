@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 ROOT = Path.cwd()
-RC_VERSION = "0.4.0-rc.1"
+RC_VERSION = "0.4.0"
 REPOSITORY = "https://github.oit.uci.edu/rcammaro/pqc-rfc9958-rs"
 AUTHOR = "Rosario Cammarota"
 

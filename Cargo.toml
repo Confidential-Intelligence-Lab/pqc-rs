@@ -16,11 +16,11 @@ license = "Apache-2.0 OR MIT"
 repository = "https://github.oit.uci.edu/rcammaro/pqc-rfc9958-rs"
 rust-version = "1.80"
 authors = ["Rosario Cammarota"]
-version = "0.4.0-rc.1"
+version = "0.4.0"
 homepage = "https://github.oit.uci.edu/rcammaro/pqc-rfc9958-rs"
 
 [workspace.dependencies]
-pqc-core = { package = "pqc-rs-core", path = "crates/pqc-core", version = "0.4.0-rc.1" }
+pqc-core = { package = "pqc-rs-core", path = "crates/pqc-core", version = "0.4.0" }
 
 rand_core = { version = "0.6", features = ["getrandom"] }
 zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
@@ -34,14 +34,14 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 hkdf = "0.12"
 sha2 = "0.10"
-pqc-ml-kem = { package = "pqc-rs-ml-kem", path = "crates/pqc-ml-kem", version = "0.4.0-rc.1" }
+pqc-ml-kem = { package = "pqc-rs-ml-kem", path = "crates/pqc-ml-kem", version = "0.4.0" }
 aes-gcm = "0.10"
 chacha20poly1305 = "0.10"
 x25519-dalek = { version = "2", features = ["static_secrets"] }
 p256 = { version = "0.13", features = ["ecdh"] }
 p384 = { version = "0.13", features = ["ecdh"] }
-pqc-hpke = { package = "pqc-rs-hpke", path = "crates/pqc-hpke", version = "0.4.0-rc.1" }
-pqc-hybrid = { package = "pqc-rs-hybrid", path = "crates/pqc-hybrid", version = "0.4.0-rc.1" }
-pqc-ml-dsa = { package = "pqc-rs-ml-dsa", path = "crates/pqc-ml-dsa", version = "0.4.0-rc.1" }
-pqc-slh-dsa = { package = "pqc-rs-slh-dsa", path = "crates/pqc-slh-dsa", version = "0.4.0-rc.1" }
-pqc-test-harness = { package = "pqc-rs-test-harness", path = "crates/pqc-test-harness", version = "0.4.0-rc.1" }
+pqc-hpke = { package = "pqc-rs-hpke", path = "crates/pqc-hpke", version = "0.4.0" }
+pqc-hybrid = { package = "pqc-rs-hybrid", path = "crates/pqc-hybrid", version = "0.4.0" }
+pqc-ml-dsa = { package = "pqc-rs-ml-dsa", path = "crates/pqc-ml-dsa", version = "0.4.0" }
+pqc-slh-dsa = { package = "pqc-rs-slh-dsa", path = "crates/pqc-slh-dsa", version = "0.4.0" }
+pqc-test-harness = { package = "pqc-rs-test-harness", path = "crates/pqc-test-harness", version = "0.4.0" }

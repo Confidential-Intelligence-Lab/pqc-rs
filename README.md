@@ -23,16 +23,15 @@ RFC 9958 is used as an informational engineering guide. Normative conformance cl
 
 | Package | Purpose | Publication status |
 |---|---|---|
-| `pqc-rs-core` | Common traits, byte wrappers, errors, and secret containers | Published release candidate (`0.4.0-rc.1`) |
-| `pqc-rs-ml-kem` | ML-KEM implementation | Published release candidate (`0.4.0-rc.1`) |
+| `pqc-rs-core` | Common traits, byte wrappers, errors, and secret containers | Published (`0.4.0`) |
+| `pqc-rs-ml-kem` | ML-KEM implementation | Published (`0.4.0`) |
 | `pqc-rs-ml-dsa` | ML-DSA implementation | Internal pre-release; not published |
 | `pqc-rs-slh-dsa` | SLH-DSA workstream | Planned; not published |
-| `pqc-rs-hpke` | HPKE and post-quantum KEM integration | Published release candidate (`0.4.0-rc.1`) |
+| `pqc-rs-hpke` | HPKE and post-quantum KEM integration | Published (`0.4.0`) |
 | `pqc-rs-hybrid` | Experimental hybrid composition support | Experimental; not published |
 | `pqc-rs-test-harness` | ACVP, protocol-vector, and validation tooling | Internal; not published |
 
-The release-candidate APIs and publication boundaries may change before the
-first stable release.
+The pre-1.0 APIs and publication boundaries may change before version 1.0.
 
 ## Installation
 
@@ -40,13 +39,13 @@ Add only the crates required by your application:
 
 ```toml
 [dependencies]
-pqc-rs-core = "0.4.0-rc.1"
-pqc-rs-ml-kem = "0.4.0-rc.1"
-pqc-rs-hpke = "0.4.0-rc.1"
+pqc-rs-core = "0.4.0"
+pqc-rs-ml-kem = "0.4.0"
+pqc-rs-hpke = "0.4.0"
 ```
 
 The corresponding Rust library names are `pqc_core`, `pqc_ml_kem`, and
-`pqc_hpke`. These are release-candidate packages and should be evaluated under
+`pqc_hpke`. These are pre-1.0 packages and should be evaluated under
 the security limitations stated above.
 
 ## Engineering principles

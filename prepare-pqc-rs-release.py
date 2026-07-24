@@ -9,7 +9,7 @@ ROOT = Path.cwd()
 REPOSITORY = "https://github.oit.uci.edu/rcammaro/pqc-rfc9958-rs"
 HOMEPAGE = REPOSITORY
 AUTHOR = "Rosario Cammarota"
-RC_VERSION = "0.4.0-rc.1"
+RC_VERSION = "0.4.0"
 
 PUBLISHABLE = {
     "pqc-core": (

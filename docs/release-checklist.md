@@ -1,14 +1,17 @@
-# v0.4.0-rc.1 Release Checklist
+# v0.4.0 Stable-Promotion Checklist
 
-- [x] Resolve authors and repository placeholders
-- [x] Add crate descriptions, README paths, keywords, and categories
-- [x] Keep test harness and incomplete signature crates unpublished
-- [x] Run formatting, Clippy, tests, rustdoc, audit, deny, fuzz smoke, Miri, ASan, UBSan
-- [x] Confirm KeyGen 75/75, Encaps 75/75, Decaps 30/30, key checks 60/60
-- [x] Confirm pure-PQ HPKE 105/105 and hybrid HPKE 102/102
-- [x] Review `cargo package --list` for each release crate
-- [x] Run package builds and publish dry-runs in dependency order
-- [x] Publish and verify `pqc-rs-core`, `pqc-rs-ml-kem`, and `pqc-rs-hpke`
-- [x] Verify docs.rs builds for all three published crates
-- [ ] Tag `v0.4.0-rc.1` and open external review window
-- [ ] Create the GitHub release from the reviewed release notes
+- [x] Confirm `v0.4.0-rc.1` at commit `e02731b6` as the promotion baseline
+- [x] Create isolated `release/v0.4.0` worktree from the RC tag
+- [x] Confirm stable `0.4.0` is absent locally, remotely, and on crates.io
+- [x] Keep ML-DSA, SLH-DSA, hybrid, and test-harness crates unpublished
+- [x] Update active workspace and dependency versions to `0.4.0`
+- [x] Preserve historical RC notes, stage helpers, tag, and artifacts
+- [x] Add stable-promotion changelog and release notes
+- [ ] Run the complete workspace-assurance gate
+- [ ] Package and inspect the three public crates
+- [ ] Publish and verify `pqc-rs-core` `0.4.0`
+- [ ] After indexing, publish and verify `pqc-rs-ml-kem` `0.4.0`
+- [ ] After indexing, publish and verify `pqc-rs-hpke` `0.4.0`
+- [ ] Verify docs.rs builds for all three published crates
+- [ ] Create and push annotated tag `v0.4.0`
+- [ ] Create the GitHub Enterprise release and attach verified artifacts

@@ -25,7 +25,6 @@ zeroize = { workspace = true }
 subtle = { workspace = true }
 
 [dev-dependencies]
-pqc-test-harness = { package = "pqc-rs-test-harness", path = "../pqc-test-harness" }
 criterion = { workspace = true }
 
 [[bench]]
