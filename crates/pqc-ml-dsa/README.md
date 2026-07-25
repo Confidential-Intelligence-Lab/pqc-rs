@@ -111,8 +111,10 @@ persistence, access control, and lifecycle management outside these wrappers.
 Repository assurance includes NIST ACVP coverage, negative and malformed-input
 tests, structured fuzzing, secret-lifetime checks, timing characterization, and
 bidirectional interoperability with liboqs for ML-DSA-44, ML-DSA-65, and
-ML-DSA-87. These are engineering evidence, not a formal proof, certification,
-or substitute for an independent review.
+ML-DSA-87. It also includes bidirectional Pure ML-DSA cross-verification and
+negative-verification cases with a recorded OpenSSL 3.5-or-later provider.
+These are engineering evidence, not a formal proof, certification, or
+substitute for an independent review.
 
 See the [PQC-rs security policy](https://github.com/Confidential-Intelligence-Lab/pqc-rs/blob/main/SECURITY.md)
 and [FIPS 204 traceability documentation](https://github.com/Confidential-Intelligence-Lab/pqc-rs/blob/main/docs/standards/FIPS204.md)

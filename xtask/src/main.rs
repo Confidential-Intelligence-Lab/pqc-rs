@@ -174,6 +174,7 @@ fn run() -> Result<(), String> {
         Some("standards") => standards(args.collect()),
         Some("interop") => interop(args.collect()),
         Some("interop-cross") => interop_cross(args.collect()),
+        Some("interop-openssl") => interop_openssl(args.collect()),
         Some("implementation-matrix") => implementation_matrix(args.collect()),
         Some("api-review") => api_review(args.collect()),
         Some("zeroization-audit") => zeroization_audit(args.collect()),
@@ -197,6 +198,7 @@ fn print_help() -> Result<(), String> {
     println!("cargo xtask standards [--catalog PATH] [--output DIR] [--strict]");
     println!("cargo xtask interop [--manifest PATH] [--output DIR] [--provider ID] [--suite ID] [--strict]");
     println!("cargo xtask interop-cross [--strict]");
+    println!("cargo xtask interop-openssl [--strict]");
     println!("cargo xtask implementation-matrix [--manifest PATH] [--output PATH] [--check]");
     println!("cargo xtask api-review [--check]");
     println!("cargo xtask zeroization-audit [--check]");
@@ -1228,6 +1230,31 @@ fn interop_cross(args: Vec<String>) -> Result<(), String> {
         Err(format!(
             "cross-provider interoperability engine exited with {status}"
         ))
+    }
+}
+
+fn interop_openssl(args: Vec<String>) -> Result<(), String> {
+    let mut command = Command::new("python3");
+    command.arg("scripts/openssl_provider_interop.py");
+    for arg in args {
+        match arg.as_str() {
+            "--strict" => {
+                command.arg("--strict");
+            }
+            "--help" | "-h" => {
+                println!("cargo xtask interop-openssl [--strict]");
+                return Ok(());
+            }
+            other => return Err(format!("unknown interop-openssl argument: {other}")),
+        };
+    }
+    let status = command
+        .status()
+        .map_err(|error| format!("failed to run OpenSSL interoperability: {error}"))?;
+    if status.success() {
+        Ok(())
+    } else {
+        Err(format!("OpenSSL interoperability exited with {status}"))
     }
 }
 
