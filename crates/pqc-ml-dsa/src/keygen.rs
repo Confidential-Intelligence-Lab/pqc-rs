@@ -5,6 +5,8 @@ use sha3::{
     Shake256,
 };
 
+use pqc_core::secret::SecretVec;
+
 use crate::encoding::{encode_eta, encode_t0, encode_t1, EncodingError};
 use crate::expand_a::{expand_a, ExpandAError};
 use crate::params::MlDsaParameterSet;
@@ -23,7 +25,7 @@ pub const TR_BYTES: usize = 64;
 /// The private-key bytes are intentionally not `Debug`.
 pub struct MlDsaKeyPair {
     public_key: Vec<u8>,
-    private_key: Vec<u8>,
+    private_key: SecretVec,
 }
 
 impl MlDsaKeyPair {
@@ -34,11 +36,11 @@ impl MlDsaKeyPair {
 
     /// Borrow the encoded private key.
     pub fn private_key(&self) -> &[u8] {
-        &self.private_key
+        self.private_key.as_bytes()
     }
 
     /// Consume the key pair and return both encoded keys.
-    pub fn into_parts(self) -> (Vec<u8>, Vec<u8>) {
+    pub fn into_parts(self) -> (Vec<u8>, SecretVec) {
         (self.public_key, self.private_key)
     }
 }
@@ -145,7 +147,7 @@ pub fn keygen_internal(
 
     Ok(MlDsaKeyPair {
         public_key,
-        private_key,
+        private_key: SecretVec::new(private_key),
     })
 }
 

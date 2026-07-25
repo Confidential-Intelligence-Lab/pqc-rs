@@ -3,7 +3,7 @@ set -euo pipefail
 
 mkdir -p target
 
-python3 - <<'PY'
+python3 - "$@" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -19,7 +19,8 @@ declaration = re.compile(
 
 secret_name = re.compile(
     r"(secret|private|decapsulation|keypair|key_pair|"
-    r"encapsulationoutput|encapsulation_output|seedmaterial|seed_material)",
+    r"encapsulationoutput|encapsulation_output|seedmaterial|seed_material|"
+    r"keygenseed|key_gen_seed)",
     re.IGNORECASE,
 )
 
@@ -30,11 +31,16 @@ secret_field = re.compile(
     re.IGNORECASE,
 )
 
+block_comment = re.compile(r"/\*.*?\*/", re.DOTALL)
+
 safe_error_type = re.compile(r"Error$")
 
 findings = []
 
-for path in Path("crates").rglob("*.rs"):
+roots = [Path(argument) for argument in sys.argv[1:]] or [Path("crates")]
+paths = (path for root in roots for path in root.rglob("*.rs"))
+
+for path in paths:
     lines = path.read_text(
         encoding="utf-8",
         errors="replace",
@@ -80,8 +86,12 @@ for path in Path("crates").rglob("*.rs"):
                 cursor += 1
 
             block = "\n".join(block_lines)
+            code_only = block_comment.sub("", block)
+            code_only = "\n".join(
+                line.split("//", 1)[0] for line in code_only.splitlines()
+            )
 
-            if secret_name.search(type_name) or secret_field.search(block):
+            if secret_name.search(type_name) or secret_field.search(code_only):
                 context_start = max(0, derive_line - 2)
                 context_end = min(len(lines), cursor)
 

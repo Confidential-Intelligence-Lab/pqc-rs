@@ -1,16 +1,17 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
-//! ML-DSA implementation crate.
+//! FIPS 204 ML-DSA implementation crate.
 
-/// Placeholder type for compile validation.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct MlDsaPlaceholder;
 pub mod api;
 pub mod error;
 pub mod params;
-pub use api::MlDsa;
+pub use api::{
+    MlDsa, MlDsaKeyGenSeed, MlDsaKeyPair, MlDsaPrivateKey, MlDsaPublicKey, MlDsaSignature,
+    ML_DSA_KEYGEN_SEED_BYTES,
+};
 pub use error::MlDsaError;
+pub use hash_mldsa::PreHashAlgorithm;
 pub use params::{MlDsaParameterSet, MlDsaParameters};
 pub mod audit;
 pub mod challenge;
