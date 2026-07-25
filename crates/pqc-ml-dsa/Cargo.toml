@@ -9,9 +9,7 @@ rust-version.workspace = true
 publish = false
 
 [features]
-default = ["std"]
-std = ["pqc-core/std"]
-alloc = ["pqc-core/alloc"]
+default = []
 acvp = ["pqc-core/acvp"]
 bench = ["pqc-core/bench"]
 

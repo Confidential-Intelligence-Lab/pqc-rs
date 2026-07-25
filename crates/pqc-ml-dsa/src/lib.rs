@@ -1,7 +1,9 @@
-#![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
 //! FIPS 204 ML-DSA implementation crate.
+//!
+//! This initial public contract requires the Rust standard library. The crate
+//! does not currently advertise allocation-only or `no_std` support.
 
 pub mod api;
 pub mod error;
