@@ -106,6 +106,33 @@ if dependency.get("path") is not None:
     raise SystemExit("normalized package retained a workspace path for pqc-core")
 if dependency.get("req") != "^0.4.0":
     raise SystemExit("normalized package does not require stable pqc-rs-core 0.4.0")
+
+for dependency in packages[0]["dependencies"]:
+    if dependency.get("path") is not None:
+        raise SystemExit(
+            f"normalized package retained a path dependency: {dependency['name']}"
+        )
+    source = dependency.get("source")
+    if source is not None and not source.startswith("registry+"):
+        raise SystemExit(
+            f"normalized package retained a non-registry dependency: "
+            f"{dependency['name']} ({source})"
+        )
+
+docs_rs = packages[0].get("metadata", {}).get("docs", {}).get("rs")
+expected_docs_rs = {
+    "all-features": True,
+    "rustdoc-args": ["--cfg", "docsrs", "-D", "warnings"],
+}
+if docs_rs != expected_docs_rs:
+    raise SystemExit(
+        f"normalized package lost the docs.rs contract: {docs_rs!r}"
+    )
+
+if packages[0].get("publish") != []:
+    raise SystemExit(
+        "normalized package metadata does not preserve the publication lock"
+    )
 PY
 
 cat >"${consumer_root}/consumer/Cargo.toml" <<TOML
@@ -134,7 +161,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         MlDsaParameterSet::MlDsa87,
     ];
     let message = b"packaged downstream consumer";
-    let context = b"stage-15a-3";
+    let context = b"stage-15a-8";
 
     for (index, parameter_set) in parameter_sets.into_iter().enumerate() {
         let implementation = MlDsa::new(parameter_set);
@@ -185,7 +212,15 @@ readonly consumer_manifest="${consumer_root}/consumer/Cargo.toml"
 readonly consumer_target="${consumer_root}/target"
 
 CARGO_TARGET_DIR="${consumer_target}" \
-  env RUSTDOCFLAGS="-D warnings" \
+  cargo test \
+    --locked \
+    --manifest-path "${packaged_crate}/Cargo.toml" \
+    --all-features
+
+CARGO_TARGET_DIR="${consumer_target}" \
+  env \
+    DOCS_RS=1 \
+    RUSTDOCFLAGS="--cfg docsrs -D warnings" \
   cargo doc \
     --locked \
     --manifest-path "${packaged_crate}/Cargo.toml" \
@@ -196,4 +231,36 @@ CARGO_TARGET_DIR="${consumer_target}" \
 CARGO_TARGET_DIR="${consumer_target}" \
   cargo run --locked --manifest-path "${consumer_manifest}"
 
-echo "ML-DSA package and downstream-consumer validation passed."
+readonly publish_dry_run="${consumer_root}/publish-dry-run"
+cp -R "${packaged_crate}" "${publish_dry_run}"
+rm -f "${publish_dry_run}/Cargo.toml.orig"
+
+python3 - "${publish_dry_run}/Cargo.toml" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+manifest_path = Path(sys.argv[1])
+manifest = manifest_path.read_text()
+updated, replacements = re.subn(
+    r"(?m)^publish\s*=\s*(?:false|\[\s*\])\s*$",
+    'publish = ["crates-io"]',
+    manifest,
+    count=1,
+)
+if replacements != 1:
+    raise SystemExit(
+        "could not replace the disposable extracted crate publication lock"
+    )
+manifest_path.write_text(updated)
+PY
+
+CARGO_TARGET_DIR="${consumer_target}" \
+  cargo publish \
+    --dry-run \
+    --locked \
+    --allow-dirty \
+    --registry crates-io \
+    --manifest-path "${publish_dry_run}/Cargo.toml"
+
+echo "ML-DSA package reconstruction, docs.rs, downstream-consumer, and publish dry-run validation passed."

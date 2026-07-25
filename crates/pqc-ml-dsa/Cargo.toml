@@ -16,6 +16,10 @@ keywords = ["post-quantum", "cryptography", "ml-dsa", "signatures", "rust"]
 # evidence and publication gates have passed.
 publish = false
 
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs", "-D", "warnings"]
+
 [features]
 default = []
 acvp = ["pqc-core/acvp"]
