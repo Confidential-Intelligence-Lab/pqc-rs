@@ -14,7 +14,7 @@ keywords = ["post-quantum", "cryptography", "ml-dsa", "signatures", "rust"]
 
 # Publication remains disabled until the complete ML-DSA release-candidate
 # evidence and publication gates have passed.
-publish = false
+publish = true
 
 [package.metadata.docs.rs]
 all-features = true
