@@ -5,7 +5,15 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
 rust-version.workspace = true
+readme = "README.md"
+documentation = "https://docs.rs/pqc-rs-ml-dsa"
+categories = ["cryptography"]
+keywords = ["post-quantum", "cryptography", "ml-dsa", "signatures", "rust"]
+
+# Publication remains disabled until the complete ML-DSA release-candidate
+# evidence and publication gates have passed.
 publish = false
 
 [features]
