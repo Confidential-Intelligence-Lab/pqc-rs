@@ -71,6 +71,15 @@ neither `Clone` nor `Debug`. `MlDsaKeyPair` intentionally does not implement
 The seed and expanded private-key wrappers retain zeroizing ownership. Exposing
 their bytes through `as_bytes` remains an explicit caller-controlled action.
 
+## Failure behavior
+
+Malformed encodings, oversized contexts, parameter-set mismatches, randomness
+failures, rejection-limit exhaustion, and internal invariant failures remain
+typed `MlDsaError` results. Invalid caller-controlled data must not panic. A
+well-formed but unauthentic signature remains `Ok(false)`. The exact mapping
+and enforcement rules are recorded in the
+[ML-DSA failure contract](ML_DSA_FAILURE_CONTRACT.md).
+
 ## Change control
 
 Removing an item, changing a signature, weakening a trait or ownership

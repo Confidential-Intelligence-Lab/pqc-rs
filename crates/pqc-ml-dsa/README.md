@@ -84,6 +84,11 @@ fields, and trait commitments are recorded in the
 [ML-DSA SemVer contract](../../docs/api/ML_DSA_SEMVER_CONTRACT.md). Changes to
 that baseline require an explicit API review and synchronized contract update.
 
+Malformed encodings, oversized contexts, parameter-set mismatches, and
+randomness failures return typed errors. The
+[ML-DSA failure contract](../../docs/api/ML_DSA_FAILURE_CONTRACT.md) records
+the panic-free production-source rule and its adversarial-input tests.
+
 Use `MlDsa::keygen` for ordinary randomized key generation. The compact
 `MlDsaKeyGenSeed` and deterministic signing operations are explicit APIs for
 reproducible validation and controlled provisioning. Prefer hedged signing

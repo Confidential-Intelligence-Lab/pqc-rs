@@ -15,6 +15,8 @@ const BUFFER_BYTES: usize = 168;
 pub enum SamplingError {
     /// The requested `eta` value is not defined by ML-DSA.
     UnsupportedEta,
+    /// The requested polynomial vector exceeds the 16-bit nonce space.
+    NonceOverflow,
 }
 
 /// Sample one polynomial with coefficients in `[-eta, eta]`.
@@ -73,12 +75,18 @@ pub fn sample_eta_polyvec(
     length: usize,
     eta: i32,
 ) -> Result<Vec<Poly>, SamplingError> {
+    let available_nonces = usize::from(u16::MAX - nonce_start) + 1;
+    if length > available_nonces {
+        return Err(SamplingError::NonceOverflow);
+    }
+
     let mut output = Vec::with_capacity(length);
 
     for index in 0..length {
+        let index = u16::try_from(index).map_err(|_| SamplingError::NonceOverflow)?;
         let nonce = nonce_start
-            .checked_add(index as u16)
-            .expect("ML-DSA sampling nonce overflow");
+            .checked_add(index)
+            .ok_or(SamplingError::NonceOverflow)?;
         output.push(sample_eta_poly(rho_prime, nonce, eta)?);
     }
 
@@ -154,6 +162,14 @@ mod tests {
         assert!(matches!(
             sample_eta_poly(&[0_u8; RHO_PRIME_BYTES], 0, 3),
             Err(SamplingError::UnsupportedEta)
+        ));
+    }
+
+    #[test]
+    fn vector_nonce_overflow_is_reported() {
+        assert!(matches!(
+            sample_eta_polyvec(&[0_u8; RHO_PRIME_BYTES], u16::MAX, 2, 2),
+            Err(SamplingError::NonceOverflow)
         ));
     }
 }
