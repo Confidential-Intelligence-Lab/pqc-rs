@@ -1,3 +1,5 @@
+#![cfg(feature = "internal-api")]
+
 use pqc_ml_dsa::constants::{N, Q};
 use pqc_ml_dsa::poly::Poly;
 

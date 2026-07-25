@@ -67,11 +67,17 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-Applications should prefer the crate-root types `MlDsa`, `MlDsaKeyGenSeed`,
+The supported API consists of the crate-root types `MlDsa`, `MlDsaKeyGenSeed`,
 `MlDsaKeyPair`, `MlDsaPublicKey`, `MlDsaPrivateKey`, `MlDsaSignature`,
-`MlDsaParameterSet`, and `PreHashAlgorithm`. Low-level modules remain reachable
-for repository validation infrastructure but are not the publication-facing
-stability contract.
+`MlDsaParameterSet`, `MlDsaParameters`, `MlDsaError`, and
+`PreHashAlgorithm`, together with the documented `api`, `error`, and `params`
+modules. Arithmetic, encoding, sampling, signing, verification, and audit
+internals are private in ordinary builds.
+
+The non-default `internal-api` feature exposes hidden implementation modules
+solely for repository ACVP, fuzzing, timing, generated-code, benchmark, and
+primitive-regression tooling. It is not part of the publication-facing API or
+SemVer stability contract. Applications must not enable or depend on it.
 
 Use `MlDsa::keygen` for ordinary randomized key generation. The compact
 `MlDsaKeyGenSeed` and deterministic signing operations are explicit APIs for

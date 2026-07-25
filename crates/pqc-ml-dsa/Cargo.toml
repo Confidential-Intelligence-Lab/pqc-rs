@@ -20,6 +20,7 @@ publish = false
 default = []
 acvp = ["pqc-core/acvp"]
 bench = ["pqc-core/bench"]
+internal-api = []
 
 [dependencies]
 pqc-core = { workspace = true }
@@ -36,3 +37,4 @@ criterion = { workspace = true }
 [[bench]]
 name = "ml_dsa"
 harness = false
+required-features = ["internal-api"]

@@ -1,3 +1,5 @@
+#![cfg(feature = "internal-api")]
+
 use pqc_ml_dsa::{
     hash_mldsa::{hash_message_prime, hash_sign, hash_verify, HashMlDsaError, PreHashAlgorithm},
     keygen::keygen_internal,

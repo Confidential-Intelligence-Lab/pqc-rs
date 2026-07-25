@@ -45,6 +45,7 @@ expected = {
     "acvp": ["pqc-core/acvp"],
     "bench": ["pqc-core/bench"],
     "default": [],
+    "internal-api": [],
 }
 actual = packages[0]["features"]
 if actual != expected:
@@ -76,6 +77,8 @@ cargo check --manifest-path "${REPO}/Cargo.toml" --locked \
   -p pqc-rs-ml-dsa --no-default-features --features acvp
 cargo check --manifest-path "${REPO}/Cargo.toml" --locked \
   -p pqc-rs-ml-dsa --no-default-features --features bench
+cargo check --manifest-path "${REPO}/Cargo.toml" --locked \
+  -p pqc-rs-ml-dsa --no-default-features --features internal-api
 cargo check --manifest-path "${REPO}/Cargo.toml" --locked \
   -p pqc-rs-ml-dsa --all-features
 

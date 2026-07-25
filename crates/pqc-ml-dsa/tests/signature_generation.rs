@@ -1,3 +1,5 @@
+#![cfg(feature = "internal-api")]
+
 use pqc_ml_dsa::keygen::keygen_internal;
 use pqc_ml_dsa::params::MlDsaParameterSet;
 use pqc_ml_dsa::poly::Poly;
