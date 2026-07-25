@@ -31,3 +31,7 @@ This boundary lets the project retain low-level validation without accidentally
 promising stability for arithmetic internals. Any future expansion of the
 publication-facing surface requires a separate API, security, documentation,
 and SemVer review.
+
+The exact supported items and compatibility commitments are frozen in
+[`ML_DSA_SEMVER_CONTRACT.md`](ML_DSA_SEMVER_CONTRACT.md) and checked by
+`scripts/check-ml-dsa-api-contract.sh`.

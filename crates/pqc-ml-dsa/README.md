@@ -79,6 +79,11 @@ solely for repository ACVP, fuzzing, timing, generated-code, benchmark, and
 primitive-regression tooling. It is not part of the publication-facing API or
 SemVer stability contract. Applications must not enable or depend on it.
 
+The exact reachable API, method signatures, enum variants, public parameter
+fields, and trait commitments are recorded in the
+[ML-DSA SemVer contract](../../docs/api/ML_DSA_SEMVER_CONTRACT.md). Changes to
+that baseline require an explicit API review and synchronized contract update.
+
 Use `MlDsa::keygen` for ordinary randomized key generation. The compact
 `MlDsaKeyGenSeed` and deterministic signing operations are explicit APIs for
 reproducible validation and controlled provisioning. Prefer hedged signing

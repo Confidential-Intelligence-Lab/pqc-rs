@@ -24,6 +24,9 @@ Documentation must distinguish normative requirements from informational guidanc
 
 - [B1.3.1 Public API Review](api/API_REVIEW.md)
 - [Generated Public API Inventory](api/API_INVENTORY.md)
+- [ML-DSA feature contract](api/ML_DSA_FEATURE_CONTRACT.md)
+- [ML-DSA public implementation boundary](api/ML_DSA_PUBLIC_BOUNDARY.md)
+- [ML-DSA SemVer contract](api/ML_DSA_SEMVER_CONTRACT.md)
 
 ## Security assurance
 
