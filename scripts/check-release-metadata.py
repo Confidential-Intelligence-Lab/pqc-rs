@@ -56,12 +56,12 @@ for field in (
 public_crates = {
     "pqc-rs-core": "pqc-core",
     "pqc-rs-ml-kem": "pqc-ml-kem",
+    "pqc-rs-ml-dsa": "pqc-ml-dsa",
     "pqc-rs-hpke": "pqc-hpke",
 }
 
 private_crates = {
     "pqc-rs-hybrid": "pqc-hybrid",
-    "pqc-rs-ml-dsa": "pqc-ml-dsa",
     "pqc-rs-slh-dsa": "pqc-slh-dsa",
     "pqc-rs-test-harness": "pqc-test-harness",
 }

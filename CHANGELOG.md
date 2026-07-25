@@ -6,6 +6,21 @@ The project follows the principles of Keep a Changelog and intends to adopt Sema
 
 ## [Unreleased]
 
+### Added
+
+- published `pqc-rs-ml-dsa` `0.4.0` independently from the original workspace
+  promotion, covering FIPS 204 ML-DSA-44, ML-DSA-65, and ML-DSA-87;
+- recorded the immutable publication provenance at source commit
+  `98140a3422fbc212bd43d96992028d29c548714d`, crate tag
+  `pqc-rs-ml-dsa-v0.4.0`, and verified crates.io archive checksum
+  `d7e2b207710f11adf90a4e4a5046e1c6f20ef0996463f034007d7e890ba752d3`.
+
+### Changed
+
+- corrected active documentation and release-policy tooling to recognize
+  ML-DSA as a published public crate while preserving the original `v0.4.0`
+  workspace-release history.
+
 ## [0.4.0] - 2026-07-22
 
 ### Changed

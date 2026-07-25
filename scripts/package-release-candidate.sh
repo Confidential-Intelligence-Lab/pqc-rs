@@ -15,19 +15,20 @@ fi
 
 cargo check -p pqc-rs-core --all-features
 cargo check -p pqc-rs-ml-kem --all-features
+cargo check -p pqc-rs-ml-dsa --all-features
 cargo check -p pqc-rs-hpke --all-features
 
-cargo package -p pqc-rs-core --list \
-  > "${OUT_DIR}/pqc-rs-core-package-list.txt"
-cargo package -p pqc-rs-core
-
-cp "target/package/pqc-rs-core-${VERSION}.crate" "${OUT_DIR}/"
-
-git ls-files crates/pqc-rs-ml-kem README.md LICENSE LICENSE-MIT LICENSE-APACHE \
-  2>/dev/null | sort -u > "${OUT_DIR}/pqc-rs-ml-kem-file-list.txt"
-
-git ls-files crates/pqc-rs-hpke README.md LICENSE LICENSE-MIT LICENSE-APACHE \
-  2>/dev/null | sort -u > "${OUT_DIR}/pqc-rs-hpke-file-list.txt"
+for package in \
+  pqc-rs-core \
+  pqc-rs-ml-kem \
+  pqc-rs-ml-dsa \
+  pqc-rs-hpke
+do
+  cargo package -p "${package}" --list \
+    > "${OUT_DIR}/${package}-package-list.txt"
+  cargo package -p "${package}" --no-verify
+  cp "target/package/${package}-${VERSION}.crate" "${OUT_DIR}/"
+done
 
 git archive \
   --format=tar.gz \
@@ -47,4 +48,5 @@ echo "Release candidate artifacts written to ${OUT_DIR}/"
 echo "Publish order:"
 echo "  1. pqc-rs-core"
 echo "  2. pqc-rs-ml-kem"
-echo "  3. pqc-rs-hpke"
+echo "  3. pqc-rs-ml-dsa"
+echo "  4. pqc-rs-hpke"

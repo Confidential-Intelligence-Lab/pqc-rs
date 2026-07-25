@@ -1,5 +1,12 @@
 # v0.4.0 Stable-Promotion Checklist
 
+> **Historical scope:** This checklist records the original three-crate
+> workspace promotion at tag `v0.4.0`. Its decision to keep ML-DSA unpublished
+> was superseded by the later independent `pqc-rs-ml-dsa` `0.4.0` publication.
+> See the [ML-DSA 0.4.0 release record](release/ML_DSA_0.4.0.md). Unchecked
+> items below are preserved as historical state and are not the current release
+> checklist.
+
 - [x] Confirm `v0.4.0-rc.1` at commit `e02731b6` as the promotion baseline
 - [x] Create isolated `release/v0.4.0` worktree from the RC tag
 - [x] Confirm stable `0.4.0` is absent locally, remotely, and on crates.io

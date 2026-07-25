@@ -5,10 +5,9 @@
 It provides parameter-bound key generation, signing, verification, strict
 encoded-object decoding, and HashML-DSA through a typed crate-root API.
 
-> **Status:** This is pre-release software. It has not received an independent
-> security audit and is not a FIPS-validated cryptographic module. Crates.io
-> publication remains disabled until the complete release-candidate evidence
-> and publication gates have passed.
+> **Status:** This is pre-1.0 software. It has not received an independent
+> security audit and is not a FIPS-validated cryptographic module. Evaluate it
+> under the security limitations described below before deployment.
 
 ## Supported parameter sets
 
@@ -22,15 +21,22 @@ The crate supports Pure ML-DSA and HashML-DSA, deterministic and hedged
 signing, contexts of up to 255 bytes, and the prehash algorithms approved by
 FIPS 204.
 
-## Installation during pre-release evaluation
+## Installation
 
-Until the crate is published, use a checked-out PQC-rs workspace or an
-explicit path dependency:
+Install the published crate from crates.io:
+
+```toml
+[dependencies]
+pqc-rs-ml-dsa = "0.4.0"
+rand_core = { version = "0.6", features = ["getrandom"] }
+```
+
+For development inside a checked-out PQC-rs workspace, an explicit path
+dependency may be used instead:
 
 ```toml
 [dependencies]
 pqc-rs-ml-dsa = { path = "../pqc-rs/crates/pqc-ml-dsa" }
-rand_core = { version = "0.6", features = ["getrandom"] }
 ```
 
 The Rust library name is `pqc_ml_dsa`. This release requires the Rust standard
@@ -81,13 +87,14 @@ SemVer stability contract. Applications must not enable or depend on it.
 
 The exact reachable API, method signatures, enum variants, public parameter
 fields, and trait commitments are recorded in the
-[ML-DSA SemVer contract](../../docs/api/ML_DSA_SEMVER_CONTRACT.md). Changes to
-that baseline require an explicit API review and synchronized contract update.
+[ML-DSA SemVer contract](https://github.com/Confidential-Intelligence-Lab/pqc-rs/blob/main/docs/api/ML_DSA_SEMVER_CONTRACT.md).
+Changes to that baseline require an explicit API review and synchronized
+contract update.
 
 Malformed encodings, oversized contexts, parameter-set mismatches, and
 randomness failures return typed errors. The
-[ML-DSA failure contract](../../docs/api/ML_DSA_FAILURE_CONTRACT.md) records
-the panic-free production-source rule and its adversarial-input tests.
+[ML-DSA failure contract](https://github.com/Confidential-Intelligence-Lab/pqc-rs/blob/main/docs/api/ML_DSA_FAILURE_CONTRACT.md)
+records the panic-free production-source rule and its adversarial-input tests.
 
 Use `MlDsa::keygen` for ordinary randomized key generation. The compact
 `MlDsaKeyGenSeed` and deterministic signing operations are explicit APIs for

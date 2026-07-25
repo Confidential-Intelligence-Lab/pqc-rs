@@ -4,7 +4,10 @@
 
 PQC-rs is a Rust workspace for post-quantum cryptography and post-quantum key establishment. The project emphasizes standards traceability, interoperability, explicit secret handling, reproducible validation, and production-oriented engineering.
 
-> **Project status:** pre-release and not independently audited. The current code and validation evidence are suitable for research, evaluation, and integration testing. Do not rely on this project to protect production secrets without an independent security review and an application-specific risk assessment.
+> **Project status:** pre-1.0 and not independently audited. The current code
+> and validation evidence are suitable for research, evaluation, and integration
+> testing. Do not rely on this project to protect production secrets without an
+> independent security review and an application-specific risk assessment.
 
 ## Scope
 
@@ -25,7 +28,7 @@ RFC 9958 is used as an informational engineering guide. Normative conformance cl
 |---|---|---|
 | `pqc-rs-core` | Common traits, byte wrappers, errors, and secret containers | Published (`0.4.0`) |
 | `pqc-rs-ml-kem` | ML-KEM implementation | Published (`0.4.0`) |
-| `pqc-rs-ml-dsa` | ML-DSA implementation | Internal pre-release; not published |
+| `pqc-rs-ml-dsa` | ML-DSA implementation | Published (`0.4.0`) |
 | `pqc-rs-slh-dsa` | SLH-DSA workstream | Planned; not published |
 | `pqc-rs-hpke` | HPKE and post-quantum KEM integration | Published (`0.4.0`) |
 | `pqc-rs-hybrid` | Experimental hybrid composition support | Experimental; not published |
@@ -41,12 +44,13 @@ Add only the crates required by your application:
 [dependencies]
 pqc-rs-core = "0.4.0"
 pqc-rs-ml-kem = "0.4.0"
+pqc-rs-ml-dsa = "0.4.0"
 pqc-rs-hpke = "0.4.0"
 ```
 
-The corresponding Rust library names are `pqc_core`, `pqc_ml_kem`, and
-`pqc_hpke`. These are pre-1.0 packages and should be evaluated under
-the security limitations stated above.
+The corresponding Rust library names are `pqc_core`, `pqc_ml_kem`,
+`pqc_ml_dsa`, and `pqc_hpke`. These are pre-1.0 packages and should be
+evaluated under the security limitations stated above.
 
 ## Engineering principles
 

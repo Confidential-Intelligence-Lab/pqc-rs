@@ -29,18 +29,25 @@ PUBLISHABLE = {
         "package": "pqc-rs-ml-kem",
         "description": "Standards-focused Rust implementation of ML-KEM for PQC-rs.",
         "keywords": ["post-quantum", "cryptography", "ml-kem", "kem", "rust"],
+        "readme": "../../README.md",
+    },
+    "pqc-ml-dsa": {
+        "package": "pqc-rs-ml-dsa",
+        "description": "FIPS 204 ML-DSA implementation for PQC-rs",
+        "keywords": ["post-quantum", "cryptography", "ml-dsa", "signatures", "rust"],
+        "readme": "README.md",
     },
     "pqc-hpke": {
         "package": "pqc-rs-hpke",
         "description": "HPKE with ML-KEM and post-quantum/traditional hybrid key encapsulation for PQC-rs.",
         "keywords": ["post-quantum", "cryptography", "hpke", "ml-kem", "rust"],
+        "readme": "../../README.md",
     },
 }
 
 PRIVATE = {
     "pqc-hybrid",
     "pqc-test-harness",
-    "pqc-ml-dsa",
     "pqc-slh-dsa",
 }
 
@@ -148,7 +155,11 @@ def patch_crate(directory: str) -> None:
     if directory in PUBLISHABLE:
         metadata = PUBLISHABLE[directory]
         text = ensure_package_field(text, "description", f'"{metadata["description"]}"')
-        text = ensure_package_field(text, "readme", '"../../README.md"')
+        text = ensure_package_field(
+            text,
+            "readme",
+            f'"{metadata["readme"]}"',
+        )
         text = ensure_package_field(text, "categories", '["cryptography"]')
         keywords = ", ".join(f'"{item}"' for item in metadata["keywords"])
         text = ensure_package_field(text, "keywords", f"[{keywords}]")
@@ -167,6 +178,7 @@ def patch_docs_and_scripts() -> None:
     replacements = {
         "pqc-core": "pqc-rs-core",
         "pqc-ml-kem": "pqc-rs-ml-kem",
+        "pqc-ml-dsa": "pqc-rs-ml-dsa",
         "pqc-hpke": "pqc-rs-hpke",
     }
 
@@ -186,10 +198,27 @@ def patch_docs_and_scripts() -> None:
         write(path, text)
 
 
+def require_legacy_source_boundary() -> None:
+    core_manifest = ROOT / "crates" / "pqc-core" / "Cargo.toml"
+    text = read(core_manifest)
+    if re.search(r'(?m)^name\s*=\s*"pqc-rs-core"\s*$', text):
+        raise SystemExit(
+            "Migration refused: this repository already uses the pqc-rs "
+            "package identity. The one-time migration script must not be "
+            "rerun on a migrated release branch."
+        )
+    if not re.search(r'(?m)^name\s*=\s*"pqc-core"\s*$', text):
+        raise SystemExit(
+            "Migration refused: the legacy pqc-core source boundary was not "
+            "found."
+        )
+
+
 def main() -> None:
     if not (ROOT / "Cargo.toml").exists():
         raise SystemExit("Run from the repository root.")
 
+    require_legacy_source_boundary()
     patch_root()
 
     for directory in PACKAGE_RENAMES:

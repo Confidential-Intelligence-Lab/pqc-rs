@@ -15,17 +15,25 @@ PUBLISHABLE = {
     "pqc-core": (
         "Core types, traits, errors, and secret containers for the PQC-rs cryptography workspace.",
         ["post-quantum", "cryptography", "pqc", "rust"],
+        "../../README.md",
     ),
     "pqc-ml-kem": (
         "Standards-focused Rust implementation of ML-KEM for PQC-rs.",
         ["post-quantum", "cryptography", "ml-kem", "kem", "rust"],
+        "../../README.md",
+    ),
+    "pqc-ml-dsa": (
+        "FIPS 204 ML-DSA implementation for PQC-rs",
+        ["post-quantum", "cryptography", "ml-dsa", "signatures", "rust"],
+        "README.md",
     ),
     "pqc-hpke": (
         "HPKE with ML-KEM and post-quantum/traditional hybrid key encapsulation for PQC-rs.",
         ["post-quantum", "cryptography", "hpke", "ml-kem", "rust"],
+        "../../README.md",
     ),
 }
-PRIVATE = {"pqc-test-harness", "pqc-ml-dsa", "pqc-slh-dsa"}
+PRIVATE = {"pqc-hybrid", "pqc-test-harness", "pqc-slh-dsa"}
 INTERNAL = {
     "pqc-core", "pqc-ml-kem", "pqc-hpke", "pqc-hybrid",
     "pqc-test-harness", "pqc-ml-dsa", "pqc-slh-dsa",
@@ -97,11 +105,16 @@ def patch_root() -> None:
     write(path, text)
 
 
-def patch_publishable(crate: str, description: str, keywords: list[str]) -> None:
+def patch_publishable(
+    crate: str,
+    description: str,
+    keywords: list[str],
+    readme: str,
+) -> None:
     path = ROOT / "crates" / crate / "Cargo.toml"
     text = read(path)
     text = set_field(text, "package", "description", f'"{description}"')
-    text = set_field(text, "package", "readme", '"../../README.md"')
+    text = set_field(text, "package", "readme", f'"{readme}"')
     text = set_field(text, "package", "categories", '["cryptography"]')
     rendered_keywords = "[" + ", ".join(f'"{item}"' for item in keywords) + "]"
     text = set_field(text, "package", "keywords", rendered_keywords)
@@ -141,10 +154,10 @@ set -euo pipefail
 mkdir -p target/release-candidate
 rm -f target/release-candidate/*.crate
 
-cargo package -p pqc-core --list > target/release-candidate/pqc-core-package-list.txt
-cargo package -p pqc-core
+cargo package -p pqc-rs-core --list > target/release-candidate/pqc-rs-core-package-list.txt
+cargo package -p pqc-rs-core
 
-for crate in pqc-ml-kem pqc-hpke; do
+for crate in pqc-rs-ml-kem pqc-rs-ml-dsa pqc-rs-hpke; do
   cargo package -p \"${crate}\" --list > \"target/release-candidate/${crate}-package-list.txt\"
   cargo package -p \"${crate}\" --no-verify
 done
@@ -183,9 +196,10 @@ cargo run -p pqc-test-harness --bin ml-kem-acvp-key-check --release
 cargo run -p pqc-test-harness --bin hpke-pq-base-vectors --release
 cargo run -p pqc-test-harness --bin hpke-pq-hybrid-vectors --release
 
-cargo package -p pqc-core
-cargo package -p pqc-ml-kem --no-verify
-cargo package -p pqc-hpke --no-verify
+cargo package -p pqc-rs-core
+cargo package -p pqc-rs-ml-kem --no-verify
+cargo package -p pqc-rs-ml-dsa --no-verify
+cargo package -p pqc-rs-hpke --no-verify
 
 echo \"Stage 8F release gate passed.\"
 """, encoding="utf-8")
@@ -203,8 +217,8 @@ def main() -> None:
         fail("Run this script from the repository root.")
 
     patch_root()
-    for crate, (description, keywords) in PUBLISHABLE.items():
-        patch_publishable(crate, description, keywords)
+    for crate, (description, keywords, readme) in PUBLISHABLE.items():
+        patch_publishable(crate, description, keywords, readme)
     for crate in PRIVATE:
         patch_private(crate)
     patch_other_manifests()

@@ -12,7 +12,15 @@ Security methodology, side-channel experiments, machine-code reviews, zeroizatio
 
 ## User and developer documentation
 
-Milestone A will add installation, API, interoperability, architecture, and release guides. Until those guides are complete, the root README and rustdoc are the primary entry points.
+Current entry points include:
+
+- [installation and workspace overview](../README.md);
+- [public API inventory](api/API_INVENTORY.md) and package rustdoc;
+- [interoperability documentation](interoperability/README.md);
+- [architecture documentation](architecture/ARCHITECTURE.md);
+- [release process](../RELEASE.md) and
+  [ML-DSA 0.4.0 release record](release/ML_DSA_0.4.0.md);
+- [security policy](../SECURITY.md) and assurance documentation below.
 
 ## Documentation policy
 
@@ -36,10 +44,8 @@ Documentation must distinguish normative requirements from informational guidanc
 
 - [Constant-time audit](security/CONSTANT_TIME_AUDIT.md)
 - [Secret-dependency register](security/SECRET_DEPENDENCY_REGISTER.md)
-- [B1.3.3 milestone](../README-b1-3-3.md)
 
 ## B1.3.5 performance assurance
 
 - [Performance baseline](performance/PERFORMANCE_BASELINE.md)
 - [Benchmark register](performance/BENCHMARK_REGISTER.md)
-- [B1.3.5 milestone](../README-b1-3-5.md)

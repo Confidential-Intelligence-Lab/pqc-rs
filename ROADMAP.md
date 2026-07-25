@@ -2,6 +2,15 @@
 
 This roadmap communicates direction rather than a binding delivery schedule.
 
+## Current baseline
+
+The initial pre-1.0 public baseline includes `pqc-rs-core`,
+`pqc-rs-ml-kem`, `pqc-rs-ml-dsa`, and `pqc-rs-hpke` at version `0.4.0`.
+SLH-DSA, experimental hybrid composition, and the internal validation harness
+remain unpublished workstreams. The milestones below continue to guide
+hardening and expansion; completed baseline work is not an assertion of
+production readiness or independent validation.
+
 ## Milestone A — Production-ready RFC 9958 workspace
 
 ### A1. Standards and compliance

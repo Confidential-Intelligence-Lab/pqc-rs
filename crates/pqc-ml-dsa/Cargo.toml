@@ -12,8 +12,7 @@ documentation = "https://docs.rs/pqc-rs-ml-dsa"
 categories = ["cryptography"]
 keywords = ["post-quantum", "cryptography", "ml-dsa", "signatures", "rust"]
 
-# Publication remains disabled until the complete ML-DSA release-candidate
-# evidence and publication gates have passed.
+# Publication is enabled and remains subject to the repository release policy.
 publish = true
 
 [package.metadata.docs.rs]
