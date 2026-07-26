@@ -5,15 +5,25 @@ version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
 rust-version.workspace = true
-publish = false
+readme = "README.md"
+documentation = "https://docs.rs/pqc-rs-ml-dsa"
+categories = ["cryptography"]
+keywords = ["post-quantum", "cryptography", "ml-dsa", "signatures", "rust"]
+
+# Publication is enabled and remains subject to the repository release policy.
+publish = true
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs", "-D", "warnings"]
 
 [features]
-default = ["std"]
-std = ["pqc-core/std"]
-alloc = ["pqc-core/alloc"]
+default = []
 acvp = ["pqc-core/acvp"]
 bench = ["pqc-core/bench"]
+internal-api = []
 
 [dependencies]
 pqc-core = { workspace = true }
@@ -30,3 +40,4 @@ criterion = { workspace = true }
 [[bench]]
 name = "ml_dsa"
 harness = false
+required-features = ["internal-api"]

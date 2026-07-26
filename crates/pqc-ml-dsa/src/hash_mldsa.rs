@@ -55,6 +55,7 @@ pub enum HashMlDsaError {
 
 impl PreHashAlgorithm {
     /// Parse an ACVP hash identifier.
+    #[cfg(feature = "internal-api")]
     pub fn from_acvp_name(name: &str) -> Result<Self, HashMlDsaError> {
         match name {
             "SHA2-224" => Ok(Self::Sha2_224),

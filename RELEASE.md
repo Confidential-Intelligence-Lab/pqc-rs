@@ -15,11 +15,36 @@ Public releases are owner-authorized and evidence-driven.
 9. Create an annotated Git tag.
 10. Build and sign public release artifacts from the tagged revision.
 
-## Current package order
+## Public package order
 
-The definitive publication order must be generated from the workspace dependency graph. The anticipated initial order begins with shared core crates, followed by algorithm crates, protocol integration crates, and any umbrella package.
+The dependency order for the current public packages is:
 
-Internal test harnesses and experimental crates must not be published unless explicitly approved.
+1. `pqc-rs-core`;
+2. independent algorithm crates, currently `pqc-rs-ml-kem` and
+   `pqc-rs-ml-dsa`;
+3. protocol integration crates, currently `pqc-rs-hpke`, after their required
+   algorithm crates are indexed.
+
+Independent crates at the same dependency level do not require an ordering
+between them. The dependency graph must be rechecked before every publication.
+`pqc-rs-slh-dsa`, `pqc-rs-hybrid`, and `pqc-rs-test-harness` remain private
+unless a separately reviewed release changes that boundary.
+
+## Tags and registry provenance
+
+Each independently published package uses an annotated tag named
+`<package>-v<version>`, such as `pqc-rs-ml-dsa-v0.4.0`. The tag must peel to
+the exact source commit embedded in the registry archive.
+
+Before a tag is pushed, verify the registry version is unyanked, compare the
+registry SHA-256 checksum with the downloaded `.crate` bytes, inspect the
+embedded Cargo VCS metadata, and test the registry-served artifact outside the
+repository workspace.
+
+A documentation or policy commit made after publication must not move,
+replace, delete, or recreate the published-source tag. Later corrections
+belong on the branch and, when necessary, in a separately versioned patch
+release.
 
 ## Evidence
 

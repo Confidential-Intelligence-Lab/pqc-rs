@@ -1,4 +1,4 @@
-use pqc_ml_dsa::{MlDsa, MlDsaError, MlDsaParameterSet};
+use pqc_ml_dsa::{MlDsa, MlDsaParameterSet};
 
 #[test]
 fn parameter_sets_match_fips_204_sizes() {
@@ -14,10 +14,4 @@ fn parameter_sets_match_fips_204_sizes() {
         assert_eq!(implementation.private_key_bytes(), private_key);
         assert_eq!(implementation.signature_bytes(), signature);
     }
-}
-
-#[test]
-fn stage9a_operations_are_explicitly_unimplemented() {
-    let implementation = MlDsa::new(MlDsaParameterSet::MlDsa44);
-    assert_eq!(implementation.keygen(), Err(MlDsaError::NotImplemented));
 }

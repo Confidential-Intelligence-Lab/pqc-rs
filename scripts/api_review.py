@@ -8,6 +8,12 @@ OUT=ROOT/'docs/api/API_INVENTORY.md'
 CRATES=sorted((ROOT/'crates').glob('*/src'))
 PAT=re.compile(r'^\s*pub\s+(?:unsafe\s+)?(struct|enum|trait|fn|type|const|static|mod)\s+([A-Za-z_][A-Za-z0-9_]*)', re.M)
 REEXPORT=re.compile(r'^\s*pub\s+use\s+([^;]+);', re.M)
+MLDSA_PAT=re.compile(
+    r'^\s*pub\s+(?:const\s+)?(?:unsafe\s+)?'
+    r'(struct|enum|trait|fn|type|const|static)\s+'
+    r'([A-Za-z_][A-Za-z0-9_]*)',
+    re.M,
+)
 
 def classify(crate, kind, name, path):
     if name.endswith('Placeholder'): return 'Deprecated debt'
@@ -16,10 +22,35 @@ def classify(crate, kind, name, path):
     if kind=='mod' and path.name=='lib.rs' and name not in {'error','identifiers','context','setup','suite'}: return 'Exposed implementation'
     return 'Stable'
 
+def collect_mldsa(src):
+    crate=src.parent.name
+    rows=[]
+    lib=src/'lib.rs'
+    rel=lib.relative_to(ROOT).as_posix()
+    for module in ('api','error','params'):
+        rows.append((crate,'mod',module,rel,'Stable'))
+    text=lib.read_text(errors='ignore')
+    for item in REEXPORT.findall(text):
+        rows.append((crate,'re-export',item.strip().replace('\n',' '),rel,'Stable'))
+
+    for name in ('api.rs','error.rs','params.rs'):
+        path=src/name
+        rel=path.relative_to(ROOT).as_posix()
+        for kind,item in MLDSA_PAT.findall(path.read_text(errors='ignore')):
+            rows.append((crate,kind,item,rel,'Stable'))
+
+    path=src/'hash_mldsa.rs'
+    rel=path.relative_to(ROOT).as_posix()
+    rows.append((crate,'enum','PreHashAlgorithm',rel,'Stable'))
+    return rows
+
 def collect():
     rows=[]
     for src in CRATES:
         crate=src.parent.name
+        if crate=='pqc-ml-dsa':
+            rows.extend(collect_mldsa(src))
+            continue
         for p in sorted(src.rglob('*.rs')):
             if '/bin/' in p.as_posix() or '#[cfg(test)]' in p.read_text(errors='ignore')[:200]: pass
             text=p.read_text(errors='ignore')

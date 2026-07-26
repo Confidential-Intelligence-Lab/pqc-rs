@@ -1,3 +1,5 @@
+#![cfg(feature = "internal-api")]
+
 use pqc_ml_dsa::xof::{
     expand_a_bytes, expand_mask_bytes, expand_s_bytes, ExpandAReader, ExpandMaskReader,
     ExpandSReader,

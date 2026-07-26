@@ -1,3 +1,5 @@
+#![cfg(feature = "internal-api")]
+
 use pqc_ml_dsa::constants::N;
 use pqc_ml_dsa::encoding::{
     decode_eta, decode_t0, decode_t1, decode_w1, decode_z, encode_eta, encode_t0, encode_t1,

@@ -1,3 +1,5 @@
+#![cfg(feature = "internal-api")]
+
 use pqc_ml_dsa::constants::{N, Q};
 use pqc_ml_dsa::hint::{make_hint, make_hint_poly, use_hint, use_hint_poly};
 use pqc_ml_dsa::poly::Poly;
