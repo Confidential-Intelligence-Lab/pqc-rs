@@ -26,8 +26,14 @@ for rel in required:
         errors.append(f"unsafe-proof-claim:{rel}")
 
 citation = (root / "CITATION.cff").read_text(encoding="utf-8")
-if "OWNER" in citation:
-    print("warning=CITATION.cff repository-code contains OWNER placeholder")
+canonical_repository = (
+    'repository-code: '
+    '"https://github.com/Confidential-Intelligence-Lab/pqc-rs"'
+)
+if re.search(r"\b(?:OWNER|TODO|CHANGEME)\b", citation, re.IGNORECASE):
+    errors.append("unresolved-citation-repository-placeholder")
+if canonical_repository not in citation:
+    errors.append("noncanonical-citation-repository-code")
 
 if errors:
     print("decision=fail")

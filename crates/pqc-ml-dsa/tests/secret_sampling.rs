@@ -1,3 +1,5 @@
+#![cfg(feature = "internal-api")]
+
 use pqc_ml_dsa::params::MlDsaParameterSet;
 use pqc_ml_dsa::sample::{sample_eta_poly, sample_eta_polyvec, SamplingError};
 

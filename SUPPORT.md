@@ -1,6 +1,6 @@
 # Support
 
-PQC-rs is a pre-release open-source project.
+PQC-rs is a pre-1.0 open-source project.
 
 Use public GitHub issues for reproducible bugs, standards questions, interoperability failures, and documentation defects. Use discussions, when enabled, for design questions and integration guidance.
 

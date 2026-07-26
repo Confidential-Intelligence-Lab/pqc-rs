@@ -1,3 +1,5 @@
+#![cfg(feature = "internal-api")]
+
 use pqc_ml_dsa::{
     audit::multiply_challenge_counted, challenge::sample_in_ball_bytes, constants::N, poly::Poly,
     signing_core::multiply_challenge,

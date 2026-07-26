@@ -1,3 +1,5 @@
+#![cfg(feature = "internal-api")]
+
 use pqc_ml_dsa::challenge::{challenge_weight, is_sparse_signed};
 use pqc_ml_dsa::constants::{N, Q};
 use pqc_ml_dsa::expand_a::expand_a;

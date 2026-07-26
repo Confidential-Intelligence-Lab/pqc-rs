@@ -8,8 +8,8 @@ authors:
     alias: Ro
 repository-code: "https://github.com/Confidential-Intelligence-Lab/pqc-rs"
 license: "Apache-2.0 OR MIT"
-version: "0.4.0-rc.1"
-date-released: "2026-07-18"
+version: "0.4.0"
+date-released: "2026-07-22"
 keywords:
   - post-quantum cryptography
   - Rust

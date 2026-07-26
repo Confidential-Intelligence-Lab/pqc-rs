@@ -1,3 +1,5 @@
+#![cfg(feature = "internal-api")]
+
 use pqc_ml_dsa::constants::Q;
 use pqc_ml_dsa::expand_a::{expand_a, rej_ntt_poly};
 use pqc_ml_dsa::params::MlDsaParameterSet;

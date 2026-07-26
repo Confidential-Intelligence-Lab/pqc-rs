@@ -1,3 +1,5 @@
+#![cfg(feature = "internal-api")]
+
 use pqc_ml_dsa::constants::Q;
 use pqc_ml_dsa::rounding::{decompose, high_bits, low_bits, power2round, Gamma2, D};
 
