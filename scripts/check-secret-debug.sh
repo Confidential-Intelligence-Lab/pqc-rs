@@ -21,7 +21,7 @@ secret_name = re.compile(
     r"(secret|private|decapsulation|keypair|key_pair|"
     r"encapsulationoutput|encapsulation_output|seedmaterial|seed_material|"
     r"keygen(?:prompt|expected)?case|encapdecappromptcase|"
-    r"hpkeexportvector|kpkedecryptoutput)",
+    r"hpkeexportvector|kpkedecryptoutput|"
     r"keygenseed|key_gen_seed)",
     re.IGNORECASE,
 )
