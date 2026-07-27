@@ -3,7 +3,7 @@ set -euo pipefail
 
 mkdir -p target
 
-python3 - <<'PY'
+python3 - "$@" <<'PY'
 from pathlib import Path
 import re
 import sys
@@ -21,7 +21,8 @@ secret_name = re.compile(
     r"(secret|private|decapsulation|keypair|key_pair|"
     r"encapsulationoutput|encapsulation_output|seedmaterial|seed_material|"
     r"keygen(?:prompt|expected)?case|encapdecappromptcase|"
-    r"hpkeexportvector|kpkedecryptoutput)",
+    r"hpkeexportvector|kpkedecryptoutput|"
+    r"keygenseed|key_gen_seed)",
     re.IGNORECASE,
 )
 
@@ -38,7 +39,10 @@ safe_error_type = re.compile(r"Error$")
 
 findings = []
 
-for path in Path("crates").rglob("*.rs"):
+roots = [Path(argument) for argument in sys.argv[1:]] or [Path("crates")]
+paths = (path for root in roots for path in root.rglob("*.rs"))
+
+for path in paths:
     lines = path.read_text(
         encoding="utf-8",
         errors="replace",

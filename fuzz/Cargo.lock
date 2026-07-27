@@ -490,7 +490,7 @@ dependencies = [
 
 [[package]]
 name = "pqc-rs-core"
-version = "0.4.0-rc.1"
+version = "0.4.0"
 dependencies = [
  "rand_core",
  "subtle",
@@ -499,7 +499,7 @@ dependencies = [
 
 [[package]]
 name = "pqc-rs-hpke"
-version = "0.4.0-rc.1"
+version = "0.4.0"
 dependencies = [
  "aes-gcm",
  "chacha20poly1305",
@@ -518,7 +518,7 @@ dependencies = [
 
 [[package]]
 name = "pqc-rs-ml-dsa"
-version = "0.4.0-rc.1"
+version = "0.4.0"
 dependencies = [
  "pqc-rs-core",
  "rand_core",
@@ -528,7 +528,7 @@ dependencies = [
 
 [[package]]
 name = "pqc-rs-ml-kem"
-version = "0.4.0-rc.1"
+version = "0.4.0"
 dependencies = [
  "pqc-rs-core",
  "rand_core",
@@ -539,7 +539,7 @@ dependencies = [
 
 [[package]]
 name = "pqc-rs-test-harness"
-version = "0.4.0-rc.1"
+version = "0.4.0"
 dependencies = [
  "hex",
  "pqc-rs-core",

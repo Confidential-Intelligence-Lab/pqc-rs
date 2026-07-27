@@ -15,7 +15,7 @@ CRATES = {
     "pqc-test-harness": ("pqc-rs-test-harness", "pqc_test_harness"),
 }
 
-VERSION = "0.4.0-rc.1"
+VERSION = "0.4.0"
 
 
 def section_bounds(text: str, section: str) -> tuple[int, int]:

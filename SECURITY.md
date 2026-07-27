@@ -2,7 +2,9 @@
 
 ## Project status
 
-PQC-rs is pre-release software and has not completed an independent security audit or formal validation. Current releases are intended for research, evaluation, interoperability work, and controlled testing.
+PQC-rs is pre-1.0 software and has not completed an independent security audit
+or formal validation. Current releases are intended for research, evaluation,
+interoperability work, and controlled testing.
 
 ## Reporting a vulnerability
 
@@ -24,7 +26,11 @@ Maintainers will acknowledge a credible report, assess scope and severity, coord
 
 ## Supported versions
 
-Until the first stable release, only the latest revision of the default branch and the latest published pre-release are considered for security fixes. A formal supported-version table will be introduced before version 1.0.
+Before version 1.0, only the latest published patch release of each public
+package and the latest revision of the default branch are considered for
+security fixes. Earlier package versions and release candidates are not
+supported unless a security advisory explicitly states otherwise. This policy
+does not imply long-term support.
 
 ## Security claims
 
