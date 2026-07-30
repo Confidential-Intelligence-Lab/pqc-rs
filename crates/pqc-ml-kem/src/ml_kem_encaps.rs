@@ -1,5 +1,6 @@
 //! Deterministic FIPS 203 ML-KEM encapsulation entry points.
 
+use alloc::vec::Vec;
 use pqc_core::{PqcError, PqcResult, SharedSecretBytes};
 
 use crate::kpke::{EncryptionRandomness, Message};
@@ -90,7 +91,7 @@ mod tests {
             (MlKemParameterSet::MlKem768, 1184usize),
             (MlKemParameterSet::MlKem1024, 1568usize),
         ] {
-            let ek = vec![0u8; key_length];
+            let ek = alloc::vec![0u8; key_length];
             let m = [0x5au8; 32];
 
             let first = encaps_internal(parameter_set, &ek, &m).unwrap();

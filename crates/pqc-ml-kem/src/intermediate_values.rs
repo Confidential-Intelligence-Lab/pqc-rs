@@ -10,6 +10,7 @@ use crate::matrix::expand_matrix;
 use crate::packing::decode_public_key_component;
 use crate::poly::Poly;
 use crate::MlKemParameterSet;
+use alloc::vec::Vec;
 use pqc_core::PqcResult;
 
 /// Compact digest-based summary of one polynomial.
