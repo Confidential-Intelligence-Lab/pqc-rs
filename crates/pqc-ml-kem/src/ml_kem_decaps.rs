@@ -4,6 +4,7 @@
 //! deterministic re-encryption, constant-time ciphertext comparison, and
 //! implicit rejection.
 
+use alloc::vec::Vec;
 use pqc_core::{PqcError, PqcResult, SharedSecretBytes};
 use subtle::ConstantTimeEq;
 

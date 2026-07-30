@@ -6,6 +6,8 @@
 //! Stage 6.3 adds opt-in normative KeyGen tracing while the verified ML-KEM
 //! arithmetic and public APIs remain unchanged.
 
+extern crate alloc;
+
 pub mod arithmetic;
 pub mod conformance;
 pub mod encoding;

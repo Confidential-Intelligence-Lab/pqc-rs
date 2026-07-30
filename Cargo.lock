@@ -763,11 +763,10 @@ dependencies = [
 
 [[package]]
 name = "pqc-rs-ml-kem"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "criterion",
  "pqc-rs-core",
- "pqc-rs-test-harness",
  "rand_core",
  "sha3",
  "subtle",
