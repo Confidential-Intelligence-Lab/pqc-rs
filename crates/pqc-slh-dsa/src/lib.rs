@@ -1,8 +1,17 @@
-#![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
-//! SLH-DSA implementation crate.
+//! FIPS 205 SLH-DSA implementation crate.
+//!
+//! The current stage establishes the approved parameter sets and the
+//! publication-facing typed object model. Cryptographic key generation,
+//! signing, and verification are introduced in subsequent stages.
 
-/// Placeholder type for compile validation.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct SlhDsaPlaceholder;
+pub mod api;
+pub mod error;
+pub mod params;
+
+pub use api::{
+    SlhDsa, SlhDsaKeyGenSeed, SlhDsaKeyPair, SlhDsaPrivateKey, SlhDsaPublicKey, SlhDsaSignature,
+};
+pub use error::SlhDsaError;
+pub use params::{SlhDsaHashFamily, SlhDsaParameterSet, SlhDsaParameters};
