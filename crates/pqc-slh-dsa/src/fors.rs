@@ -49,6 +49,27 @@ pub enum ForsError {
         leaf_count: u64,
     },
 
+    /// The requested node height exceeds the configured FORS tree height.
+    InvalidNodeHeight {
+        /// Requested node height.
+        height: u32,
+
+        /// Configured FORS tree height.
+        tree_height: usize,
+    },
+
+    /// The requested node index is outside the forest at its height.
+    InvalidNodeIndex {
+        /// Requested node height.
+        height: u32,
+
+        /// Supplied forest-wide node index.
+        index: u32,
+
+        /// Number of nodes at the requested height.
+        node_count: u64,
+    },
+
     /// A FORS parameter or index calculation overflowed.
     ParameterOverflow,
 
@@ -90,6 +111,25 @@ impl fmt::Display for ForsError {
                 write!(
                     formatter,
                     "FORS leaf index {leaf} is outside a tree with {leaf_count} leaves"
+                )
+            }
+            Self::InvalidNodeHeight {
+                height,
+                tree_height,
+            } => {
+                write!(
+                    formatter,
+                    "FORS node height {height} exceeds the configured tree height {tree_height}"
+                )
+            }
+            Self::InvalidNodeIndex {
+                height,
+                index,
+                node_count,
+            } => {
+                write!(
+                    formatter,
+                    "FORS node index {index} is outside the {node_count} nodes at height {height}"
                 )
             }
             Self::ParameterOverflow => {
@@ -151,11 +191,11 @@ impl ForsPosition {
     }
 }
 
-/// Coordinates of an internal node within one FORS tree.
+/// Coordinates of a node within the complete FORS forest.
 ///
-/// Unlike [`ForsPosition`], this type uses tree-local Merkle coordinates:
-/// `height` is measured above the leaves and `index` identifies the node
-/// from left to right at that height.
+/// FIPS 205 numbers nodes continuously across all `k` FORS trees at every
+/// height. At height zero, `index` is therefore the global FORS secret-value
+/// index. At higher levels, it is the forest-wide node index at that height.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ForsNodePosition {
     /// Key-pair address inherited from the enclosing hypertree operation.
@@ -164,7 +204,7 @@ pub struct ForsNodePosition {
     /// Height of the node above the leaves.
     pub height: u32,
 
-    /// Tree-local node index at this height.
+    /// Forest-wide node index at this height.
     pub index: u32,
 }
 
@@ -404,6 +444,129 @@ pub fn parent_node(
     HashSuite::new(parameters).h(public_seed, &tree_address, left, right, output)?;
 
     Ok(())
+}
+
+/// Return the number of FORS nodes at a given height across the complete forest.
+fn nodes_at_height(parameters: &SlhDsaParameters, height: u32) -> Result<u64, ForsError> {
+    if height as usize > parameters.a {
+        return Err(ForsError::InvalidNodeHeight {
+            height,
+            tree_height: parameters.a,
+        });
+    }
+
+    let remaining_height = parameters
+        .a
+        .checked_sub(height as usize)
+        .ok_or(ForsError::ParameterOverflow)?;
+
+    let nodes_per_tree = 1_u64
+        .checked_shl(u32::try_from(remaining_height).map_err(|_| ForsError::ParameterOverflow)?)
+        .ok_or(ForsError::ParameterOverflow)?;
+
+    (parameters.k as u64)
+        .checked_mul(nodes_per_tree)
+        .ok_or(ForsError::ParameterOverflow)
+}
+
+/// Validate a forest-wide FORS node coordinate.
+fn validate_node_position(
+    parameters: &SlhDsaParameters,
+    position: ForsNodePosition,
+) -> Result<(), ForsError> {
+    let node_count = nodes_at_height(parameters, position.height)?;
+
+    if u64::from(position.index) >= node_count {
+        return Err(ForsError::InvalidNodeIndex {
+            height: position.height,
+            index: position.index,
+            node_count,
+        });
+    }
+
+    Ok(())
+}
+
+/// Generate an arbitrary node in the complete FORS forest.
+///
+/// This implements FIPS 205 `fors_node`. At height zero, the node is generated
+/// directly from the global FORS secret-value index. At higher levels, the
+/// function recursively generates the two children and combines them with
+/// [`parent_node`].
+pub fn node(
+    parameters: &SlhDsaParameters,
+    secret_seed: &[u8],
+    public_seed: &[u8],
+    fors_address: &Address,
+    position: ForsNodePosition,
+    output: &mut [u8],
+) -> Result<(), ForsError> {
+    validate_node_position(parameters, position)?;
+
+    if position.height == 0 {
+        return leaf(
+            parameters,
+            secret_seed,
+            public_seed,
+            fors_address,
+            position.key_pair_address,
+            position.index,
+            output,
+        );
+    }
+
+    let child_height = position
+        .height
+        .checked_sub(1)
+        .ok_or(ForsError::ParameterOverflow)?;
+
+    let left_index = position
+        .index
+        .checked_mul(2)
+        .ok_or(ForsError::ParameterOverflow)?;
+
+    let right_index = left_index
+        .checked_add(1)
+        .ok_or(ForsError::ParameterOverflow)?;
+
+    let mut left = [0_u8; 32];
+    let mut right = [0_u8; 32];
+
+    node(
+        parameters,
+        secret_seed,
+        public_seed,
+        fors_address,
+        ForsNodePosition {
+            key_pair_address: position.key_pair_address,
+            height: child_height,
+            index: left_index,
+        },
+        &mut left[..parameters.n],
+    )?;
+
+    node(
+        parameters,
+        secret_seed,
+        public_seed,
+        fors_address,
+        ForsNodePosition {
+            key_pair_address: position.key_pair_address,
+            height: child_height,
+            index: right_index,
+        },
+        &mut right[..parameters.n],
+    )?;
+
+    parent_node(
+        parameters,
+        public_seed,
+        fors_address,
+        position,
+        &left[..parameters.n],
+        &right[..parameters.n],
+        output,
+    )
 }
 
 #[cfg(test)]
@@ -1143,5 +1306,248 @@ mod tests {
                 "{parameter_set:?}"
             );
         }
+    }
+    #[test]
+    fn node_height_zero_matches_leaf_generation() {
+        let parameters = SlhDsaParameterSet::Sha2_128s.parameters();
+        let secret_seed = [0x12_u8; 32];
+        let public_seed = [0x34_u8; 32];
+        let address = fors_address();
+        let position = ForsNodePosition {
+            key_pair_address: 9,
+            height: 0,
+            index: 17,
+        };
+
+        let mut actual = [0_u8; 32];
+        node(
+            &parameters,
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &address,
+            position,
+            &mut actual[..parameters.n],
+        )
+        .unwrap();
+
+        let mut expected = [0_u8; 32];
+        leaf(
+            &parameters,
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &address,
+            position.key_pair_address,
+            position.index,
+            &mut expected[..parameters.n],
+        )
+        .unwrap();
+
+        assert_eq!(&actual[..parameters.n], &expected[..parameters.n]);
+    }
+
+    #[test]
+    fn node_height_one_matches_two_leaves_and_parent_hashing() {
+        for parameter_set in [
+            SlhDsaParameterSet::Sha2_128s,
+            SlhDsaParameterSet::Shake128s,
+            SlhDsaParameterSet::Sha2_256f,
+            SlhDsaParameterSet::Shake256f,
+        ] {
+            let parameters = parameter_set.parameters();
+            let secret_seed = [0x56_u8; 32];
+            let public_seed = [0x78_u8; 32];
+            let address = fors_address();
+            let position = ForsNodePosition {
+                key_pair_address: 11,
+                height: 1,
+                index: 3,
+            };
+
+            let mut actual = [0_u8; 32];
+            node(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                position,
+                &mut actual[..parameters.n],
+            )
+            .unwrap();
+
+            let mut left = [0_u8; 32];
+            leaf(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                position.key_pair_address,
+                2 * position.index,
+                &mut left[..parameters.n],
+            )
+            .unwrap();
+
+            let mut right = [0_u8; 32];
+            leaf(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                position.key_pair_address,
+                2 * position.index + 1,
+                &mut right[..parameters.n],
+            )
+            .unwrap();
+
+            let mut expected = [0_u8; 32];
+            parent_node(
+                &parameters,
+                &public_seed[..parameters.n],
+                &address,
+                position,
+                &left[..parameters.n],
+                &right[..parameters.n],
+                &mut expected[..parameters.n],
+            )
+            .unwrap();
+
+            assert_eq!(
+                &actual[..parameters.n],
+                &expected[..parameters.n],
+                "{parameter_set:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn node_height_two_matches_recursive_children() {
+        let parameters = SlhDsaParameterSet::Shake192f.parameters();
+        let secret_seed = [0x9a_u8; 32];
+        let public_seed = [0xbc_u8; 32];
+        let address = fors_address();
+        let position = ForsNodePosition {
+            key_pair_address: 21,
+            height: 2,
+            index: 2,
+        };
+
+        let mut actual = [0_u8; 32];
+        node(
+            &parameters,
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &address,
+            position,
+            &mut actual[..parameters.n],
+        )
+        .unwrap();
+
+        let child_height = position.height - 1;
+
+        let mut left = [0_u8; 32];
+        node(
+            &parameters,
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &address,
+            ForsNodePosition {
+                key_pair_address: position.key_pair_address,
+                height: child_height,
+                index: 2 * position.index,
+            },
+            &mut left[..parameters.n],
+        )
+        .unwrap();
+
+        let mut right = [0_u8; 32];
+        node(
+            &parameters,
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &address,
+            ForsNodePosition {
+                key_pair_address: position.key_pair_address,
+                height: child_height,
+                index: 2 * position.index + 1,
+            },
+            &mut right[..parameters.n],
+        )
+        .unwrap();
+
+        let mut expected = [0_u8; 32];
+        parent_node(
+            &parameters,
+            &public_seed[..parameters.n],
+            &address,
+            position,
+            &left[..parameters.n],
+            &right[..parameters.n],
+            &mut expected[..parameters.n],
+        )
+        .unwrap();
+
+        assert_eq!(&actual[..parameters.n], &expected[..parameters.n]);
+    }
+
+    #[test]
+    fn node_rejects_heights_above_the_fors_tree() {
+        let parameters = SlhDsaParameterSet::Sha2_128s.parameters();
+        let secret_seed = [0_u8; 32];
+        let public_seed = [0_u8; 32];
+        let address = fors_address();
+        let mut output = [0_u8; 32];
+
+        let height = u32::try_from(parameters.a).unwrap() + 1;
+
+        assert_eq!(
+            node(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                ForsNodePosition {
+                    key_pair_address: 0,
+                    height,
+                    index: 0,
+                },
+                &mut output[..parameters.n],
+            ),
+            Err(ForsError::InvalidNodeHeight {
+                height,
+                tree_height: parameters.a,
+            })
+        );
+    }
+
+    #[test]
+    fn node_rejects_indices_outside_the_fors_forest() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0_u8; 32];
+        let public_seed = [0_u8; 32];
+        let address = fors_address();
+        let mut output = [0_u8; 32];
+
+        let height = 1;
+        let node_count = nodes_at_height(&parameters, height).unwrap();
+        let index = u32::try_from(node_count).unwrap();
+
+        assert_eq!(
+            node(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                ForsNodePosition {
+                    key_pair_address: 0,
+                    height,
+                    index,
+                },
+                &mut output[..parameters.n],
+            ),
+            Err(ForsError::InvalidNodeIndex {
+                height,
+                index,
+                node_count,
+            })
+        );
     }
 }
