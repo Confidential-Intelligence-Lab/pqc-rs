@@ -54,6 +54,14 @@ pub mod message_digest;
 #[allow(dead_code)]
 mod message_digest;
 
+#[cfg(feature = "internal-api")]
+#[doc(hidden)]
+pub mod wots;
+
+#[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
+mod wots;
+
 pub mod api;
 pub mod error;
 pub mod params;
