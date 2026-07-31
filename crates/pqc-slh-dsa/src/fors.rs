@@ -151,6 +151,23 @@ impl ForsPosition {
     }
 }
 
+/// Coordinates of an internal node within one FORS tree.
+///
+/// Unlike [`ForsPosition`], this type uses tree-local Merkle coordinates:
+/// `height` is measured above the leaves and `index` identifies the node
+/// from left to right at that height.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ForsNodePosition {
+    /// Key-pair address inherited from the enclosing hypertree operation.
+    pub key_pair_address: u32,
+
+    /// Height of the node above the leaves.
+    pub height: u32,
+
+    /// Tree-local node index at this height.
+    pub index: u32,
+}
+
 /// Return the number of bytes occupied by the FORS portion of `H_msg`.
 pub fn digest_bytes(parameters: &SlhDsaParameters) -> Result<usize, ForsError> {
     let digest_bits = parameters
@@ -358,6 +375,35 @@ pub fn selected_leaf(
         index,
         output,
     )
+}
+
+/// Hash two child nodes into one internal FORS tree node.
+///
+/// The node coordinates are local to one FORS tree. `height` is the height of
+/// the parent node above the leaves, and `index` is the parent node's
+/// left-to-right index at that height.
+///
+/// The supplied address contributes the layer and tree address. Changing the
+/// address type clears all type-dependent words, so the key-pair address,
+/// tree height, and tree index are restored explicitly before evaluating `H`.
+pub fn parent_node(
+    parameters: &SlhDsaParameters,
+    public_seed: &[u8],
+    fors_address: &Address,
+    position: ForsNodePosition,
+    left: &[u8],
+    right: &[u8],
+    output: &mut [u8],
+) -> Result<(), ForsError> {
+    let mut tree_address = *fors_address;
+    tree_address.set_type_and_clear(AddressType::ForsTree);
+    tree_address.set_key_pair_address(position.key_pair_address);
+    tree_address.set_tree_height(position.height);
+    tree_address.set_tree_index(position.index);
+
+    HashSuite::new(parameters).h(public_seed, &tree_address, left, right, output)?;
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -849,6 +895,244 @@ mod tests {
                     tree: parameters.k - 1,
                     leaf: 0,
                 },
+                &mut output[..parameters.n],
+            )
+            .unwrap();
+
+            assert_ne!(
+                &output[..parameters.n],
+                &[0_u8; 32][..parameters.n],
+                "{parameter_set:?}"
+            );
+        }
+    }
+    #[test]
+    fn parent_node_matches_direct_h_evaluation() {
+        for parameter_set in [
+            SlhDsaParameterSet::Sha2_128s,
+            SlhDsaParameterSet::Shake128s,
+            SlhDsaParameterSet::Sha2_256f,
+            SlhDsaParameterSet::Shake256f,
+        ] {
+            let parameters = parameter_set.parameters();
+            let public_seed = [0x39_u8; 32];
+            let left = [0x51_u8; 32];
+            let right = [0xa7_u8; 32];
+            let address = fors_address();
+            let key_pair_address = 13;
+            let height = 4;
+            let index = 6;
+
+            let mut actual = [0_u8; 32];
+            parent_node(
+                &parameters,
+                &public_seed[..parameters.n],
+                &address,
+                ForsNodePosition {
+                    key_pair_address,
+                    height,
+                    index,
+                },
+                &left[..parameters.n],
+                &right[..parameters.n],
+                &mut actual[..parameters.n],
+            )
+            .unwrap();
+
+            let mut tree_address = address;
+            tree_address.set_type_and_clear(AddressType::ForsTree);
+            tree_address.set_key_pair_address(key_pair_address);
+            tree_address.set_tree_height(height);
+            tree_address.set_tree_index(index);
+
+            let mut expected = [0_u8; 32];
+            HashSuite::new(&parameters)
+                .h(
+                    &public_seed[..parameters.n],
+                    &tree_address,
+                    &left[..parameters.n],
+                    &right[..parameters.n],
+                    &mut expected[..parameters.n],
+                )
+                .unwrap();
+
+            assert_eq!(
+                &actual[..parameters.n],
+                &expected[..parameters.n],
+                "{parameter_set:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn parent_node_domain_separates_tree_coordinates() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let public_seed = [0x63_u8; 32];
+        let left = [0x18_u8; 32];
+        let right = [0x81_u8; 32];
+        let address = fors_address();
+
+        let mut baseline = [0_u8; 32];
+        parent_node(
+            &parameters,
+            &public_seed[..parameters.n],
+            &address,
+            ForsNodePosition {
+                key_pair_address: 5,
+                height: 2,
+                index: 7,
+            },
+            &left[..parameters.n],
+            &right[..parameters.n],
+            &mut baseline[..parameters.n],
+        )
+        .unwrap();
+
+        let mut different_height = [0_u8; 32];
+        parent_node(
+            &parameters,
+            &public_seed[..parameters.n],
+            &address,
+            ForsNodePosition {
+                key_pair_address: 5,
+                height: 3,
+                index: 7,
+            },
+            &left[..parameters.n],
+            &right[..parameters.n],
+            &mut different_height[..parameters.n],
+        )
+        .unwrap();
+
+        let mut different_index = [0_u8; 32];
+        parent_node(
+            &parameters,
+            &public_seed[..parameters.n],
+            &address,
+            ForsNodePosition {
+                key_pair_address: 5,
+                height: 2,
+                index: 8,
+            },
+            &left[..parameters.n],
+            &right[..parameters.n],
+            &mut different_index[..parameters.n],
+        )
+        .unwrap();
+
+        assert_ne!(&baseline[..parameters.n], &different_height[..parameters.n]);
+        assert_ne!(&baseline[..parameters.n], &different_index[..parameters.n]);
+    }
+
+    #[test]
+    fn parent_node_domain_separates_key_pair_addresses() {
+        let parameters = SlhDsaParameterSet::Sha2_192f.parameters();
+        let public_seed = [0xc3_u8; 32];
+        let left = [0x2d_u8; 32];
+        let right = [0xd2_u8; 32];
+        let address = fors_address();
+
+        let mut first = [0_u8; 32];
+        parent_node(
+            &parameters,
+            &public_seed[..parameters.n],
+            &address,
+            ForsNodePosition {
+                key_pair_address: 11,
+                height: 1,
+                index: 0,
+            },
+            &left[..parameters.n],
+            &right[..parameters.n],
+            &mut first[..parameters.n],
+        )
+        .unwrap();
+
+        let mut second = [0_u8; 32];
+        parent_node(
+            &parameters,
+            &public_seed[..parameters.n],
+            &address,
+            ForsNodePosition {
+                key_pair_address: 12,
+                height: 1,
+                index: 0,
+            },
+            &left[..parameters.n],
+            &right[..parameters.n],
+            &mut second[..parameters.n],
+        )
+        .unwrap();
+
+        assert_ne!(&first[..parameters.n], &second[..parameters.n]);
+    }
+
+    #[test]
+    fn parent_node_propagates_hash_length_errors() {
+        let parameters = SlhDsaParameterSet::Sha2_128s.parameters();
+        let public_seed = [0_u8; 32];
+        let left = [0_u8; 32];
+        let right = [0_u8; 32];
+        let address = fors_address();
+        let mut output = [0_u8; 32];
+
+        assert!(matches!(
+            parent_node(
+                &parameters,
+                &public_seed[..parameters.n],
+                &address,
+                ForsNodePosition {
+                    key_pair_address: 0,
+                    height: 1,
+                    index: 0,
+                },
+                &left[..parameters.n - 1],
+                &right[..parameters.n],
+                &mut output[..parameters.n],
+            ),
+            Err(ForsError::Hash(_))
+        ));
+
+        assert!(matches!(
+            parent_node(
+                &parameters,
+                &public_seed[..parameters.n],
+                &address,
+                ForsNodePosition {
+                    key_pair_address: 0,
+                    height: 1,
+                    index: 0,
+                },
+                &left[..parameters.n],
+                &right[..parameters.n],
+                &mut output[..parameters.n - 1],
+            ),
+            Err(ForsError::Hash(_))
+        ));
+    }
+
+    #[test]
+    fn every_parameter_set_hashes_a_fors_parent_node() {
+        let public_seed = [0x96_u8; 32];
+        let left = [0x3c_u8; 32];
+        let right = [0xc3_u8; 32];
+        let address = fors_address();
+
+        for parameter_set in PARAMETER_SETS {
+            let parameters = parameter_set.parameters();
+            let mut output = [0_u8; 32];
+
+            parent_node(
+                &parameters,
+                &public_seed[..parameters.n],
+                &address,
+                ForsNodePosition {
+                    key_pair_address: 17,
+                    height: 1,
+                    index: 0,
+                },
+                &left[..parameters.n],
+                &right[..parameters.n],
                 &mut output[..parameters.n],
             )
             .unwrap();
