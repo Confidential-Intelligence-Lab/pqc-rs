@@ -14,6 +14,22 @@ pub mod address;
 #[allow(dead_code)]
 mod address;
 
+#[cfg(feature = "internal-api")]
+#[doc(hidden)]
+pub mod conversion;
+
+#[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
+mod conversion;
+
+#[cfg(feature = "internal-api")]
+#[doc(hidden)]
+pub mod hash;
+
+#[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
+mod hash;
+
 pub mod api;
 pub mod error;
 pub mod params;
