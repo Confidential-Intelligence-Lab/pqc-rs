@@ -140,6 +140,17 @@ pub struct ForsPosition {
     pub leaf: u32,
 }
 
+impl ForsPosition {
+    /// Resolve this tree-local position to the global FORS secret-value index.
+    ///
+    /// FIPS 205 numbers the leaves of all `k` FORS trees consecutively:
+    ///
+    /// `index = tree * 2^a + leaf`.
+    pub fn global_index(self, parameters: &SlhDsaParameters) -> Result<u32, ForsError> {
+        secret_value_index(parameters, self.tree, self.leaf)
+    }
+}
+
 /// Return the number of bytes occupied by the FORS portion of `H_msg`.
 pub fn digest_bytes(parameters: &SlhDsaParameters) -> Result<usize, ForsError> {
     let digest_bits = parameters
@@ -268,7 +279,7 @@ pub fn selected_secret_value(
     position: ForsPosition,
     output: &mut [u8],
 ) -> Result<(), ForsError> {
-    let index = secret_value_index(parameters, position.tree, position.leaf)?;
+    let index = position.global_index(parameters)?;
 
     secret_value(
         parameters,
@@ -396,6 +407,34 @@ mod tests {
                 actual: parameters.k - 1,
             })
         );
+    }
+
+    #[test]
+    fn fors_position_resolves_to_the_global_secret_value_index() {
+        let parameters = SlhDsaParameterSet::Sha2_128s.parameters();
+        let position = ForsPosition {
+            key_pair_address: 9,
+            tree: 3,
+            leaf: 7,
+        };
+
+        assert_eq!(
+            position.global_index(&parameters),
+            secret_value_index(&parameters, position.tree, position.leaf)
+        );
+    }
+
+    #[test]
+    fn fors_position_preserves_the_key_pair_address() {
+        let parameters = SlhDsaParameterSet::Shake256f.parameters();
+        let position = ForsPosition {
+            key_pair_address: 0x1122_3344,
+            tree: 1,
+            leaf: 2,
+        };
+
+        assert!(position.global_index(&parameters).is_ok());
+        assert_eq!(position.key_pair_address, 0x1122_3344);
     }
 
     #[test]
