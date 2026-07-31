@@ -3,7 +3,7 @@ name = "pqc-rfc9958-xtask"
 version = "0.2.0"
 edition = "2021"
 publish = false
-license = "Apache-2.0 OR MIT"
+license = "MIT"
 
 [workspace]
 

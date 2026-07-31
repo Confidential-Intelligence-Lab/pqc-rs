@@ -7,7 +7,7 @@ authors:
     given-names: Rosario
     alias: Ro
 repository-code: "https://github.com/Confidential-Intelligence-Lab/pqc-rs"
-license: "Apache-2.0 OR MIT"
+license: "MIT"
 version: "0.4.0"
 date-released: "2026-07-22"
 keywords:
