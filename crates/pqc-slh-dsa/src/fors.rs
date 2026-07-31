@@ -292,6 +292,74 @@ pub fn selected_secret_value(
     )
 }
 
+/// Generate a FORS leaf from its global secret-value index.
+///
+/// This implements the leaf case of FIPS 205 `fors_node`. The secret value is
+/// generated with a `FORS_PRF` address and then hashed with an address of type
+/// `FORS_TREE`, tree height zero, and the same global tree index.
+///
+/// The supplied address contributes the layer and tree address. The key-pair
+/// address is restored after each type transition because
+/// [`Address::set_type_and_clear`] clears all type-dependent words.
+pub fn leaf(
+    parameters: &SlhDsaParameters,
+    secret_seed: &[u8],
+    public_seed: &[u8],
+    fors_address: &Address,
+    key_pair_address: u32,
+    index: u32,
+    output: &mut [u8],
+) -> Result<(), ForsError> {
+    let mut secret_value_bytes = [0_u8; 32];
+
+    secret_value(
+        parameters,
+        secret_seed,
+        public_seed,
+        fors_address,
+        key_pair_address,
+        index,
+        &mut secret_value_bytes[..parameters.n],
+    )?;
+
+    let mut tree_address = *fors_address;
+    tree_address.set_type_and_clear(AddressType::ForsTree);
+    tree_address.set_key_pair_address(key_pair_address);
+    tree_address.set_tree_height(0);
+    tree_address.set_tree_index(index);
+
+    HashSuite::new(parameters).f(
+        public_seed,
+        &tree_address,
+        &secret_value_bytes[..parameters.n],
+        output,
+    )?;
+
+    Ok(())
+}
+
+/// Generate the FORS leaf selected by a tree-local position.
+pub fn selected_leaf(
+    parameters: &SlhDsaParameters,
+    secret_seed: &[u8],
+    public_seed: &[u8],
+    fors_address: &Address,
+    position: ForsPosition,
+    output: &mut [u8],
+) -> Result<(), ForsError> {
+    let index = position.global_index(parameters)?;
+
+    leaf(
+        parameters,
+        secret_seed,
+        public_seed,
+        fors_address,
+        position.key_pair_address,
+        index,
+        output,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -577,5 +645,219 @@ mod tests {
                 actual: 15,
             }))
         );
+    }
+    #[test]
+    fn leaf_matches_direct_secret_generation_and_f_evaluation() {
+        for parameter_set in [
+            SlhDsaParameterSet::Sha2_128s,
+            SlhDsaParameterSet::Shake128s,
+            SlhDsaParameterSet::Sha2_256f,
+            SlhDsaParameterSet::Shake256f,
+        ] {
+            let parameters = parameter_set.parameters();
+            let secret_seed = [0x31_u8; 32];
+            let public_seed = [0x57_u8; 32];
+            let address = fors_address();
+            let key_pair_address = 9;
+            let index = 17;
+
+            let mut actual = [0_u8; 32];
+            leaf(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                key_pair_address,
+                index,
+                &mut actual[..parameters.n],
+            )
+            .unwrap();
+
+            let mut secret = [0_u8; 32];
+            secret_value(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                key_pair_address,
+                index,
+                &mut secret[..parameters.n],
+            )
+            .unwrap();
+
+            let mut tree_address = address;
+            tree_address.set_type_and_clear(AddressType::ForsTree);
+            tree_address.set_key_pair_address(key_pair_address);
+            tree_address.set_tree_height(0);
+            tree_address.set_tree_index(index);
+
+            let mut expected = [0_u8; 32];
+            HashSuite::new(&parameters)
+                .f(
+                    &public_seed[..parameters.n],
+                    &tree_address,
+                    &secret[..parameters.n],
+                    &mut expected[..parameters.n],
+                )
+                .unwrap();
+
+            assert_eq!(
+                &actual[..parameters.n],
+                &expected[..parameters.n],
+                "{parameter_set:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn selected_leaf_uses_the_global_fors_index() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0x42_u8; 32];
+        let public_seed = [0x24_u8; 32];
+        let address = fors_address();
+        let position = ForsPosition {
+            key_pair_address: 11,
+            tree: 3,
+            leaf: 7,
+        };
+        let index = position.global_index(&parameters).unwrap();
+
+        let mut selected = [0_u8; 32];
+        selected_leaf(
+            &parameters,
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &address,
+            position,
+            &mut selected[..parameters.n],
+        )
+        .unwrap();
+
+        let mut direct = [0_u8; 32];
+        leaf(
+            &parameters,
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &address,
+            position.key_pair_address,
+            index,
+            &mut direct[..parameters.n],
+        )
+        .unwrap();
+
+        assert_eq!(&selected[..parameters.n], &direct[..parameters.n]);
+    }
+
+    #[test]
+    fn selected_leaf_rejects_an_invalid_tree_position() {
+        let parameters = SlhDsaParameterSet::Sha2_128s.parameters();
+        let secret_seed = [0_u8; 32];
+        let public_seed = [0_u8; 32];
+        let address = fors_address();
+        let position = ForsPosition {
+            key_pair_address: 0,
+            tree: parameters.k,
+            leaf: 0,
+        };
+        let mut output = [0_u8; 32];
+
+        assert_eq!(
+            selected_leaf(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                position,
+                &mut output[..parameters.n],
+            ),
+            Err(ForsError::InvalidTreeIndex {
+                tree: parameters.k,
+                tree_count: parameters.k,
+            })
+        );
+    }
+
+    #[test]
+    fn selected_leaf_rejects_an_invalid_leaf_position() {
+        let parameters = SlhDsaParameterSet::Shake128f.parameters();
+        let leaf_count = leaves_per_tree(&parameters).unwrap();
+        let secret_seed = [0_u8; 32];
+        let public_seed = [0_u8; 32];
+        let address = fors_address();
+        let position = ForsPosition {
+            key_pair_address: 0,
+            tree: 0,
+            leaf: leaf_count as u32,
+        };
+        let mut output = [0_u8; 32];
+
+        assert_eq!(
+            selected_leaf(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                position,
+                &mut output[..parameters.n],
+            ),
+            Err(ForsError::InvalidLeafIndex {
+                leaf: leaf_count as u32,
+                leaf_count,
+            })
+        );
+    }
+
+    #[test]
+    fn leaf_propagates_output_length_errors() {
+        let parameters = SlhDsaParameterSet::Sha2_128s.parameters();
+        let secret_seed = [0_u8; 32];
+        let public_seed = [0_u8; 32];
+        let address = fors_address();
+        let mut output = [0_u8; 32];
+
+        assert!(matches!(
+            leaf(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                0,
+                0,
+                &mut output[..parameters.n - 1],
+            ),
+            Err(ForsError::Hash(_))
+        ));
+    }
+
+    #[test]
+    fn every_parameter_set_generates_a_fors_leaf() {
+        let secret_seed = [0xa5_u8; 32];
+        let public_seed = [0x5a_u8; 32];
+        let address = fors_address();
+
+        for parameter_set in PARAMETER_SETS {
+            let parameters = parameter_set.parameters();
+            let mut output = [0_u8; 32];
+
+            selected_leaf(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                ForsPosition {
+                    key_pair_address: 9,
+                    tree: parameters.k - 1,
+                    leaf: 0,
+                },
+                &mut output[..parameters.n],
+            )
+            .unwrap();
+
+            assert_ne!(
+                &output[..parameters.n],
+                &[0_u8; 32][..parameters.n],
+                "{parameter_set:?}"
+            );
+        }
     }
 }
