@@ -130,4 +130,4 @@ standards mapping.
 
 ## License
 
-Licensed under either Apache-2.0 or MIT, at your option.
+Licensed under the MIT License.

@@ -147,9 +147,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-Licensed under either of:
-
-- Apache License, Version 2.0; or
-- MIT License;
-
-at your option.
+Licensed under the [MIT License](LICENSE).
