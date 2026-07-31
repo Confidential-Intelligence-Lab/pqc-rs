@@ -31,6 +31,15 @@ pub enum ForsError {
         actual: usize,
     },
 
+    /// The caller supplied an authentication path with the wrong length.
+    InvalidAuthenticationPathLength {
+        /// Required authentication-path length in bytes.
+        expected: usize,
+
+        /// Supplied authentication-path length in bytes.
+        actual: usize,
+    },
+
     /// The selected FORS tree is outside the configured tree set.
     InvalidTreeIndex {
         /// Supplied tree index.
@@ -99,6 +108,12 @@ impl fmt::Display for ForsError {
                 write!(
                     formatter,
                     "invalid FORS index count: expected {expected}, got {actual}"
+                )
+            }
+            Self::InvalidAuthenticationPathLength { expected, actual } => {
+                write!(
+                    formatter,
+                    "invalid FORS authentication-path length: expected {expected} bytes, got {actual}"
                 )
             }
             Self::InvalidTreeIndex { tree, tree_count } => {
@@ -565,6 +580,128 @@ pub fn node(
         position,
         &left[..parameters.n],
         &right[..parameters.n],
+        output,
+    )
+}
+
+/// Return the encoded length of one FORS authentication path.
+///
+/// A FORS authentication path contains one `n`-byte sibling node for each of
+/// the `a` levels between a selected leaf and its tree root.
+pub fn authentication_path_bytes(parameters: &SlhDsaParameters) -> Result<usize, ForsError> {
+    parameters
+        .a
+        .checked_mul(parameters.n)
+        .ok_or(ForsError::ParameterOverflow)
+}
+
+/// Generate the authentication path for a selected FORS leaf.
+///
+/// The output contains `a` consecutive `n`-byte nodes, ordered from the leaf
+/// level toward the root. For level `j`, the sibling node has height `j` and
+/// forest-wide index
+///
+/// `tree * 2^(a - j) + ((leaf >> j) ^ 1)`.
+pub fn authentication_path(
+    parameters: &SlhDsaParameters,
+    secret_seed: &[u8],
+    public_seed: &[u8],
+    fors_address: &Address,
+    position: ForsPosition,
+    output: &mut [u8],
+) -> Result<(), ForsError> {
+    let expected = authentication_path_bytes(parameters)?;
+
+    if output.len() != expected {
+        return Err(ForsError::InvalidAuthenticationPathLength {
+            expected,
+            actual: output.len(),
+        });
+    }
+
+    // Validate both the selected tree and the tree-local leaf before deriving
+    // any forest-wide authentication-node coordinates.
+    position.global_index(parameters)?;
+
+    for level in 0..parameters.a {
+        let height = u32::try_from(level).map_err(|_| ForsError::ParameterOverflow)?;
+        let remaining_height = parameters
+            .a
+            .checked_sub(level)
+            .ok_or(ForsError::ParameterOverflow)?;
+
+        let nodes_per_tree = 1_u64
+            .checked_shl(u32::try_from(remaining_height).map_err(|_| ForsError::ParameterOverflow)?)
+            .ok_or(ForsError::ParameterOverflow)?;
+
+        let tree_base = (position.tree as u64)
+            .checked_mul(nodes_per_tree)
+            .ok_or(ForsError::ParameterOverflow)?;
+
+        let sibling_local_index = u64::from(position.leaf.checked_shr(height).unwrap_or(0) ^ 1);
+
+        let sibling_index = tree_base
+            .checked_add(sibling_local_index)
+            .ok_or(ForsError::ParameterOverflow)?;
+
+        let sibling_index =
+            u32::try_from(sibling_index).map_err(|_| ForsError::ParameterOverflow)?;
+
+        let start = level
+            .checked_mul(parameters.n)
+            .ok_or(ForsError::ParameterOverflow)?;
+        let end = start
+            .checked_add(parameters.n)
+            .ok_or(ForsError::ParameterOverflow)?;
+
+        node(
+            parameters,
+            secret_seed,
+            public_seed,
+            fors_address,
+            ForsNodePosition {
+                key_pair_address: position.key_pair_address,
+                height,
+                index: sibling_index,
+            },
+            &mut output[start..end],
+        )?;
+    }
+
+    Ok(())
+}
+
+/// Generate the root of the FORS tree containing a selected leaf.
+///
+/// The selected leaf is validated even though every leaf in the same FORS tree
+/// resolves to the same root. At height `a`, the forest-wide node index equals
+/// the selected tree index.
+pub fn selected_tree_root(
+    parameters: &SlhDsaParameters,
+    secret_seed: &[u8],
+    public_seed: &[u8],
+    fors_address: &Address,
+    position: ForsPosition,
+    output: &mut [u8],
+) -> Result<(), ForsError> {
+    position.global_index(parameters)?;
+
+    let height = u32::try_from(parameters.a).map_err(|_| ForsError::UnsupportedTreeHeight {
+        height: parameters.a,
+    })?;
+
+    let index = u32::try_from(position.tree).map_err(|_| ForsError::ParameterOverflow)?;
+
+    node(
+        parameters,
+        secret_seed,
+        public_seed,
+        fors_address,
+        ForsNodePosition {
+            key_pair_address: position.key_pair_address,
+            height,
+            index,
+        },
         output,
     )
 }
@@ -1549,5 +1686,223 @@ mod tests {
                 node_count,
             })
         );
+    }
+
+    #[test]
+    fn authentication_path_length_is_a_times_n() {
+        for parameter_set in PARAMETER_SETS {
+            let parameters = parameter_set.parameters();
+
+            assert_eq!(
+                authentication_path_bytes(&parameters),
+                Ok(parameters.a * parameters.n)
+            );
+        }
+    }
+
+    #[test]
+    fn authentication_path_rejects_the_wrong_output_length() {
+        let parameters = SlhDsaParameterSet::Sha2_128s.parameters();
+        let secret_seed = [0_u8; 32];
+        let public_seed = [0_u8; 32];
+        let address = fors_address();
+        let position = ForsPosition {
+            key_pair_address: 9,
+            tree: 0,
+            leaf: 0,
+        };
+        let expected = authentication_path_bytes(&parameters).unwrap();
+        let mut output = [0_u8; 512];
+
+        assert_eq!(
+            authentication_path(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                position,
+                &mut output[..expected - 1],
+            ),
+            Err(ForsError::InvalidAuthenticationPathLength {
+                expected,
+                actual: expected - 1,
+            })
+        );
+    }
+
+    #[test]
+    fn authentication_path_matches_independent_sibling_nodes() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0x21_u8; 32];
+        let public_seed = [0x43_u8; 32];
+        let address = fors_address();
+        let position = ForsPosition {
+            key_pair_address: 13,
+            tree: 2,
+            leaf: 17,
+        };
+
+        let path_length = authentication_path_bytes(&parameters).unwrap();
+        let mut path = [0_u8; 512];
+
+        authentication_path(
+            &parameters,
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &address,
+            position,
+            &mut path[..path_length],
+        )
+        .unwrap();
+
+        for level in 0..parameters.a {
+            let height = u32::try_from(level).unwrap();
+            let nodes_per_tree = 1_u64 << (parameters.a - level);
+            let sibling_index =
+                position.tree as u64 * nodes_per_tree + u64::from((position.leaf >> height) ^ 1);
+
+            let mut expected = [0_u8; 32];
+            node(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                ForsNodePosition {
+                    key_pair_address: position.key_pair_address,
+                    height,
+                    index: u32::try_from(sibling_index).unwrap(),
+                },
+                &mut expected[..parameters.n],
+            )
+            .unwrap();
+
+            let start = level * parameters.n;
+            let end = start + parameters.n;
+
+            assert_eq!(
+                &path[start..end],
+                &expected[..parameters.n],
+                "authentication node mismatch at level {level}"
+            );
+        }
+    }
+
+    #[test]
+    fn every_parameter_set_generates_an_authentication_path() {
+        let secret_seed = [0x65_u8; 32];
+        let public_seed = [0x87_u8; 32];
+        let address = fors_address();
+        let mut path = [0_u8; 512];
+
+        for parameter_set in PARAMETER_SETS {
+            let parameters = parameter_set.parameters();
+            let path_length = authentication_path_bytes(&parameters).unwrap();
+            let leaf_count = leaves_per_tree(&parameters).unwrap();
+
+            authentication_path(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                ForsPosition {
+                    key_pair_address: 7,
+                    tree: parameters.k - 1,
+                    leaf: u32::try_from(leaf_count - 1).unwrap(),
+                },
+                &mut path[..path_length],
+            )
+            .unwrap();
+        }
+    }
+
+    #[test]
+    fn selected_tree_root_matches_the_full_height_node() {
+        for parameter_set in [
+            SlhDsaParameterSet::Sha2_128s,
+            SlhDsaParameterSet::Shake192f,
+            SlhDsaParameterSet::Sha2_256f,
+        ] {
+            let parameters = parameter_set.parameters();
+            let secret_seed = [0xa9_u8; 32];
+            let public_seed = [0xcb_u8; 32];
+            let address = fors_address();
+            let position = ForsPosition {
+                key_pair_address: 19,
+                tree: 1,
+                leaf: 3,
+            };
+
+            let mut actual = [0_u8; 32];
+            selected_tree_root(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                position,
+                &mut actual[..parameters.n],
+            )
+            .unwrap();
+
+            let mut expected = [0_u8; 32];
+            node(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                ForsNodePosition {
+                    key_pair_address: position.key_pair_address,
+                    height: u32::try_from(parameters.a).unwrap(),
+                    index: u32::try_from(position.tree).unwrap(),
+                },
+                &mut expected[..parameters.n],
+            )
+            .unwrap();
+
+            assert_eq!(
+                &actual[..parameters.n],
+                &expected[..parameters.n],
+                "{parameter_set:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn selected_tree_root_domain_separates_key_pair_addresses() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0xed_u8; 32];
+        let public_seed = [0x0f_u8; 32];
+        let address = fors_address();
+
+        let mut first = [0_u8; 32];
+        selected_tree_root(
+            &parameters,
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &address,
+            ForsPosition {
+                key_pair_address: 1,
+                tree: 0,
+                leaf: 0,
+            },
+            &mut first[..parameters.n],
+        )
+        .unwrap();
+
+        let mut second = [0_u8; 32];
+        selected_tree_root(
+            &parameters,
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &address,
+            ForsPosition {
+                key_pair_address: 2,
+                tree: 0,
+                leaf: 0,
+            },
+            &mut second[..parameters.n],
+        )
+        .unwrap();
+
+        assert_ne!(&first[..parameters.n], &second[..parameters.n]);
     }
 }
