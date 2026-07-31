@@ -93,7 +93,7 @@ pub fn to_int(input: &[u8]) -> Result<u64, ConversionError> {
 /// Digits are extracted most-significant bit first. The output slice length
 /// determines the number of digits requested.
 pub fn base_2b(input: &[u8], bits: usize, output: &mut [u32]) -> Result<(), ConversionError> {
-    if !(1..=8).contains(&bits) {
+    if !(1..=u32::BITS as usize).contains(&bits) {
         return Err(ConversionError::InvalidDigitWidth { bits });
     }
 
@@ -114,20 +114,20 @@ pub fn base_2b(input: &[u8], bits: usize, output: &mut [u32]) -> Result<(), Conv
         });
     }
 
-    let mask = (1_u32 << bits) - 1;
-    let mut input_index = 0_usize;
-    let mut accumulator = 0_u32;
-    let mut accumulator_bits = 0_usize;
+    for (digit_index, digit) in output.iter_mut().enumerate() {
+        let start_bit = digit_index * bits;
+        let mut value = 0_u32;
 
-    for digit in output {
-        while accumulator_bits < bits {
-            accumulator = (accumulator << 8) | u32::from(input[input_index]);
-            input_index += 1;
-            accumulator_bits += 8;
+        for offset in 0..bits {
+            let bit_index = start_bit + offset;
+            let byte = input[bit_index / 8];
+            let shift = 7 - (bit_index % 8);
+            let bit = u32::from((byte >> shift) & 1);
+
+            value = (value << 1) | bit;
         }
 
-        accumulator_bits -= bits;
-        *digit = (accumulator >> accumulator_bits) & mask;
+        *digit = value;
     }
 
     Ok(())
@@ -218,9 +218,29 @@ mod tests {
         );
 
         assert_eq!(
-            base_2b(&[0], 9, &mut output),
-            Err(ConversionError::InvalidDigitWidth { bits: 9 })
+            base_2b(&[0_u8; 5], 33, &mut output),
+            Err(ConversionError::InvalidDigitWidth { bits: 33 })
         );
+    }
+
+    #[test]
+    fn base_2b_supports_fors_widths_larger_than_one_byte() {
+        let input = [0xab, 0xcd, 0xef, 0x12];
+        let mut output = [0_u32; 2];
+
+        base_2b(&input, 12, &mut output).unwrap();
+
+        assert_eq!(output, [0xabc, 0xdef]);
+    }
+
+    #[test]
+    fn base_2b_supports_thirty_two_bit_digits() {
+        let input = [0x01, 0x23, 0x45, 0x67];
+        let mut output = [0_u32; 1];
+
+        base_2b(&input, 32, &mut output).unwrap();
+
+        assert_eq!(output, [0x0123_4567]);
     }
 
     #[test]

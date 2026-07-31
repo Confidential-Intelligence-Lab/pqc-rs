@@ -40,6 +40,14 @@ mod hash_suite;
 
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
+pub mod fors;
+
+#[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
+mod fors;
+
+#[cfg(feature = "internal-api")]
+#[doc(hidden)]
 pub mod message_digest;
 
 #[cfg(not(feature = "internal-api"))]
