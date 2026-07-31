@@ -7,7 +7,10 @@
 use core::fmt;
 
 use crate::{
+    address::{Address, AddressType},
     conversion::{base_2b, ConversionError},
+    hash::HashError,
+    hash_suite::HashSuite,
     params::SlhDsaParameters,
 };
 
@@ -44,8 +47,38 @@ pub enum WotsError {
     /// A WOTS+ parameter or checksum calculation overflowed.
     ParameterOverflow,
 
+    /// The supplied byte string has the wrong length.
+    InvalidByteLength {
+        /// Required byte length.
+        expected: usize,
+
+        /// Supplied byte length.
+        actual: usize,
+    },
+
+    /// The selected WOTS+ chain index is outside the configured chain set.
+    InvalidChainIndex {
+        /// Supplied chain index.
+        index: usize,
+
+        /// Number of WOTS+ chains.
+        chain_count: usize,
+    },
+
+    /// The requested chain interval exceeds the WOTS+ chain length.
+    InvalidChainRange {
+        /// Initial hash-chain position.
+        start: u32,
+
+        /// Number of requested hash steps.
+        steps: u32,
+    },
+
     /// Byte-to-base conversion failed.
     Conversion(ConversionError),
+
+    /// Hash evaluation failed.
+    Hash(HashError),
 }
 
 impl fmt::Display for WotsError {
@@ -69,8 +102,29 @@ impl fmt::Display for WotsError {
                     "WOTS+ parameter or checksum calculation overflowed"
                 )
             }
+            Self::InvalidByteLength { expected, actual } => {
+                write!(
+                    formatter,
+                    "invalid WOTS+ byte length: expected {expected} bytes, got {actual}"
+                )
+            }
+            Self::InvalidChainIndex { index, chain_count } => {
+                write!(
+                    formatter,
+                    "WOTS+ chain index {index} is outside the configured {chain_count} chains"
+                )
+            }
+            Self::InvalidChainRange { start, steps } => {
+                write!(
+                    formatter,
+                    "WOTS+ chain interval starting at {start} with {steps} steps exceeds the chain"
+                )
+            }
             Self::Conversion(error) => {
                 write!(formatter, "WOTS+ base conversion failed: {error}")
+            }
+            Self::Hash(error) => {
+                write!(formatter, "WOTS+ hash evaluation failed: {error}")
             }
         }
     }
@@ -79,6 +133,12 @@ impl fmt::Display for WotsError {
 impl From<ConversionError> for WotsError {
     fn from(error: ConversionError) -> Self {
         Self::Conversion(error)
+    }
+}
+
+impl From<HashError> for WotsError {
+    fn from(error: HashError) -> Self {
+        Self::Hash(error)
     }
 }
 
@@ -131,6 +191,205 @@ pub fn checksum_bytes(parameters: &SlhDsaParameters) -> Result<usize, WotsError>
         .and_then(|bits| bits.checked_add(7))
         .map(|rounded_bits| rounded_bits / 8)
         .ok_or(WotsError::ParameterOverflow)
+}
+
+/// Apply a segment of a WOTS+ hash chain.
+///
+/// The supplied address must identify the WOTS+ chain. This function updates
+/// only the hash-step word, using consecutive values beginning at `start`.
+///
+/// The valid WOTS+ chain positions are `0..WOTS_W`; therefore
+/// `start + steps` must not exceed `WOTS_W - 1`.
+pub fn chain(
+    parameters: &SlhDsaParameters,
+    public_seed: &[u8],
+    address: &Address,
+    start_value: &[u8],
+    start: u32,
+    steps: u32,
+    output: &mut [u8],
+) -> Result<(), WotsError> {
+    if start_value.len() != parameters.n {
+        return Err(WotsError::InvalidByteLength {
+            expected: parameters.n,
+            actual: start_value.len(),
+        });
+    }
+
+    if output.len() != parameters.n {
+        return Err(WotsError::InvalidByteLength {
+            expected: parameters.n,
+            actual: output.len(),
+        });
+    }
+
+    let end = start
+        .checked_add(steps)
+        .ok_or(WotsError::ParameterOverflow)?;
+
+    if end > WOTS_W - 1 {
+        return Err(WotsError::InvalidChainRange { start, steps });
+    }
+
+    let mut current = [0_u8; 32];
+    current[..parameters.n].copy_from_slice(start_value);
+
+    let suite = HashSuite::new(parameters);
+    let mut chain_address = *address;
+
+    for hash_step in start..end {
+        chain_address.set_hash_address(hash_step);
+
+        let mut next = [0_u8; 32];
+        suite.f(
+            public_seed,
+            &chain_address,
+            &current[..parameters.n],
+            &mut next[..parameters.n],
+        )?;
+
+        current[..parameters.n].copy_from_slice(&next[..parameters.n]);
+    }
+
+    output.copy_from_slice(&current[..parameters.n]);
+
+    Ok(())
+}
+
+/// Generate one WOTS+ secret-key element.
+///
+/// This implements the FIPS 205 `wots_skGen` operation for one chain index.
+/// The layer, tree, and key-pair components are inherited from `wots_address`.
+pub fn secret_key_element(
+    parameters: &SlhDsaParameters,
+    secret_seed: &[u8],
+    public_seed: &[u8],
+    wots_address: &Address,
+    chain_index: usize,
+    output: &mut [u8],
+) -> Result<(), WotsError> {
+    let chain_count = len(parameters)?;
+
+    if chain_index >= chain_count {
+        return Err(WotsError::InvalidChainIndex {
+            index: chain_index,
+            chain_count,
+        });
+    }
+
+    let chain_index = u32::try_from(chain_index).map_err(|_| WotsError::ParameterOverflow)?;
+
+    let key_pair_address = wots_address.key_pair_address();
+    let mut secret_address = *wots_address;
+
+    secret_address.set_type_and_clear(AddressType::WotsPrf);
+    secret_address.set_key_pair_address(key_pair_address);
+    secret_address.set_chain_address(chain_index);
+
+    HashSuite::new(parameters).prf(public_seed, secret_seed, &secret_address, output)?;
+
+    Ok(())
+}
+
+/// Generate one WOTS+ public-key chain endpoint.
+///
+/// The corresponding secret-key element is generated with `PRF` and then
+/// advanced through all `WOTS_W - 1` applications of `F`.
+pub fn public_key_element(
+    parameters: &SlhDsaParameters,
+    secret_seed: &[u8],
+    public_seed: &[u8],
+    wots_address: &Address,
+    chain_index: usize,
+    output: &mut [u8],
+) -> Result<(), WotsError> {
+    let mut secret_value = [0_u8; 32];
+
+    secret_key_element(
+        parameters,
+        secret_seed,
+        public_seed,
+        wots_address,
+        chain_index,
+        &mut secret_value[..parameters.n],
+    )?;
+
+    let chain_index_u32 = u32::try_from(chain_index).map_err(|_| WotsError::ParameterOverflow)?;
+    let key_pair_address = wots_address.key_pair_address();
+
+    let mut chain_address = *wots_address;
+    chain_address.set_type_and_clear(AddressType::WotsHash);
+    chain_address.set_key_pair_address(key_pair_address);
+    chain_address.set_chain_address(chain_index_u32);
+
+    chain(
+        parameters,
+        public_seed,
+        &chain_address,
+        &secret_value[..parameters.n],
+        0,
+        WOTS_W - 1,
+        output,
+    )
+}
+
+/// Generate and compress a complete WOTS+ public key.
+///
+/// All `len` chain endpoints are concatenated and compressed with `T_l` under
+/// a `WOTS_PK` address.
+pub fn public_key(
+    parameters: &SlhDsaParameters,
+    secret_seed: &[u8],
+    public_seed: &[u8],
+    wots_address: &Address,
+    output: &mut [u8],
+) -> Result<(), WotsError> {
+    if output.len() != parameters.n {
+        return Err(WotsError::InvalidByteLength {
+            expected: parameters.n,
+            actual: output.len(),
+        });
+    }
+
+    let chain_count = len(parameters)?;
+    let endpoint_bytes = chain_count
+        .checked_mul(parameters.n)
+        .ok_or(WotsError::ParameterOverflow)?;
+
+    let mut endpoints = [0_u8; MAX_WOTS_LEN * 32];
+
+    for chain_index in 0..chain_count {
+        let start = chain_index
+            .checked_mul(parameters.n)
+            .ok_or(WotsError::ParameterOverflow)?;
+        let end = start
+            .checked_add(parameters.n)
+            .ok_or(WotsError::ParameterOverflow)?;
+
+        public_key_element(
+            parameters,
+            secret_seed,
+            public_seed,
+            wots_address,
+            chain_index,
+            &mut endpoints[start..end],
+        )?;
+    }
+
+    let key_pair_address = wots_address.key_pair_address();
+    let mut public_key_address = *wots_address;
+
+    public_key_address.set_type_and_clear(AddressType::WotsPublicKey);
+    public_key_address.set_key_pair_address(key_pair_address);
+
+    HashSuite::new(parameters).t_l(
+        public_seed,
+        &public_key_address,
+        &endpoints[..endpoint_bytes],
+        output,
+    )?;
+
+    Ok(())
 }
 
 /// Convert an `n`-byte message into its `len_1` base-`w` digits.
@@ -276,6 +535,334 @@ mod tests {
         SlhDsaParameterSet::Shake256s,
         SlhDsaParameterSet::Shake256f,
     ];
+
+    fn test_address(key_pair: u32) -> Address {
+        let mut address = Address::new();
+        address.set_layer_address(3);
+        address.set_tree_address(0x0102_0304_0506_0708);
+        address.set_type_and_clear(AddressType::WotsHash);
+        address.set_key_pair_address(key_pair);
+        address
+    }
+
+    #[test]
+    fn zero_step_chain_returns_its_start_value() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let public_seed = [0x11_u8; 16];
+        let start_value = [0x22_u8; 16];
+        let mut output = [0_u8; 16];
+
+        chain(
+            &parameters,
+            &public_seed,
+            &test_address(7),
+            &start_value,
+            4,
+            0,
+            &mut output,
+        )
+        .unwrap();
+
+        assert_eq!(output, start_value);
+    }
+
+    #[test]
+    fn chain_matches_repeated_direct_f_evaluation() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let public_seed = [0x31_u8; 16];
+        let start_value = [0x42_u8; 16];
+
+        let mut address = test_address(9);
+        address.set_chain_address(5);
+
+        let mut chained = [0_u8; 16];
+
+        chain(
+            &parameters,
+            &public_seed,
+            &address,
+            &start_value,
+            2,
+            3,
+            &mut chained,
+        )
+        .unwrap();
+
+        let suite = HashSuite::new(&parameters);
+        let mut current = start_value;
+
+        for hash_step in 2..5 {
+            address.set_hash_address(hash_step);
+            let mut next = [0_u8; 16];
+
+            suite
+                .f(&public_seed, &address, &current, &mut next)
+                .unwrap();
+
+            current = next;
+        }
+
+        assert_eq!(chained, current);
+    }
+
+    #[test]
+    fn chain_rejects_ranges_past_the_endpoint() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let public_seed = [0_u8; 16];
+        let start_value = [0_u8; 16];
+        let mut output = [0_u8; 16];
+
+        assert_eq!(
+            chain(
+                &parameters,
+                &public_seed,
+                &test_address(0),
+                &start_value,
+                14,
+                2,
+                &mut output,
+            ),
+            Err(WotsError::InvalidChainRange {
+                start: 14,
+                steps: 2,
+            })
+        );
+    }
+
+    #[test]
+    fn secret_key_element_matches_direct_prf_evaluation() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0x51_u8; 16];
+        let public_seed = [0x62_u8; 16];
+        let address = test_address(11);
+
+        let mut generated = [0_u8; 16];
+
+        secret_key_element(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            7,
+            &mut generated,
+        )
+        .unwrap();
+
+        let mut expected_address = address;
+        expected_address.set_type_and_clear(AddressType::WotsPrf);
+        expected_address.set_key_pair_address(11);
+        expected_address.set_chain_address(7);
+
+        let mut expected = [0_u8; 16];
+
+        HashSuite::new(&parameters)
+            .prf(&public_seed, &secret_seed, &expected_address, &mut expected)
+            .unwrap();
+
+        assert_eq!(generated, expected);
+    }
+
+    #[test]
+    fn secret_key_elements_are_domain_separated_by_chain_index() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0x71_u8; 16];
+        let public_seed = [0x82_u8; 16];
+        let address = test_address(13);
+
+        let mut first = [0_u8; 16];
+        let mut second = [0_u8; 16];
+
+        secret_key_element(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            0,
+            &mut first,
+        )
+        .unwrap();
+
+        secret_key_element(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            1,
+            &mut second,
+        )
+        .unwrap();
+
+        assert_ne!(first, second);
+    }
+
+    #[test]
+    fn public_key_element_matches_secret_value_followed_by_full_chain() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0x91_u8; 16];
+        let public_seed = [0xa2_u8; 16];
+        let address = test_address(15);
+
+        let mut generated = [0_u8; 16];
+
+        public_key_element(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            4,
+            &mut generated,
+        )
+        .unwrap();
+
+        let mut secret = [0_u8; 16];
+
+        secret_key_element(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            4,
+            &mut secret,
+        )
+        .unwrap();
+
+        let mut chain_address = address;
+        chain_address.set_type_and_clear(AddressType::WotsHash);
+        chain_address.set_key_pair_address(15);
+        chain_address.set_chain_address(4);
+
+        let mut expected = [0_u8; 16];
+
+        chain(
+            &parameters,
+            &public_seed,
+            &chain_address,
+            &secret,
+            0,
+            WOTS_W - 1,
+            &mut expected,
+        )
+        .unwrap();
+
+        assert_eq!(generated, expected);
+    }
+
+    #[test]
+    fn public_key_matches_direct_endpoint_compression() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0xb1_u8; 16];
+        let public_seed = [0xc2_u8; 16];
+        let address = test_address(17);
+
+        let mut generated = [0_u8; 16];
+
+        public_key(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            &mut generated,
+        )
+        .unwrap();
+
+        let chain_count = len(&parameters).unwrap();
+        let mut endpoints = [0_u8; MAX_WOTS_LEN * 32];
+
+        for chain_index in 0..chain_count {
+            let start = chain_index * parameters.n;
+            let end = start + parameters.n;
+
+            public_key_element(
+                &parameters,
+                &secret_seed,
+                &public_seed,
+                &address,
+                chain_index,
+                &mut endpoints[start..end],
+            )
+            .unwrap();
+        }
+
+        let mut compression_address = address;
+        compression_address.set_type_and_clear(AddressType::WotsPublicKey);
+        compression_address.set_key_pair_address(17);
+
+        let mut expected = [0_u8; 16];
+
+        HashSuite::new(&parameters)
+            .t_l(
+                &public_seed,
+                &compression_address,
+                &endpoints[..chain_count * parameters.n],
+                &mut expected,
+            )
+            .unwrap();
+
+        assert_eq!(generated, expected);
+    }
+
+    #[test]
+    fn public_key_is_deterministic_for_every_parameter_set() {
+        for parameter_set in PARAMETER_SETS {
+            let parameters = parameter_set.parameters();
+            let secret_seed = [0xd1_u8; 32];
+            let public_seed = [0xe2_u8; 32];
+            let address = test_address(19);
+
+            let mut first = [0_u8; 32];
+            let mut second = [0_u8; 32];
+
+            public_key(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                &mut first[..parameters.n],
+            )
+            .unwrap();
+
+            public_key(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                &mut second[..parameters.n],
+            )
+            .unwrap();
+
+            assert_eq!(&first[..parameters.n], &second[..parameters.n]);
+        }
+    }
+
+    #[test]
+    fn public_key_is_domain_separated_by_key_pair_address() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0xf1_u8; 16];
+        let public_seed = [0x12_u8; 16];
+
+        let mut first = [0_u8; 16];
+        let mut second = [0_u8; 16];
+
+        public_key(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &test_address(20),
+            &mut first,
+        )
+        .unwrap();
+
+        public_key(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &test_address(21),
+            &mut second,
+        )
+        .unwrap();
+
+        assert_ne!(first, second);
+    }
 
     #[test]
     fn fips_parameter_sets_have_the_expected_wots_lengths() {
