@@ -30,6 +30,14 @@ pub mod hash;
 #[allow(dead_code)]
 mod hash;
 
+#[cfg(feature = "internal-api")]
+#[doc(hidden)]
+pub mod message_digest;
+
+#[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
+mod message_digest;
+
 pub mod api;
 pub mod error;
 pub mod params;

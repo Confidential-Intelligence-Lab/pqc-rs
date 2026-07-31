@@ -39,6 +39,9 @@ pub enum HashError {
         /// Unsupported output length in bytes.
         actual: usize,
     },
+
+    /// MGF1 could not generate the requested output.
+    MaskGeneration(Mgf1Error),
 }
 
 impl fmt::Display for HashError {
@@ -66,7 +69,16 @@ impl fmt::Display for HashError {
                     "unsupported SLH-DSA hash output length: {actual} bytes"
                 )
             }
+            Self::MaskGeneration(error) => {
+                write!(formatter, "message-digest expansion failed: {error}")
+            }
         }
+    }
+}
+
+impl From<Mgf1Error> for HashError {
+    fn from(error: Mgf1Error) -> Self {
+        Self::MaskGeneration(error)
     }
 }
 
@@ -107,6 +119,53 @@ impl ShakeTweakableHash {
         self.validate_output(output)?;
 
         shake256_into(&[public_seed, address.as_bytes(), secret_seed], output);
+
+        Ok(())
+    }
+
+    /// Generate the FIPS 205 per-message randomization value.
+    ///
+    /// SHAKE256 absorbs:
+    ///
+    /// `SK.prf || opt_rand || M`
+    ///
+    /// and returns `n` bytes.
+    pub fn prf_msg(
+        self,
+        secret_prf: &[u8],
+        optional_randomness: &[u8],
+        message: &[u8],
+        output: &mut [u8],
+    ) -> Result<(), HashError> {
+        self.validate_fixed_input(secret_prf, "secret PRF key")?;
+        self.validate_fixed_input(optional_randomness, "optional randomness")?;
+        self.validate_output(output)?;
+
+        shake256_into(&[secret_prf, optional_randomness, message], output);
+
+        Ok(())
+    }
+
+    /// Generate the FIPS 205 message digest.
+    ///
+    /// SHAKE256 absorbs:
+    ///
+    /// `R || PK.seed || PK.root || M`
+    ///
+    /// and fills the caller-provided output buffer.
+    pub fn h_msg(
+        self,
+        randomizer: &[u8],
+        public_seed: &[u8],
+        public_root: &[u8],
+        message: &[u8],
+        output: &mut [u8],
+    ) -> Result<(), HashError> {
+        self.validate_fixed_input(randomizer, "message randomizer")?;
+        self.validate_fixed_input(public_seed, "public seed")?;
+        self.validate_fixed_input(public_root, "public root")?;
+
+        shake256_into(&[randomizer, public_seed, public_root, message], output);
 
         Ok(())
     }
@@ -254,6 +313,90 @@ impl Sha2TweakableHash {
         Ok(())
     }
 
+    /// Generate the FIPS 205 per-message randomization value.
+    ///
+    /// For `n = 16`, this evaluates HMAC-SHA-256 over
+    /// `opt_rand || M` using `SK.prf` as the key. For `n = 24` or `n = 32`,
+    /// it evaluates HMAC-SHA-512 instead. The result is truncated to `n`
+    /// bytes.
+    pub fn prf_msg(
+        self,
+        secret_prf: &[u8],
+        optional_randomness: &[u8],
+        message: &[u8],
+        output: &mut [u8],
+    ) -> Result<(), HashError> {
+        self.validate_configuration()?;
+        self.validate_fixed_input(secret_prf, "secret PRF key")?;
+        self.validate_fixed_input(optional_randomness, "optional randomness")?;
+        self.validate_output(output)?;
+
+        if self.output_bytes == 16 {
+            hmac_sha256_truncated(secret_prf, &[optional_randomness, message], output);
+        } else {
+            hmac_sha512_truncated(secret_prf, &[optional_randomness, message], output);
+        }
+
+        Ok(())
+    }
+
+    /// Generate the FIPS 205 message digest.
+    ///
+    /// For `n = 16`, SHA-256 hashes
+    /// `R || PK.seed || PK.root || M`, and MGF1-SHA-256 expands
+    /// `R || PK.seed || digest`.
+    ///
+    /// For `n = 24` or `n = 32`, SHA-512 and MGF1-SHA-512 are used.
+    pub fn h_msg(
+        self,
+        randomizer: &[u8],
+        public_seed: &[u8],
+        public_root: &[u8],
+        message: &[u8],
+        output: &mut [u8],
+    ) -> Result<(), HashError> {
+        self.validate_configuration()?;
+        self.validate_fixed_input(randomizer, "message randomizer")?;
+        self.validate_fixed_input(public_seed, "public seed")?;
+        self.validate_fixed_input(public_root, "public root")?;
+
+        if self.output_bytes == 16 {
+            let mut hasher = Sha256::new();
+            Sha2Digest::update(&mut hasher, randomizer);
+            Sha2Digest::update(&mut hasher, public_seed);
+            Sha2Digest::update(&mut hasher, public_root);
+            Sha2Digest::update(&mut hasher, message);
+            let digest = hasher.finalize();
+
+            let mut seed = [0_u8; 64];
+            let seed_bytes = 2 * self.output_bytes + digest.len();
+
+            seed[..self.output_bytes].copy_from_slice(randomizer);
+            seed[self.output_bytes..2 * self.output_bytes].copy_from_slice(public_seed);
+            seed[2 * self.output_bytes..seed_bytes].copy_from_slice(&digest);
+
+            mgf1_sha256(&seed[..seed_bytes], output)?;
+        } else {
+            let mut hasher = Sha512::new();
+            Sha2Digest::update(&mut hasher, randomizer);
+            Sha2Digest::update(&mut hasher, public_seed);
+            Sha2Digest::update(&mut hasher, public_root);
+            Sha2Digest::update(&mut hasher, message);
+            let digest = hasher.finalize();
+
+            let mut seed = [0_u8; 128];
+            let seed_bytes = 2 * self.output_bytes + digest.len();
+
+            seed[..self.output_bytes].copy_from_slice(randomizer);
+            seed[self.output_bytes..2 * self.output_bytes].copy_from_slice(public_seed);
+            seed[2 * self.output_bytes..seed_bytes].copy_from_slice(&digest);
+
+            mgf1_sha512(&seed[..seed_bytes], output)?;
+        }
+
+        Ok(())
+    }
+
     /// Evaluate the one-block FIPS 205 tweakable hash `F`.
     ///
     /// SHA-256 absorbs:
@@ -394,6 +537,62 @@ impl Sha2TweakableHash {
 
         Ok(())
     }
+}
+
+fn hmac_sha256_truncated(key: &[u8], inputs: &[&[u8]], output: &mut [u8]) {
+    const BLOCK_BYTES: usize = 64;
+
+    let mut inner_pad = [0x36_u8; BLOCK_BYTES];
+    let mut outer_pad = [0x5c_u8; BLOCK_BYTES];
+
+    for (index, byte) in key.iter().enumerate() {
+        inner_pad[index] ^= byte;
+        outer_pad[index] ^= byte;
+    }
+
+    let mut inner = Sha256::new();
+    Sha2Digest::update(&mut inner, inner_pad);
+
+    for input in inputs {
+        Sha2Digest::update(&mut inner, input);
+    }
+
+    let inner_digest = inner.finalize();
+
+    let mut outer = Sha256::new();
+    Sha2Digest::update(&mut outer, outer_pad);
+    Sha2Digest::update(&mut outer, inner_digest);
+
+    let digest = outer.finalize();
+    output.copy_from_slice(&digest[..output.len()]);
+}
+
+fn hmac_sha512_truncated(key: &[u8], inputs: &[&[u8]], output: &mut [u8]) {
+    const BLOCK_BYTES: usize = 128;
+
+    let mut inner_pad = [0x36_u8; BLOCK_BYTES];
+    let mut outer_pad = [0x5c_u8; BLOCK_BYTES];
+
+    for (index, byte) in key.iter().enumerate() {
+        inner_pad[index] ^= byte;
+        outer_pad[index] ^= byte;
+    }
+
+    let mut inner = Sha512::new();
+    Sha2Digest::update(&mut inner, inner_pad);
+
+    for input in inputs {
+        Sha2Digest::update(&mut inner, input);
+    }
+
+    let inner_digest = inner.finalize();
+
+    let mut outer = Sha512::new();
+    Sha2Digest::update(&mut outer, outer_pad);
+    Sha2Digest::update(&mut outer, inner_digest);
+
+    let digest = outer.finalize();
+    output.copy_from_slice(&digest[..output.len()]);
 }
 
 fn sha256_truncated(inputs: &[&[u8]], output: &mut [u8]) {
@@ -903,6 +1102,399 @@ mod sha2_tweakable_hash_tests {
         assert_eq!(
             hash.f(&[0_u8; 20], &address, &[0_u8; 20], &mut output),
             Err(HashError::UnsupportedOutputLength { actual: 20 })
+        );
+    }
+}
+
+#[cfg(test)]
+mod prf_msg_tests {
+    use super::*;
+
+    fn reference_hmac_sha256(key: &[u8], inputs: &[&[u8]], output: &mut [u8]) {
+        const BLOCK_BYTES: usize = 64;
+
+        let mut inner_pad = [0x36_u8; BLOCK_BYTES];
+        let mut outer_pad = [0x5c_u8; BLOCK_BYTES];
+
+        for (index, byte) in key.iter().enumerate() {
+            inner_pad[index] ^= byte;
+            outer_pad[index] ^= byte;
+        }
+
+        let mut inner = Sha256::new();
+        Sha2Digest::update(&mut inner, inner_pad);
+
+        for input in inputs {
+            Sha2Digest::update(&mut inner, input);
+        }
+
+        let inner_digest = inner.finalize();
+
+        let mut outer = Sha256::new();
+        Sha2Digest::update(&mut outer, outer_pad);
+        Sha2Digest::update(&mut outer, inner_digest);
+
+        let digest = outer.finalize();
+        output.copy_from_slice(&digest[..output.len()]);
+    }
+
+    fn reference_hmac_sha512(key: &[u8], inputs: &[&[u8]], output: &mut [u8]) {
+        const BLOCK_BYTES: usize = 128;
+
+        let mut inner_pad = [0x36_u8; BLOCK_BYTES];
+        let mut outer_pad = [0x5c_u8; BLOCK_BYTES];
+
+        for (index, byte) in key.iter().enumerate() {
+            inner_pad[index] ^= byte;
+            outer_pad[index] ^= byte;
+        }
+
+        let mut inner = Sha512::new();
+        Sha2Digest::update(&mut inner, inner_pad);
+
+        for input in inputs {
+            Sha2Digest::update(&mut inner, input);
+        }
+
+        let inner_digest = inner.finalize();
+
+        let mut outer = Sha512::new();
+        Sha2Digest::update(&mut outer, outer_pad);
+        Sha2Digest::update(&mut outer, inner_digest);
+
+        let digest = outer.finalize();
+        output.copy_from_slice(&digest[..output.len()]);
+    }
+
+    #[test]
+    fn shake_prf_msg_matches_direct_absorption() {
+        let hash = ShakeTweakableHash::new(16);
+        let secret_prf = [0x11_u8; 16];
+        let optional_randomness = [0x22_u8; 16];
+        let message = b"SLH-DSA message";
+        let mut actual = [0_u8; 16];
+        let mut expected = [0_u8; 16];
+
+        hash.prf_msg(&secret_prf, &optional_randomness, message, &mut actual)
+            .unwrap();
+
+        shake256_into(&[&secret_prf, &optional_randomness, message], &mut expected);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn shake_prf_msg_supports_32_byte_outputs() {
+        let hash = ShakeTweakableHash::new(32);
+        let secret_prf = [0x33_u8; 32];
+        let optional_randomness = [0x44_u8; 32];
+        let message = [0x55_u8; 97];
+        let mut first = [0_u8; 32];
+        let mut second = [0_u8; 32];
+
+        hash.prf_msg(&secret_prf, &optional_randomness, &message, &mut first)
+            .unwrap();
+
+        shake256_into(&[&secret_prf, &optional_randomness, &message], &mut second);
+
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn sha2_category_one_uses_hmac_sha256() {
+        let hash = Sha2TweakableHash::new(16);
+        let secret_prf = [0x66_u8; 16];
+        let optional_randomness = [0x77_u8; 16];
+        let message = b"category one message";
+        let mut actual = [0_u8; 16];
+        let mut expected = [0_u8; 16];
+
+        hash.prf_msg(&secret_prf, &optional_randomness, message, &mut actual)
+            .unwrap();
+
+        reference_hmac_sha256(&secret_prf, &[&optional_randomness, message], &mut expected);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn sha2_category_three_uses_hmac_sha512() {
+        let hash = Sha2TweakableHash::new(24);
+        let secret_prf = [0x88_u8; 24];
+        let optional_randomness = [0x99_u8; 24];
+        let message = b"category three message";
+        let mut actual = [0_u8; 24];
+        let mut expected = [0_u8; 24];
+
+        hash.prf_msg(&secret_prf, &optional_randomness, message, &mut actual)
+            .unwrap();
+
+        reference_hmac_sha512(&secret_prf, &[&optional_randomness, message], &mut expected);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn sha2_category_five_uses_hmac_sha512() {
+        let hash = Sha2TweakableHash::new(32);
+        let secret_prf = [0xaa_u8; 32];
+        let optional_randomness = [0xbb_u8; 32];
+        let message = [0xcc_u8; 129];
+        let mut actual = [0_u8; 32];
+        let mut expected = [0_u8; 32];
+
+        hash.prf_msg(&secret_prf, &optional_randomness, &message, &mut actual)
+            .unwrap();
+
+        reference_hmac_sha512(
+            &secret_prf,
+            &[&optional_randomness, &message],
+            &mut expected,
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn prf_msg_validates_fixed_length_inputs() {
+        let shake = ShakeTweakableHash::new(16);
+        let sha2 = Sha2TweakableHash::new(16);
+        let mut output = [0_u8; 16];
+
+        assert_eq!(
+            shake.prf_msg(&[0_u8; 15], &[0_u8; 16], b"", &mut output),
+            Err(HashError::InvalidInputLength {
+                input: "secret PRF key",
+                expected: 16,
+                actual: 15,
+            })
+        );
+
+        assert_eq!(
+            sha2.prf_msg(&[0_u8; 16], &[0_u8; 15], b"", &mut output),
+            Err(HashError::InvalidInputLength {
+                input: "optional randomness",
+                expected: 16,
+                actual: 15,
+            })
+        );
+    }
+}
+
+#[cfg(test)]
+mod h_msg_tests {
+    use super::*;
+
+    fn reference_mgf1_sha256(seed: &[u8], output: &mut [u8]) {
+        for (counter, chunk) in output.chunks_mut(32).enumerate() {
+            let mut hasher = Sha256::new();
+            Sha2Digest::update(&mut hasher, seed);
+            Sha2Digest::update(&mut hasher, u32::try_from(counter).unwrap().to_be_bytes());
+
+            let digest = hasher.finalize();
+            chunk.copy_from_slice(&digest[..chunk.len()]);
+        }
+    }
+
+    fn reference_mgf1_sha512(seed: &[u8], output: &mut [u8]) {
+        for (counter, chunk) in output.chunks_mut(64).enumerate() {
+            let mut hasher = Sha512::new();
+            Sha2Digest::update(&mut hasher, seed);
+            Sha2Digest::update(&mut hasher, u32::try_from(counter).unwrap().to_be_bytes());
+
+            let digest = hasher.finalize();
+            chunk.copy_from_slice(&digest[..chunk.len()]);
+        }
+    }
+
+    #[test]
+    fn shake_h_msg_matches_direct_xof_absorption() {
+        let hash = ShakeTweakableHash::new(16);
+        let randomizer = [0x11_u8; 16];
+        let public_seed = [0x22_u8; 16];
+        let public_root = [0x33_u8; 16];
+        let message = b"SLH-DSA message digest input";
+        let mut actual = [0_u8; 30];
+        let mut expected = [0_u8; 30];
+
+        hash.h_msg(
+            &randomizer,
+            &public_seed,
+            &public_root,
+            message,
+            &mut actual,
+        )
+        .unwrap();
+
+        shake256_into(
+            &[&randomizer, &public_seed, &public_root, message],
+            &mut expected,
+        );
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn shake_h_msg_supports_all_fips_digest_lengths() {
+        for digest_bytes in [30_usize, 34, 39, 42, 47, 49] {
+            let hash = ShakeTweakableHash::new(32);
+            let randomizer = [0x44_u8; 32];
+            let public_seed = [0x55_u8; 32];
+            let public_root = [0x66_u8; 32];
+            let message = [0x77_u8; 73];
+            let mut output = [0_u8; 49];
+
+            hash.h_msg(
+                &randomizer,
+                &public_seed,
+                &public_root,
+                &message,
+                &mut output[..digest_bytes],
+            )
+            .unwrap();
+
+            assert!(output[..digest_bytes].iter().any(|byte| *byte != 0));
+        }
+    }
+
+    #[test]
+    fn sha2_category_one_matches_sha256_and_mgf1_sha256() {
+        let hash = Sha2TweakableHash::new(16);
+        let randomizer = [0x10_u8; 16];
+        let public_seed = [0x20_u8; 16];
+        let public_root = [0x30_u8; 16];
+        let message = b"category one message digest";
+        let mut actual = [0_u8; 34];
+        let mut expected = [0_u8; 34];
+
+        hash.h_msg(
+            &randomizer,
+            &public_seed,
+            &public_root,
+            message,
+            &mut actual,
+        )
+        .unwrap();
+
+        let mut hasher = Sha256::new();
+        Sha2Digest::update(&mut hasher, randomizer);
+        Sha2Digest::update(&mut hasher, public_seed);
+        Sha2Digest::update(&mut hasher, public_root);
+        Sha2Digest::update(&mut hasher, message);
+        let digest = hasher.finalize();
+
+        let mut seed = [0_u8; 64];
+        seed[..16].copy_from_slice(&randomizer);
+        seed[16..32].copy_from_slice(&public_seed);
+        seed[32..64].copy_from_slice(&digest);
+
+        reference_mgf1_sha256(&seed, &mut expected);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn sha2_category_three_matches_sha512_and_mgf1_sha512() {
+        let hash = Sha2TweakableHash::new(24);
+        let randomizer = [0x40_u8; 24];
+        let public_seed = [0x50_u8; 24];
+        let public_root = [0x60_u8; 24];
+        let message = b"category three message digest";
+        let mut actual = [0_u8; 42];
+        let mut expected = [0_u8; 42];
+
+        hash.h_msg(
+            &randomizer,
+            &public_seed,
+            &public_root,
+            message,
+            &mut actual,
+        )
+        .unwrap();
+
+        let mut hasher = Sha512::new();
+        Sha2Digest::update(&mut hasher, randomizer);
+        Sha2Digest::update(&mut hasher, public_seed);
+        Sha2Digest::update(&mut hasher, public_root);
+        Sha2Digest::update(&mut hasher, message);
+        let digest = hasher.finalize();
+
+        let mut seed = [0_u8; 112];
+        seed[..24].copy_from_slice(&randomizer);
+        seed[24..48].copy_from_slice(&public_seed);
+        seed[48..112].copy_from_slice(&digest);
+
+        reference_mgf1_sha512(&seed, &mut expected);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn sha2_category_five_matches_sha512_and_mgf1_sha512() {
+        let hash = Sha2TweakableHash::new(32);
+        let randomizer = [0x70_u8; 32];
+        let public_seed = [0x80_u8; 32];
+        let public_root = [0x90_u8; 32];
+        let message = [0xa0_u8; 129];
+        let mut actual = [0_u8; 49];
+        let mut expected = [0_u8; 49];
+
+        hash.h_msg(
+            &randomizer,
+            &public_seed,
+            &public_root,
+            &message,
+            &mut actual,
+        )
+        .unwrap();
+
+        let mut hasher = Sha512::new();
+        Sha2Digest::update(&mut hasher, randomizer);
+        Sha2Digest::update(&mut hasher, public_seed);
+        Sha2Digest::update(&mut hasher, public_root);
+        Sha2Digest::update(&mut hasher, message);
+        let digest = hasher.finalize();
+
+        let mut seed = [0_u8; 128];
+        seed[..32].copy_from_slice(&randomizer);
+        seed[32..64].copy_from_slice(&public_seed);
+        seed[64..128].copy_from_slice(&digest);
+
+        reference_mgf1_sha512(&seed, &mut expected);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn h_msg_validates_all_fixed_length_inputs() {
+        let hash = Sha2TweakableHash::new(16);
+        let mut output = [0_u8; 30];
+
+        assert_eq!(
+            hash.h_msg(&[0_u8; 15], &[0_u8; 16], &[0_u8; 16], b"", &mut output,),
+            Err(HashError::InvalidInputLength {
+                input: "message randomizer",
+                expected: 16,
+                actual: 15,
+            })
+        );
+
+        assert_eq!(
+            hash.h_msg(&[0_u8; 16], &[0_u8; 15], &[0_u8; 16], b"", &mut output,),
+            Err(HashError::InvalidInputLength {
+                input: "public seed",
+                expected: 16,
+                actual: 15,
+            })
+        );
+
+        assert_eq!(
+            hash.h_msg(&[0_u8; 16], &[0_u8; 16], &[0_u8; 15], b"", &mut output,),
+            Err(HashError::InvalidInputLength {
+                input: "public root",
+                expected: 16,
+                actual: 15,
+            })
         );
     }
 }
