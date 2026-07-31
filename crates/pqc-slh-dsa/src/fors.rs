@@ -49,6 +49,15 @@ pub enum ForsError {
         actual: usize,
     },
 
+    /// The caller supplied one FORS tree signature with the wrong length.
+    InvalidTreeSignatureLength {
+        /// Required tree-signature length in bytes.
+        expected: usize,
+
+        /// Supplied tree-signature length in bytes.
+        actual: usize,
+    },
+
     /// The selected FORS tree is outside the configured tree set.
     InvalidTreeIndex {
         /// Supplied tree index.
@@ -129,6 +138,12 @@ impl fmt::Display for ForsError {
                 write!(
                     formatter,
                     "invalid FORS signature length: expected {expected} bytes, got {actual}"
+                )
+            }
+            Self::InvalidTreeSignatureLength { expected, actual } => {
+                write!(
+                    formatter,
+                    "invalid FORS tree-signature length: expected {expected} bytes, got {actual}"
                 )
             }
             Self::InvalidTreeIndex { tree, tree_count } => {
@@ -818,6 +833,198 @@ pub fn sign(
             &mut signature[secret_end..tree_end],
         )?;
     }
+
+    Ok(())
+}
+
+/// Return the encoded length of one FORS tree signature.
+///
+/// A tree signature contains one selected secret value followed by `a`
+/// authentication-path nodes.
+pub fn tree_signature_bytes(parameters: &SlhDsaParameters) -> Result<usize, ForsError> {
+    authentication_path_bytes(parameters)?
+        .checked_add(parameters.n)
+        .ok_or(ForsError::ParameterOverflow)
+}
+
+/// Reconstruct one selected FORS tree root from its signature.
+///
+/// The tree signature contains the selected secret value followed by the
+/// authentication path ordered from the leaf level toward the root.
+pub fn tree_root_from_signature(
+    parameters: &SlhDsaParameters,
+    tree_signature: &[u8],
+    public_seed: &[u8],
+    fors_address: &Address,
+    position: ForsPosition,
+    output: &mut [u8],
+) -> Result<(), ForsError> {
+    let expected = tree_signature_bytes(parameters)?;
+
+    if tree_signature.len() != expected {
+        return Err(ForsError::InvalidTreeSignatureLength {
+            expected,
+            actual: tree_signature.len(),
+        });
+    }
+
+    let mut node_value = [0_u8; 32];
+    let mut sibling = [0_u8; 32];
+    let mut parent = [0_u8; 32];
+
+    let global_leaf_index = position.global_index(parameters)?;
+
+    let mut leaf_address = *fors_address;
+    leaf_address.set_type_and_clear(AddressType::ForsTree);
+    leaf_address.set_key_pair_address(position.key_pair_address);
+    leaf_address.set_tree_height(0);
+    leaf_address.set_tree_index(global_leaf_index);
+
+    HashSuite::new(parameters).f(
+        public_seed,
+        &leaf_address,
+        &tree_signature[..parameters.n],
+        &mut node_value[..parameters.n],
+    )?;
+
+    for level in 0..parameters.a {
+        let authentication_start = parameters
+            .n
+            .checked_add(
+                level
+                    .checked_mul(parameters.n)
+                    .ok_or(ForsError::ParameterOverflow)?,
+            )
+            .ok_or(ForsError::ParameterOverflow)?;
+
+        let authentication_end = authentication_start
+            .checked_add(parameters.n)
+            .ok_or(ForsError::ParameterOverflow)?;
+
+        sibling[..parameters.n]
+            .copy_from_slice(&tree_signature[authentication_start..authentication_end]);
+
+        let parent_height =
+            u32::try_from(level.checked_add(1).ok_or(ForsError::ParameterOverflow)?)
+                .map_err(|_| ForsError::ParameterOverflow)?;
+
+        let parent_index = global_leaf_index
+            .checked_shr(parent_height)
+            .ok_or(ForsError::ParameterOverflow)?;
+
+        let position_at_height = ForsNodePosition {
+            key_pair_address: position.key_pair_address,
+            height: parent_height,
+            index: parent_index,
+        };
+
+        let selected_node_is_left = ((position.leaf >> level) & 1) == 0;
+
+        if selected_node_is_left {
+            parent_node(
+                parameters,
+                public_seed,
+                fors_address,
+                position_at_height,
+                &node_value[..parameters.n],
+                &sibling[..parameters.n],
+                &mut parent[..parameters.n],
+            )?;
+        } else {
+            parent_node(
+                parameters,
+                public_seed,
+                fors_address,
+                position_at_height,
+                &sibling[..parameters.n],
+                &node_value[..parameters.n],
+                &mut parent[..parameters.n],
+            )?;
+        }
+
+        node_value[..parameters.n].copy_from_slice(&parent[..parameters.n]);
+    }
+
+    output.copy_from_slice(&node_value[..parameters.n]);
+
+    Ok(())
+}
+
+/// Reconstruct the FORS public key from a signature and message digest.
+///
+/// This implements FIPS 205 `fors_pkFromSig`. Each selected tree root is
+/// reconstructed independently and the concatenated roots are compressed with
+/// `T_l` under a `FORS_ROOTS` address.
+pub fn public_key_from_signature(
+    parameters: &SlhDsaParameters,
+    signature: &[u8],
+    digest: &[u8],
+    public_seed: &[u8],
+    fors_address: &Address,
+    key_pair_address: u32,
+    output: &mut [u8],
+) -> Result<(), ForsError> {
+    let expected_signature_bytes = signature_bytes(parameters)?;
+
+    if signature.len() != expected_signature_bytes {
+        return Err(ForsError::InvalidSignatureLength {
+            expected: expected_signature_bytes,
+            actual: signature.len(),
+        });
+    }
+
+    if parameters.k > MAX_FORS_TREES {
+        return Err(ForsError::ParameterOverflow);
+    }
+
+    let roots_bytes = parameters
+        .k
+        .checked_mul(parameters.n)
+        .ok_or(ForsError::ParameterOverflow)?;
+
+    let mut indices = [0_u32; MAX_FORS_TREES];
+    let mut roots = [0_u8; MAX_FORS_TREES * 32];
+
+    message_to_indices(parameters, digest, &mut indices[..parameters.k])?;
+
+    let one_tree_signature_bytes = tree_signature_bytes(parameters)?;
+
+    for (tree, leaf) in indices[..parameters.k].iter().copied().enumerate() {
+        let signature_start = tree
+            .checked_mul(one_tree_signature_bytes)
+            .ok_or(ForsError::ParameterOverflow)?;
+
+        let signature_end = signature_start
+            .checked_add(one_tree_signature_bytes)
+            .ok_or(ForsError::ParameterOverflow)?;
+
+        let root_start = tree
+            .checked_mul(parameters.n)
+            .ok_or(ForsError::ParameterOverflow)?;
+
+        let root_end = root_start
+            .checked_add(parameters.n)
+            .ok_or(ForsError::ParameterOverflow)?;
+
+        tree_root_from_signature(
+            parameters,
+            &signature[signature_start..signature_end],
+            public_seed,
+            fors_address,
+            ForsPosition {
+                key_pair_address,
+                tree,
+                leaf,
+            },
+            &mut roots[root_start..root_end],
+        )?;
+    }
+
+    let mut roots_address = *fors_address;
+    roots_address.set_type_and_clear(AddressType::ForsRoots);
+    roots_address.set_key_pair_address(key_pair_address);
+
+    HashSuite::new(parameters).t_l(public_seed, &roots_address, &roots[..roots_bytes], output)?;
 
     Ok(())
 }
@@ -2233,5 +2440,290 @@ mod tests {
             )
             .unwrap();
         }
+    }
+
+    fn small_fors_parameters() -> SlhDsaParameters {
+        let mut parameters = SlhDsaParameterSet::Shake128s.parameters();
+        parameters.a = 3;
+        parameters.k = 4;
+        parameters
+    }
+
+    #[test]
+    fn tree_signature_length_matches_secret_and_authentication_path() {
+        for parameter_set in PARAMETER_SETS {
+            let parameters = parameter_set.parameters();
+
+            assert_eq!(
+                tree_signature_bytes(&parameters),
+                Ok((parameters.a + 1) * parameters.n)
+            );
+        }
+    }
+
+    #[test]
+    fn tree_root_from_signature_rejects_the_wrong_length() {
+        let parameters = small_fors_parameters();
+        let public_seed = [0x11_u8; 32];
+        let address = fors_address();
+        let expected = tree_signature_bytes(&parameters).unwrap();
+        let tree_signature = [0_u8; 512];
+        let mut root = [0_u8; 32];
+
+        assert_eq!(
+            tree_root_from_signature(
+                &parameters,
+                &tree_signature[..expected - 1],
+                &public_seed[..parameters.n],
+                &address,
+                ForsPosition {
+                    key_pair_address: 5,
+                    tree: 0,
+                    leaf: 0,
+                },
+                &mut root[..parameters.n],
+            ),
+            Err(ForsError::InvalidTreeSignatureLength {
+                expected,
+                actual: expected - 1,
+            })
+        );
+    }
+
+    #[test]
+    fn signed_tree_reconstructs_the_selected_tree_root() {
+        let parameters = small_fors_parameters();
+        let digest = [0xa6_u8; 8];
+        let secret_seed = [0x21_u8; 32];
+        let public_seed = [0x43_u8; 32];
+        let address = fors_address();
+        let key_pair_address = 17;
+
+        let digest_length = digest_bytes(&parameters).unwrap();
+        let signature_length = signature_bytes(&parameters).unwrap();
+        let tree_signature_length = tree_signature_bytes(&parameters).unwrap();
+
+        let mut signature = [0_u8; 1024];
+        sign(
+            &parameters,
+            &digest[..digest_length],
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &address,
+            key_pair_address,
+            &mut signature[..signature_length],
+        )
+        .unwrap();
+
+        let mut indices = [0_u32; MAX_FORS_TREES];
+        message_to_indices(
+            &parameters,
+            &digest[..digest_length],
+            &mut indices[..parameters.k],
+        )
+        .unwrap();
+
+        for (tree, leaf) in indices[..parameters.k].iter().copied().enumerate() {
+            let start = tree * tree_signature_length;
+            let end = start + tree_signature_length;
+
+            let position = ForsPosition {
+                key_pair_address,
+                tree,
+                leaf,
+            };
+
+            let mut reconstructed = [0_u8; 32];
+            tree_root_from_signature(
+                &parameters,
+                &signature[start..end],
+                &public_seed[..parameters.n],
+                &address,
+                position,
+                &mut reconstructed[..parameters.n],
+            )
+            .unwrap();
+
+            let mut expected = [0_u8; 32];
+            selected_tree_root(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                position,
+                &mut expected[..parameters.n],
+            )
+            .unwrap();
+
+            assert_eq!(
+                &reconstructed[..parameters.n],
+                &expected[..parameters.n],
+                "root mismatch for tree {tree}"
+            );
+        }
+    }
+
+    #[test]
+    fn public_key_from_signature_matches_direct_root_compression() {
+        let parameters = small_fors_parameters();
+        let digest = [0x5a_u8; 8];
+        let secret_seed = [0x31_u8; 32];
+        let public_seed = [0x72_u8; 32];
+        let address = fors_address();
+        let key_pair_address = 23;
+
+        let digest_length = digest_bytes(&parameters).unwrap();
+        let signature_length = signature_bytes(&parameters).unwrap();
+        let roots_length = parameters.k * parameters.n;
+
+        let mut signature = [0_u8; 1024];
+        sign(
+            &parameters,
+            &digest[..digest_length],
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &address,
+            key_pair_address,
+            &mut signature[..signature_length],
+        )
+        .unwrap();
+
+        let mut actual = [0_u8; 32];
+        public_key_from_signature(
+            &parameters,
+            &signature[..signature_length],
+            &digest[..digest_length],
+            &public_seed[..parameters.n],
+            &address,
+            key_pair_address,
+            &mut actual[..parameters.n],
+        )
+        .unwrap();
+
+        let mut indices = [0_u32; MAX_FORS_TREES];
+        message_to_indices(
+            &parameters,
+            &digest[..digest_length],
+            &mut indices[..parameters.k],
+        )
+        .unwrap();
+
+        let mut roots = [0_u8; MAX_FORS_TREES * 32];
+
+        for (tree, leaf) in indices[..parameters.k].iter().copied().enumerate() {
+            let start = tree * parameters.n;
+            let end = start + parameters.n;
+
+            selected_tree_root(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                ForsPosition {
+                    key_pair_address,
+                    tree,
+                    leaf,
+                },
+                &mut roots[start..end],
+            )
+            .unwrap();
+        }
+
+        let mut roots_address = address;
+        roots_address.set_type_and_clear(AddressType::ForsRoots);
+        roots_address.set_key_pair_address(key_pair_address);
+
+        let mut expected = [0_u8; 32];
+        HashSuite::new(&parameters)
+            .t_l(
+                &public_seed[..parameters.n],
+                &roots_address,
+                &roots[..roots_length],
+                &mut expected[..parameters.n],
+            )
+            .unwrap();
+
+        assert_eq!(&actual[..parameters.n], &expected[..parameters.n]);
+    }
+
+    #[test]
+    fn public_key_from_signature_rejects_the_wrong_signature_length() {
+        let parameters = small_fors_parameters();
+        let digest = [0_u8; 8];
+        let public_seed = [0_u8; 32];
+        let address = fors_address();
+        let expected = signature_bytes(&parameters).unwrap();
+        let digest_length = digest_bytes(&parameters).unwrap();
+        let signature = [0_u8; 1024];
+        let mut public_key = [0_u8; 32];
+
+        assert_eq!(
+            public_key_from_signature(
+                &parameters,
+                &signature[..expected - 1],
+                &digest[..digest_length],
+                &public_seed[..parameters.n],
+                &address,
+                7,
+                &mut public_key[..parameters.n],
+            ),
+            Err(ForsError::InvalidSignatureLength {
+                expected,
+                actual: expected - 1,
+            })
+        );
+    }
+
+    #[test]
+    fn changing_a_fors_signature_changes_the_reconstructed_public_key() {
+        let parameters = small_fors_parameters();
+        let digest = [0xc3_u8; 8];
+        let secret_seed = [0x45_u8; 32];
+        let public_seed = [0x67_u8; 32];
+        let address = fors_address();
+        let key_pair_address = 29;
+
+        let digest_length = digest_bytes(&parameters).unwrap();
+        let signature_length = signature_bytes(&parameters).unwrap();
+
+        let mut signature = [0_u8; 1024];
+        sign(
+            &parameters,
+            &digest[..digest_length],
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &address,
+            key_pair_address,
+            &mut signature[..signature_length],
+        )
+        .unwrap();
+
+        let mut original = [0_u8; 32];
+        public_key_from_signature(
+            &parameters,
+            &signature[..signature_length],
+            &digest[..digest_length],
+            &public_seed[..parameters.n],
+            &address,
+            key_pair_address,
+            &mut original[..parameters.n],
+        )
+        .unwrap();
+
+        signature[0] ^= 1;
+
+        let mut modified = [0_u8; 32];
+        public_key_from_signature(
+            &parameters,
+            &signature[..signature_length],
+            &digest[..digest_length],
+            &public_seed[..parameters.n],
+            &address,
+            key_pair_address,
+            &mut modified[..parameters.n],
+        )
+        .unwrap();
+
+        assert_ne!(&original[..parameters.n], &modified[..parameters.n]);
     }
 }
