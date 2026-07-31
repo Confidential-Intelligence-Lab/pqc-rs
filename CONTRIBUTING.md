@@ -35,4 +35,4 @@ A cryptographic change should include:
 
 Keep pull requests narrow enough to review. Explain what changed, why it is correct, which standards sections are affected, and which commands produced the attached evidence. Do not combine unrelated refactoring with cryptographic changes.
 
-Contributors certify that they have the right to submit their work under the project's dual Apache-2.0 OR MIT license.
+Contributors certify that they have the right to submit their work under the project's MIT License.
