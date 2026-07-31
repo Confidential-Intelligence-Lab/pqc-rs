@@ -40,6 +40,15 @@ pub enum ForsError {
         actual: usize,
     },
 
+    /// The caller supplied a FORS signature buffer with the wrong length.
+    InvalidSignatureLength {
+        /// Required FORS signature length in bytes.
+        expected: usize,
+
+        /// Supplied signature-buffer length in bytes.
+        actual: usize,
+    },
+
     /// The selected FORS tree is outside the configured tree set.
     InvalidTreeIndex {
         /// Supplied tree index.
@@ -114,6 +123,12 @@ impl fmt::Display for ForsError {
                 write!(
                     formatter,
                     "invalid FORS authentication-path length: expected {expected} bytes, got {actual}"
+                )
+            }
+            Self::InvalidSignatureLength { expected, actual } => {
+                write!(
+                    formatter,
+                    "invalid FORS signature length: expected {expected} bytes, got {actual}"
                 )
             }
             Self::InvalidTreeIndex { tree, tree_count } => {
@@ -704,6 +719,107 @@ pub fn selected_tree_root(
         },
         output,
     )
+}
+
+/// Maximum number of FORS trees among the FIPS 205 parameter sets.
+const MAX_FORS_TREES: usize = 35;
+
+/// Return the encoded length of a FORS signature.
+///
+/// Each of the `k` FORS trees contributes one selected `n`-byte secret value
+/// followed by an authentication path containing `a` `n`-byte nodes.
+pub fn signature_bytes(parameters: &SlhDsaParameters) -> Result<usize, ForsError> {
+    let elements_per_tree = parameters
+        .a
+        .checked_add(1)
+        .ok_or(ForsError::ParameterOverflow)?;
+
+    parameters
+        .k
+        .checked_mul(elements_per_tree)
+        .and_then(|elements| elements.checked_mul(parameters.n))
+        .ok_or(ForsError::ParameterOverflow)
+}
+
+/// Generate a deterministic FORS signature.
+///
+/// This implements FIPS 205 `fors_sign`. The digest is split into `k`
+/// `a`-bit indices. For each FORS tree, the signature contains:
+///
+/// 1. the selected `n`-byte secret value; and
+/// 2. the corresponding `a * n`-byte authentication path.
+///
+/// Tree signatures are concatenated in increasing tree-index order.
+pub fn sign(
+    parameters: &SlhDsaParameters,
+    digest: &[u8],
+    secret_seed: &[u8],
+    public_seed: &[u8],
+    fors_address: &Address,
+    key_pair_address: u32,
+    signature: &mut [u8],
+) -> Result<(), ForsError> {
+    let expected_signature_bytes = signature_bytes(parameters)?;
+
+    if signature.len() != expected_signature_bytes {
+        return Err(ForsError::InvalidSignatureLength {
+            expected: expected_signature_bytes,
+            actual: signature.len(),
+        });
+    }
+
+    if parameters.k > MAX_FORS_TREES {
+        return Err(ForsError::ParameterOverflow);
+    }
+
+    let mut indices = [0_u32; MAX_FORS_TREES];
+    message_to_indices(parameters, digest, &mut indices[..parameters.k])?;
+
+    let authentication_bytes = authentication_path_bytes(parameters)?;
+    let tree_signature_bytes = parameters
+        .n
+        .checked_add(authentication_bytes)
+        .ok_or(ForsError::ParameterOverflow)?;
+
+    for (tree, leaf) in indices[..parameters.k].iter().copied().enumerate() {
+        let tree_start = tree
+            .checked_mul(tree_signature_bytes)
+            .ok_or(ForsError::ParameterOverflow)?;
+
+        let secret_end = tree_start
+            .checked_add(parameters.n)
+            .ok_or(ForsError::ParameterOverflow)?;
+
+        let tree_end = tree_start
+            .checked_add(tree_signature_bytes)
+            .ok_or(ForsError::ParameterOverflow)?;
+
+        let position = ForsPosition {
+            key_pair_address,
+            tree,
+            leaf,
+        };
+
+        selected_secret_value(
+            parameters,
+            secret_seed,
+            public_seed,
+            fors_address,
+            position,
+            &mut signature[tree_start..secret_end],
+        )?;
+
+        authentication_path(
+            parameters,
+            secret_seed,
+            public_seed,
+            fors_address,
+            position,
+            &mut signature[secret_end..tree_end],
+        )?;
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -1904,5 +2020,218 @@ mod tests {
         .unwrap();
 
         assert_ne!(&first[..parameters.n], &second[..parameters.n]);
+    }
+
+    #[test]
+    fn signature_length_matches_fips_layout() {
+        for parameter_set in PARAMETER_SETS {
+            let parameters = parameter_set.parameters();
+
+            assert_eq!(
+                signature_bytes(&parameters),
+                Ok(parameters.k * (parameters.a + 1) * parameters.n)
+            );
+        }
+    }
+
+    #[test]
+    fn sign_rejects_the_wrong_signature_length() {
+        let parameters = SlhDsaParameterSet::Sha2_128s.parameters();
+        let digest = [0_u8; 40];
+        let secret_seed = [0_u8; 32];
+        let public_seed = [0_u8; 32];
+        let address = fors_address();
+        let expected = signature_bytes(&parameters).unwrap();
+        let digest_length = digest_bytes(&parameters).unwrap();
+        let mut signature = [0_u8; 12_000];
+
+        assert_eq!(
+            sign(
+                &parameters,
+                &digest[..digest_length],
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                9,
+                &mut signature[..expected - 1],
+            ),
+            Err(ForsError::InvalidSignatureLength {
+                expected,
+                actual: expected - 1,
+            })
+        );
+    }
+
+    #[test]
+    fn sign_rejects_the_wrong_digest_length() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let digest = [0_u8; 40];
+        let secret_seed = [0_u8; 32];
+        let public_seed = [0_u8; 32];
+        let address = fors_address();
+        let signature_length = signature_bytes(&parameters).unwrap();
+        let digest_length = digest_bytes(&parameters).unwrap();
+        let mut signature = [0_u8; 12_000];
+
+        assert_eq!(
+            sign(
+                &parameters,
+                &digest[..digest_length - 1],
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                9,
+                &mut signature[..signature_length],
+            ),
+            Err(ForsError::InvalidDigestLength {
+                expected: digest_length,
+                actual: digest_length - 1,
+            })
+        );
+    }
+
+    #[test]
+    fn sign_encodes_selected_secret_and_authentication_path() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let digest = [0xa5_u8; 40];
+        let secret_seed = [0x31_u8; 32];
+        let public_seed = [0x72_u8; 32];
+        let address = fors_address();
+        let key_pair_address = 17;
+
+        let digest_length = digest_bytes(&parameters).unwrap();
+        let signature_length = signature_bytes(&parameters).unwrap();
+        let authentication_length = authentication_path_bytes(&parameters).unwrap();
+        let tree_signature_length = parameters.n + authentication_length;
+
+        let mut signature = [0_u8; 12_000];
+        sign(
+            &parameters,
+            &digest[..digest_length],
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &address,
+            key_pair_address,
+            &mut signature[..signature_length],
+        )
+        .unwrap();
+
+        let mut indices = [0_u32; MAX_FORS_TREES];
+        message_to_indices(
+            &parameters,
+            &digest[..digest_length],
+            &mut indices[..parameters.k],
+        )
+        .unwrap();
+
+        for (tree, leaf) in indices[..parameters.k].iter().copied().enumerate() {
+            let position = ForsPosition {
+                key_pair_address,
+                tree,
+                leaf,
+            };
+
+            let tree_start = tree * tree_signature_length;
+            let secret_end = tree_start + parameters.n;
+            let tree_end = tree_start + tree_signature_length;
+
+            let mut expected_secret = [0_u8; 32];
+            selected_secret_value(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                position,
+                &mut expected_secret[..parameters.n],
+            )
+            .unwrap();
+
+            assert_eq!(
+                &signature[tree_start..secret_end],
+                &expected_secret[..parameters.n],
+                "secret-value mismatch for tree {tree}"
+            );
+
+            let mut expected_authentication = [0_u8; 512];
+            authentication_path(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                position,
+                &mut expected_authentication[..authentication_length],
+            )
+            .unwrap();
+
+            assert_eq!(
+                &signature[secret_end..tree_end],
+                &expected_authentication[..authentication_length],
+                "authentication-path mismatch for tree {tree}"
+            );
+        }
+    }
+
+    #[test]
+    fn sign_is_deterministic() {
+        let parameters = SlhDsaParameterSet::Sha2_128s.parameters();
+        let digest = [0x19_u8; 40];
+        let secret_seed = [0x2a_u8; 32];
+        let public_seed = [0x3b_u8; 32];
+        let address = fors_address();
+
+        let digest_length = digest_bytes(&parameters).unwrap();
+        let signature_length = signature_bytes(&parameters).unwrap();
+
+        let mut first = [0_u8; 12_000];
+        sign(
+            &parameters,
+            &digest[..digest_length],
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &address,
+            23,
+            &mut first[..signature_length],
+        )
+        .unwrap();
+
+        let mut second = [0_u8; 12_000];
+        sign(
+            &parameters,
+            &digest[..digest_length],
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &address,
+            23,
+            &mut second[..signature_length],
+        )
+        .unwrap();
+
+        assert_eq!(&first[..signature_length], &second[..signature_length]);
+    }
+
+    #[test]
+    fn every_parameter_set_generates_a_fors_signature() {
+        let digest = [0xd4_u8; 40];
+        let secret_seed = [0xe5_u8; 32];
+        let public_seed = [0xf6_u8; 32];
+        let address = fors_address();
+        let mut signature = [0_u8; 12_000];
+
+        for parameter_set in PARAMETER_SETS {
+            let parameters = parameter_set.parameters();
+            let digest_length = digest_bytes(&parameters).unwrap();
+            let signature_length = signature_bytes(&parameters).unwrap();
+
+            sign(
+                &parameters,
+                &digest[..digest_length],
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                29,
+                &mut signature[..signature_length],
+            )
+            .unwrap();
+        }
     }
 }
