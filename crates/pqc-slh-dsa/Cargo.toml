@@ -11,7 +11,6 @@ readme = "README.md"
 documentation = "https://docs.rs/pqc-rs-slh-dsa"
 categories = ["cryptography"]
 keywords = ["post-quantum", "cryptography", "slh-dsa", "signatures", "rust"]
-publish = false
 
 [package.metadata.docs.rs]
 all-features = true
