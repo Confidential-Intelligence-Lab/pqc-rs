@@ -1,0 +1,24 @@
+=== vectors/nist-acvp/slhdsa-keygen/registration.json ===
+root type: dict
+keys: ['algorithm', 'isSample', 'mode', 'parameterSets', 'revision', 'vsId']
+
+=== vectors/nist-acvp/slhdsa-keygen/validation.json ===
+root type: dict
+keys: ['disposition', 'tests', 'vsId']
+
+=== vectors/nist-acvp/slhdsa-siggen/registration.json ===
+root type: dict
+keys: ['algorithm', 'capabilities', 'deterministic', 'isSample', 'mode', 'preHash', 'revision', 'signatureInterfaces', 'vsId']
+
+=== vectors/nist-acvp/slhdsa-siggen/validation.json ===
+root type: dict
+keys: ['disposition', 'tests', 'vsId']
+
+=== vectors/nist-acvp/slhdsa-sigver/registration.json ===
+root type: dict
+keys: ['algorithm', 'capabilities', 'isSample', 'mode', 'preHash', 'revision', 'signatureInterfaces', 'vsId']
+
+=== vectors/nist-acvp/slhdsa-sigver/validation.json ===
+root type: dict
+keys: ['disposition', 'tests', 'vsId']
+

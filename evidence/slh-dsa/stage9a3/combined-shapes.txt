@@ -1,0 +1,293 @@
+=== vectors/nist-acvp/slhdsa-keygen/prompt.json ===
+top-level keys: ['algorithm', 'isSample', 'mode', 'revision', 'testGroups', 'vsId']
+group count: 12
+group shapes:
+  shape 1: ['parameterSet', 'testType', 'tgId']
+    example metadata:
+      parameterSet: {'type': 'string', 'length': 17}
+      testType: {'type': 'string', 'length': 3}
+      tgId: {'type': 'int', 'value': 1}
+test shapes:
+  shape 1: ['pkSeed', 'skPrf', 'skSeed', 'tcId']
+    example metadata:
+      pkSeed: {'type': 'string', 'length': 32}
+      skPrf: {'type': 'string', 'length': 32}
+      skSeed: {'type': 'string', 'length': 32}
+      tcId: {'type': 'int', 'value': 1}
+
+=== vectors/nist-acvp/slhdsa-keygen/expectedResults.json ===
+top-level keys: ['algorithm', 'isSample', 'mode', 'revision', 'testGroups', 'vsId']
+group count: 12
+group shapes:
+  shape 1: ['tgId']
+    example metadata:
+      tgId: {'type': 'int', 'value': 1}
+test shapes:
+  shape 1: ['pk', 'sk', 'tcId']
+    example metadata:
+      pk: {'type': 'string', 'length': 64}
+      sk: {'type': 'string', 'length': 128}
+      tcId: {'type': 'int', 'value': 1}
+
+=== vectors/nist-acvp/slhdsa-keygen/internalProjection.json ===
+top-level keys: ['algorithm', 'isSample', 'mode', 'revision', 'testGroups', 'vsId']
+group count: 12
+group shapes:
+  shape 1: ['parameterSet', 'testType', 'tgId']
+    example metadata:
+      parameterSet: {'type': 'string', 'length': 17}
+      testType: {'type': 'string', 'length': 3}
+      tgId: {'type': 'int', 'value': 1}
+test shapes:
+  shape 1: ['deferred', 'pk', 'pkSeed', 'sk', 'skPrf', 'skSeed', 'tcId']
+    example metadata:
+      deferred: {'type': 'bool', 'value': False}
+      pk: {'type': 'string', 'length': 64}
+      pkSeed: {'type': 'string', 'length': 32}
+      sk: {'type': 'string', 'length': 128}
+      skPrf: {'type': 'string', 'length': 32}
+      skSeed: {'type': 'string', 'length': 32}
+      tcId: {'type': 'int', 'value': 1}
+
+=== vectors/nist-acvp/slhdsa-siggen/prompt.json ===
+top-level keys: ['algorithm', 'isSample', 'mode', 'revision', 'testGroups', 'vsId']
+group count: 72
+group shapes:
+  shape 1: ['deterministic', 'parameterSet', 'preHash', 'signatureInterface', 'testType', 'tgId']
+    example metadata:
+      deterministic: {'type': 'bool', 'value': True}
+      parameterSet: {'type': 'string', 'length': 17}
+      preHash: {'type': 'string', 'length': 4}
+      signatureInterface: {'type': 'string', 'length': 8}
+      testType: {'type': 'string', 'length': 3}
+      tgId: {'type': 'int', 'value': 1}
+  shape 2: ['deterministic', 'parameterSet', 'signatureInterface', 'testType', 'tgId']
+    example metadata:
+      deterministic: {'type': 'bool', 'value': True}
+      parameterSet: {'type': 'string', 'length': 17}
+      signatureInterface: {'type': 'string', 'length': 8}
+      testType: {'type': 'string', 'length': 3}
+      tgId: {'type': 'int', 'value': 13}
+test shapes:
+  shape 1: ['context', 'message', 'sk', 'tcId']
+    example metadata:
+      context: {'type': 'string', 'length': 386}
+      message: {'type': 'string', 'length': 16384}
+      sk: {'type': 'string', 'length': 128}
+      tcId: {'type': 'int', 'value': 1}
+  shape 2: ['context', 'hashAlg', 'message', 'sk', 'tcId']
+    example metadata:
+      context: {'type': 'string', 'length': 138}
+      hashAlg: {'type': 'string', 'length': 12}
+      message: {'type': 'string', 'length': 8810}
+      sk: {'type': 'string', 'length': 128}
+      tcId: {'type': 'int', 'value': 8}
+  shape 3: ['message', 'sk', 'tcId']
+    example metadata:
+      message: {'type': 'string', 'length': 2}
+      sk: {'type': 'string', 'length': 128}
+      tcId: {'type': 'int', 'value': 115}
+  shape 4: ['additionalRandomness', 'context', 'message', 'sk', 'tcId']
+    example metadata:
+      additionalRandomness: {'type': 'string', 'length': 32}
+      context: {'type': 'string', 'length': 358}
+      message: {'type': 'string', 'length': 15282}
+      sk: {'type': 'string', 'length': 128}
+      tcId: {'type': 'int', 'value': 313}
+  shape 5: ['additionalRandomness', 'context', 'hashAlg', 'message', 'sk', 'tcId']
+    example metadata:
+      additionalRandomness: {'type': 'string', 'length': 32}
+      context: {'type': 'string', 'length': 152}
+      hashAlg: {'type': 'string', 'length': 8}
+      message: {'type': 'string', 'length': 2290}
+      sk: {'type': 'string', 'length': 128}
+      tcId: {'type': 'int', 'value': 320}
+  shape 6: ['additionalRandomness', 'message', 'sk', 'tcId']
+    example metadata:
+      additionalRandomness: {'type': 'string', 'length': 32}
+      message: {'type': 'string', 'length': 9382}
+      sk: {'type': 'string', 'length': 128}
+      tcId: {'type': 'int', 'value': 427}
+
+=== vectors/nist-acvp/slhdsa-siggen/expectedResults.json ===
+top-level keys: ['algorithm', 'isSample', 'mode', 'revision', 'testGroups', 'vsId']
+group count: 72
+group shapes:
+  shape 1: ['tgId']
+    example metadata:
+      tgId: {'type': 'int', 'value': 1}
+test shapes:
+  shape 1: ['signature', 'tcId']
+    example metadata:
+      signature: {'type': 'string', 'length': 34176}
+      tcId: {'type': 'int', 'value': 1}
+
+=== vectors/nist-acvp/slhdsa-siggen/internalProjection.json ===
+top-level keys: ['algorithm', 'isSample', 'mode', 'revision', 'testGroups', 'vsId']
+group count: 72
+group shapes:
+  shape 1: ['deterministic', 'parameterSet', 'preHash', 'signatureInterface', 'testType', 'tgId']
+    example metadata:
+      deterministic: {'type': 'bool', 'value': True}
+      parameterSet: {'type': 'string', 'length': 17}
+      preHash: {'type': 'string', 'length': 4}
+      signatureInterface: {'type': 'string', 'length': 8}
+      testType: {'type': 'string', 'length': 3}
+      tgId: {'type': 'int', 'value': 1}
+test shapes:
+  shape 1: ['context', 'deferred', 'hashAlg', 'message', 'pk', 'signature', 'sk', 'tcId']
+    example metadata:
+      context: {'type': 'string', 'length': 386}
+      deferred: {'type': 'bool', 'value': False}
+      hashAlg: {'type': 'string', 'length': 4}
+      message: {'type': 'string', 'length': 16384}
+      pk: {'type': 'string', 'length': 64}
+      signature: {'type': 'string', 'length': 34176}
+      sk: {'type': 'string', 'length': 128}
+      tcId: {'type': 'int', 'value': 1}
+  shape 2: ['deferred', 'hashAlg', 'message', 'pk', 'signature', 'sk', 'tcId']
+    example metadata:
+      deferred: {'type': 'bool', 'value': False}
+      hashAlg: {'type': 'string', 'length': 4}
+      message: {'type': 'string', 'length': 2}
+      pk: {'type': 'string', 'length': 64}
+      signature: {'type': 'string', 'length': 34176}
+      sk: {'type': 'string', 'length': 128}
+      tcId: {'type': 'int', 'value': 115}
+  shape 3: ['additionalRandomness', 'context', 'deferred', 'hashAlg', 'message', 'pk', 'signature', 'sk', 'tcId']
+    example metadata:
+      additionalRandomness: {'type': 'string', 'length': 32}
+      context: {'type': 'string', 'length': 358}
+      deferred: {'type': 'bool', 'value': False}
+      hashAlg: {'type': 'string', 'length': 4}
+      message: {'type': 'string', 'length': 15282}
+      pk: {'type': 'string', 'length': 64}
+      signature: {'type': 'string', 'length': 34176}
+      sk: {'type': 'string', 'length': 128}
+      tcId: {'type': 'int', 'value': 313}
+  shape 4: ['additionalRandomness', 'deferred', 'hashAlg', 'message', 'pk', 'signature', 'sk', 'tcId']
+    example metadata:
+      additionalRandomness: {'type': 'string', 'length': 32}
+      deferred: {'type': 'bool', 'value': False}
+      hashAlg: {'type': 'string', 'length': 4}
+      message: {'type': 'string', 'length': 9382}
+      pk: {'type': 'string', 'length': 64}
+      signature: {'type': 'string', 'length': 34176}
+      sk: {'type': 'string', 'length': 128}
+      tcId: {'type': 'int', 'value': 427}
+
+=== vectors/nist-acvp/slhdsa-sigver/prompt.json ===
+top-level keys: ['algorithm', 'isSample', 'mode', 'revision', 'testGroups', 'vsId']
+group count: 36
+group shapes:
+  shape 1: ['parameterSet', 'preHash', 'signatureInterface', 'testType', 'tgId']
+    example metadata:
+      parameterSet: {'type': 'string', 'length': 17}
+      preHash: {'type': 'string', 'length': 4}
+      signatureInterface: {'type': 'string', 'length': 8}
+      testType: {'type': 'string', 'length': 3}
+      tgId: {'type': 'int', 'value': 1}
+  shape 2: ['parameterSet', 'signatureInterface', 'testType', 'tgId']
+    example metadata:
+      parameterSet: {'type': 'string', 'length': 17}
+      signatureInterface: {'type': 'string', 'length': 8}
+      testType: {'type': 'string', 'length': 3}
+      tgId: {'type': 'int', 'value': 13}
+test shapes:
+  shape 1: ['context', 'message', 'pk', 'signature', 'tcId']
+    example metadata:
+      context: {'type': 'string', 'length': 128}
+      message: {'type': 'string', 'length': 15582}
+      pk: {'type': 'string', 'length': 64}
+      signature: {'type': 'string', 'length': 34178}
+      tcId: {'type': 'int', 'value': 1}
+  shape 2: ['context', 'hashAlg', 'message', 'pk', 'signature', 'tcId']
+    example metadata:
+      context: {'type': 'string', 'length': 494}
+      hashAlg: {'type': 'string', 'length': 8}
+      message: {'type': 'string', 'length': 12722}
+      pk: {'type': 'string', 'length': 64}
+      signature: {'type': 'string', 'length': 34174}
+      tcId: {'type': 'int', 'value': 15}
+  shape 3: ['message', 'pk', 'signature', 'tcId']
+    example metadata:
+      message: {'type': 'string', 'length': 15620}
+      pk: {'type': 'string', 'length': 64}
+      signature: {'type': 'string', 'length': 34176}
+      tcId: {'type': 'int', 'value': 169}
+
+=== vectors/nist-acvp/slhdsa-sigver/expectedResults.json ===
+top-level keys: ['algorithm', 'isSample', 'mode', 'revision', 'testGroups', 'vsId']
+group count: 36
+group shapes:
+  shape 1: ['tgId']
+    example metadata:
+      tgId: {'type': 'int', 'value': 1}
+test shapes:
+  shape 1: ['tcId', 'testPassed']
+    example metadata:
+      tcId: {'type': 'int', 'value': 1}
+      testPassed: {'type': 'bool', 'value': False}
+
+=== vectors/nist-acvp/slhdsa-sigver/internalProjection.json ===
+top-level keys: ['algorithm', 'isSample', 'mode', 'revision', 'testGroups', 'vsId']
+group count: 36
+group shapes:
+  shape 1: ['parameterSet', 'preHash', 'signatureInterface', 'testType', 'tgId']
+    example metadata:
+      parameterSet: {'type': 'string', 'length': 17}
+      preHash: {'type': 'string', 'length': 4}
+      signatureInterface: {'type': 'string', 'length': 8}
+      testType: {'type': 'string', 'length': 3}
+      tgId: {'type': 'int', 'value': 1}
+test shapes:
+  shape 1: ['additionalRandomness', 'context', 'deferred', 'hashAlg', 'message', 'pk', 'reason', 'signature', 'sk', 'tcId', 'testPassed']
+    example metadata:
+      additionalRandomness: {'type': 'string', 'length': 32}
+      context: {'type': 'string', 'length': 128}
+      deferred: {'type': 'bool', 'value': False}
+      hashAlg: {'type': 'string', 'length': 4}
+      message: {'type': 'string', 'length': 15582}
+      pk: {'type': 'string', 'length': 64}
+      reason: {'type': 'string', 'length': 29}
+      signature: {'type': 'string', 'length': 34178}
+      sk: {'type': 'string', 'length': 128}
+      tcId: {'type': 'int', 'value': 1}
+      testPassed: {'type': 'bool', 'value': False}
+  shape 2: ['additionalRandomness', 'deferred', 'hashAlg', 'message', 'pk', 'reason', 'signature', 'sk', 'tcId', 'testPassed']
+    example metadata:
+      additionalRandomness: {'type': 'string', 'length': 32}
+      deferred: {'type': 'bool', 'value': False}
+      hashAlg: {'type': 'string', 'length': 4}
+      message: {'type': 'string', 'length': 15620}
+      pk: {'type': 'string', 'length': 64}
+      reason: {'type': 'string', 'length': 22}
+      signature: {'type': 'string', 'length': 34176}
+      sk: {'type': 'string', 'length': 128}
+      tcId: {'type': 'int', 'value': 169}
+      testPassed: {'type': 'bool', 'value': False}
+
+=== vectors/nist-acvp/slhdsa-keygen/registration.json ===
+root type: dict
+keys: ['algorithm', 'isSample', 'mode', 'parameterSets', 'revision', 'vsId']
+
+=== vectors/nist-acvp/slhdsa-keygen/validation.json ===
+root type: dict
+keys: ['disposition', 'tests', 'vsId']
+
+=== vectors/nist-acvp/slhdsa-siggen/registration.json ===
+root type: dict
+keys: ['algorithm', 'capabilities', 'deterministic', 'isSample', 'mode', 'preHash', 'revision', 'signatureInterfaces', 'vsId']
+
+=== vectors/nist-acvp/slhdsa-siggen/validation.json ===
+root type: dict
+keys: ['disposition', 'tests', 'vsId']
+
+=== vectors/nist-acvp/slhdsa-sigver/registration.json ===
+root type: dict
+keys: ['algorithm', 'capabilities', 'isSample', 'mode', 'preHash', 'revision', 'signatureInterfaces', 'vsId']
+
+=== vectors/nist-acvp/slhdsa-sigver/validation.json ===
+root type: dict
+keys: ['disposition', 'tests', 'vsId']
+
