@@ -23,6 +23,7 @@ serde = { workspace = true }
 serde_json = { workspace = true }
 pqc-hpke = { workspace = true }
 pqc-ml-dsa = { workspace = true, features = ["internal-api"] }
+pqc-slh-dsa = { package = "pqc-rs-slh-dsa", path = "../pqc-slh-dsa" }
 sha3 = { workspace = true }
 
 [lib]
