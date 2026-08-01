@@ -792,6 +792,7 @@ dependencies = [
  "pqc-rs-hpke",
  "pqc-rs-ml-dsa",
  "pqc-rs-ml-kem",
+ "pqc-rs-slh-dsa",
  "rand_core",
  "serde",
  "serde_json",
