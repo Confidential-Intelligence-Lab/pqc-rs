@@ -72,6 +72,15 @@ pub enum XmssError {
         actual: usize,
     },
 
+    /// The supplied authentication-path buffer has the wrong length.
+    InvalidAuthenticationPathLength {
+        /// Required authentication-path length in bytes.
+        expected: usize,
+
+        /// Supplied authentication-path length in bytes.
+        actual: usize,
+    },
+
     /// An XMSS parameter calculation overflowed.
     ParameterOverflow,
 
@@ -120,6 +129,12 @@ impl fmt::Display for XmssError {
                 write!(
                     formatter,
                     "invalid XMSS byte length: expected {expected} bytes, got {actual}"
+                )
+            }
+            Self::InvalidAuthenticationPathLength { expected, actual } => {
+                write!(
+                    formatter,
+                    "invalid XMSS authentication-path length: expected {expected} bytes, got {actual}"
                 )
             }
             Self::ParameterOverflow => {
@@ -331,6 +346,81 @@ pub fn node(
         &right[..parameters.n],
         output,
     )
+}
+
+/// Return the encoded length of an XMSS authentication path.
+///
+/// An authentication path contains one `n`-byte sibling node for every level
+/// of the XMSS tree.
+pub fn authentication_path_bytes(parameters: &SlhDsaParameters) -> Result<usize, XmssError> {
+    parameters
+        .hp
+        .checked_mul(parameters.n)
+        .ok_or(XmssError::ParameterOverflow)
+}
+
+/// Generate the authentication path for one XMSS leaf.
+///
+/// For every level `j`, the authentication path contains the sibling of the
+/// node on the selected leaf's path to the root. Nodes are serialized in
+/// increasing height order, beginning with the sibling leaf.
+pub fn authentication_path(
+    parameters: &SlhDsaParameters,
+    secret_seed: &[u8],
+    public_seed: &[u8],
+    xmss_address: &Address,
+    leaf_index: u32,
+    output: &mut [u8],
+) -> Result<(), XmssError> {
+    let leaf_count = leaf_count(parameters)?;
+
+    if u64::from(leaf_index) >= leaf_count {
+        return Err(XmssError::InvalidLeafIndex {
+            index: leaf_index,
+            leaf_count,
+        });
+    }
+
+    let expected = authentication_path_bytes(parameters)?;
+
+    if output.len() != expected {
+        return Err(XmssError::InvalidAuthenticationPathLength {
+            expected,
+            actual: output.len(),
+        });
+    }
+
+    for level in 0..parameters.hp {
+        let level_u32 = u32::try_from(level).map_err(|_| XmssError::ParameterOverflow)?;
+
+        let selected_node_index = leaf_index
+            .checked_shr(level_u32)
+            .ok_or(XmssError::ParameterOverflow)?;
+
+        let sibling_index = selected_node_index ^ 1;
+
+        let start = level
+            .checked_mul(parameters.n)
+            .ok_or(XmssError::ParameterOverflow)?;
+
+        let end = start
+            .checked_add(parameters.n)
+            .ok_or(XmssError::ParameterOverflow)?;
+
+        node(
+            parameters,
+            secret_seed,
+            public_seed,
+            xmss_address,
+            XmssNodePosition {
+                height: level_u32,
+                index: sibling_index,
+            },
+            &mut output[start..end],
+        )?;
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -948,6 +1038,258 @@ mod tests {
                     index: 0,
                 },
                 &mut output[..parameters.n],
+            )
+            .unwrap();
+        }
+    }
+
+    #[test]
+    fn authentication_path_length_is_hp_times_n() {
+        for parameter_set in PARAMETER_SETS {
+            let parameters = parameter_set.parameters();
+
+            assert_eq!(
+                authentication_path_bytes(&parameters),
+                Ok(parameters.hp * parameters.n)
+            );
+        }
+    }
+
+    #[test]
+    fn authentication_path_rejects_the_wrong_output_length() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0_u8; 16];
+        let public_seed = [0_u8; 16];
+        let expected = authentication_path_bytes(&parameters).unwrap();
+        let mut output = [0_u8; 512];
+
+        assert_eq!(
+            authentication_path(
+                &parameters,
+                &secret_seed,
+                &public_seed,
+                &test_address(),
+                0,
+                &mut output[..expected - 1],
+            ),
+            Err(XmssError::InvalidAuthenticationPathLength {
+                expected,
+                actual: expected - 1,
+            })
+        );
+    }
+
+    #[test]
+    fn authentication_path_rejects_an_out_of_range_leaf() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0_u8; 16];
+        let public_seed = [0_u8; 16];
+        let leaf_count = leaf_count(&parameters).unwrap();
+        let leaf_index = u32::try_from(leaf_count).unwrap();
+        let path_length = authentication_path_bytes(&parameters).unwrap();
+        let mut output = [0_u8; 512];
+
+        assert_eq!(
+            authentication_path(
+                &parameters,
+                &secret_seed,
+                &public_seed,
+                &test_address(),
+                leaf_index,
+                &mut output[..path_length],
+            ),
+            Err(XmssError::InvalidLeafIndex {
+                index: leaf_index,
+                leaf_count,
+            })
+        );
+    }
+
+    #[test]
+    fn authentication_path_matches_independent_sibling_nodes() {
+        let mut parameters = SlhDsaParameterSet::Shake128s.parameters();
+
+        // Keep the independent reconstruction inexpensive while exercising
+        // every authentication-path level.
+        parameters.hp = 4;
+
+        let secret_seed = [0x21_u8; 16];
+        let public_seed = [0x43_u8; 16];
+        let address = test_address();
+        let leaf_index = 11;
+        let path_length = authentication_path_bytes(&parameters).unwrap();
+
+        let mut path = [0_u8; 512];
+
+        authentication_path(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            leaf_index,
+            &mut path[..path_length],
+        )
+        .unwrap();
+
+        for level in 0..parameters.hp {
+            let height = u32::try_from(level).unwrap();
+            let sibling_index = (leaf_index >> height) ^ 1;
+
+            let mut expected = [0_u8; 16];
+
+            node(
+                &parameters,
+                &secret_seed,
+                &public_seed,
+                &address,
+                XmssNodePosition {
+                    height,
+                    index: sibling_index,
+                },
+                &mut expected,
+            )
+            .unwrap();
+
+            let start = level * parameters.n;
+            let end = start + parameters.n;
+
+            assert_eq!(
+                &path[start..end],
+                &expected,
+                "authentication-path mismatch at level {level}"
+            );
+        }
+    }
+
+    #[test]
+    fn adjacent_leaves_have_expected_sibling_relationship() {
+        let mut parameters = SlhDsaParameterSet::Shake128s.parameters();
+        parameters.hp = 3;
+
+        let secret_seed = [0x65_u8; 16];
+        let public_seed = [0x87_u8; 16];
+        let address = test_address();
+        let path_length = authentication_path_bytes(&parameters).unwrap();
+
+        let mut first = [0_u8; 512];
+        let mut second = [0_u8; 512];
+
+        authentication_path(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            2,
+            &mut first[..path_length],
+        )
+        .unwrap();
+
+        authentication_path(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            3,
+            &mut second[..path_length],
+        )
+        .unwrap();
+
+        let mut leaf_two = [0_u8; 16];
+        let mut leaf_three = [0_u8; 16];
+
+        leaf(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            2,
+            &mut leaf_two,
+        )
+        .unwrap();
+
+        leaf(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            3,
+            &mut leaf_three,
+        )
+        .unwrap();
+
+        assert_eq!(&first[..parameters.n], &leaf_three);
+        assert_eq!(&second[..parameters.n], &leaf_two);
+
+        assert_eq!(
+            &first[parameters.n..path_length],
+            &second[parameters.n..path_length]
+        );
+    }
+
+    #[test]
+    fn authentication_paths_are_domain_separated_by_tree_address() {
+        let mut parameters = SlhDsaParameterSet::Shake128s.parameters();
+        parameters.hp = 3;
+
+        let secret_seed = [0xa9_u8; 16];
+        let public_seed = [0xcb_u8; 16];
+        let path_length = authentication_path_bytes(&parameters).unwrap();
+
+        let mut first_address = test_address();
+        first_address.set_tree_address(7);
+
+        let mut second_address = test_address();
+        second_address.set_tree_address(8);
+
+        let mut first = [0_u8; 512];
+        let mut second = [0_u8; 512];
+
+        authentication_path(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &first_address,
+            1,
+            &mut first[..path_length],
+        )
+        .unwrap();
+
+        authentication_path(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &second_address,
+            1,
+            &mut second[..path_length],
+        )
+        .unwrap();
+
+        assert_ne!(&first[..path_length], &second[..path_length]);
+    }
+
+    #[test]
+    fn every_parameter_set_generates_a_small_authentication_path() {
+        let secret_seed = [0xed_u8; 32];
+        let public_seed = [0x0f_u8; 32];
+        let address = test_address();
+        let mut output = [0_u8; 512];
+
+        for parameter_set in PARAMETER_SETS {
+            let mut parameters = parameter_set.parameters();
+
+            // Exercise every hash family and n value without constructing
+            // full production-height XMSS trees in this unit test.
+            parameters.hp = 3;
+
+            let path_length = authentication_path_bytes(&parameters).unwrap();
+
+            authentication_path(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                5,
+                &mut output[..path_length],
             )
             .unwrap();
         }
