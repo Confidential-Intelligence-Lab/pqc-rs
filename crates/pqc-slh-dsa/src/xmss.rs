@@ -42,6 +42,27 @@ pub enum XmssError {
         height: u32,
     },
 
+    /// The selected node height exceeds the XMSS tree height.
+    InvalidNodeHeight {
+        /// Supplied node height.
+        height: u32,
+
+        /// Configured XMSS tree height.
+        tree_height: usize,
+    },
+
+    /// The selected node index is outside the nodes available at its height.
+    InvalidNodeIndex {
+        /// Supplied node index.
+        index: u32,
+
+        /// Selected node height.
+        height: u32,
+
+        /// Number of nodes available at that height.
+        node_count: u64,
+    },
+
     /// The supplied byte string has the wrong length.
     InvalidByteLength {
         /// Required byte length.
@@ -74,6 +95,25 @@ impl fmt::Display for XmssError {
                 write!(
                     formatter,
                     "XMSS parent-node height must be at least one, got {height}"
+                )
+            }
+            Self::InvalidNodeHeight {
+                height,
+                tree_height,
+            } => {
+                write!(
+                    formatter,
+                    "XMSS node height {height} exceeds the configured tree height {tree_height}"
+                )
+            }
+            Self::InvalidNodeIndex {
+                index,
+                height,
+                node_count,
+            } => {
+                write!(
+                    formatter,
+                    "XMSS node index {index} is outside the {node_count} nodes at height {height}"
                 )
             }
             Self::InvalidByteLength { expected, actual } => {
@@ -181,6 +221,116 @@ pub fn parent_node(
     HashSuite::new(parameters).h(public_seed, &tree_address, left, right, output)?;
 
     Ok(())
+}
+
+/// Generate an arbitrary node in an XMSS tree.
+///
+/// A node at height zero is the WOTS+-derived XMSS leaf with the same index.
+/// A node at height `h > 0` is generated recursively from nodes
+/// `(h - 1, 2 * index)` and `(h - 1, 2 * index + 1)`, then combined using
+/// [`parent_node`].
+pub fn node(
+    parameters: &SlhDsaParameters,
+    secret_seed: &[u8],
+    public_seed: &[u8],
+    xmss_address: &Address,
+    position: XmssNodePosition,
+    output: &mut [u8],
+) -> Result<(), XmssError> {
+    if output.len() != parameters.n {
+        return Err(XmssError::InvalidByteLength {
+            expected: parameters.n,
+            actual: output.len(),
+        });
+    }
+
+    let height = usize::try_from(position.height).map_err(|_| XmssError::ParameterOverflow)?;
+
+    if height > parameters.hp {
+        return Err(XmssError::InvalidNodeHeight {
+            height: position.height,
+            tree_height: parameters.hp,
+        });
+    }
+
+    let levels_above = parameters
+        .hp
+        .checked_sub(height)
+        .ok_or(XmssError::ParameterOverflow)?;
+
+    let node_count = 1_u64
+        .checked_shl(u32::try_from(levels_above).map_err(|_| XmssError::ParameterOverflow)?)
+        .ok_or(XmssError::ParameterOverflow)?;
+
+    if u64::from(position.index) >= node_count {
+        return Err(XmssError::InvalidNodeIndex {
+            index: position.index,
+            height: position.height,
+            node_count,
+        });
+    }
+
+    if position.height == 0 {
+        return leaf(
+            parameters,
+            secret_seed,
+            public_seed,
+            xmss_address,
+            position.index,
+            output,
+        );
+    }
+
+    let child_height = position
+        .height
+        .checked_sub(1)
+        .ok_or(XmssError::ParameterOverflow)?;
+
+    let left_index = position
+        .index
+        .checked_mul(2)
+        .ok_or(XmssError::ParameterOverflow)?;
+
+    let right_index = left_index
+        .checked_add(1)
+        .ok_or(XmssError::ParameterOverflow)?;
+
+    let mut left = [0_u8; 32];
+    let mut right = [0_u8; 32];
+
+    node(
+        parameters,
+        secret_seed,
+        public_seed,
+        xmss_address,
+        XmssNodePosition {
+            height: child_height,
+            index: left_index,
+        },
+        &mut left[..parameters.n],
+    )?;
+
+    node(
+        parameters,
+        secret_seed,
+        public_seed,
+        xmss_address,
+        XmssNodePosition {
+            height: child_height,
+            index: right_index,
+        },
+        &mut right[..parameters.n],
+    )?;
+
+    parent_node(
+        parameters,
+        public_seed,
+        xmss_address,
+        position,
+        &left[..parameters.n],
+        &right[..parameters.n],
+        output,
+    )
 }
 
 #[cfg(test)]
@@ -546,6 +696,257 @@ mod tests {
                 },
                 &left[..parameters.n],
                 &right[..parameters.n],
+                &mut output[..parameters.n],
+            )
+            .unwrap();
+        }
+    }
+
+    #[test]
+    fn node_height_zero_matches_leaf_generation() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0x11_u8; 16];
+        let public_seed = [0x22_u8; 16];
+        let address = test_address();
+
+        let mut actual = [0_u8; 16];
+
+        node(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            XmssNodePosition {
+                height: 0,
+                index: 3,
+            },
+            &mut actual,
+        )
+        .unwrap();
+
+        let mut expected = [0_u8; 16];
+
+        leaf(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            3,
+            &mut expected,
+        )
+        .unwrap();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn node_height_one_matches_two_leaves_and_parent_hashing() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0x33_u8; 16];
+        let public_seed = [0x44_u8; 16];
+        let address = test_address();
+
+        let mut actual = [0_u8; 16];
+
+        node(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            XmssNodePosition {
+                height: 1,
+                index: 2,
+            },
+            &mut actual,
+        )
+        .unwrap();
+
+        let mut left = [0_u8; 16];
+        let mut right = [0_u8; 16];
+
+        leaf(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            4,
+            &mut left,
+        )
+        .unwrap();
+
+        leaf(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            5,
+            &mut right,
+        )
+        .unwrap();
+
+        let mut expected = [0_u8; 16];
+
+        parent_node(
+            &parameters,
+            &public_seed,
+            &address,
+            XmssNodePosition {
+                height: 1,
+                index: 2,
+            },
+            &left,
+            &right,
+            &mut expected,
+        )
+        .unwrap();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn node_height_two_matches_recursive_children() {
+        let parameters = SlhDsaParameterSet::Sha2_128s.parameters();
+        let secret_seed = [0x55_u8; 16];
+        let public_seed = [0x66_u8; 16];
+        let address = test_address();
+
+        let mut actual = [0_u8; 16];
+
+        node(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            XmssNodePosition {
+                height: 2,
+                index: 0,
+            },
+            &mut actual,
+        )
+        .unwrap();
+
+        let mut left = [0_u8; 16];
+        let mut right = [0_u8; 16];
+
+        node(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            XmssNodePosition {
+                height: 1,
+                index: 0,
+            },
+            &mut left,
+        )
+        .unwrap();
+
+        node(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            XmssNodePosition {
+                height: 1,
+                index: 1,
+            },
+            &mut right,
+        )
+        .unwrap();
+
+        let mut expected = [0_u8; 16];
+
+        parent_node(
+            &parameters,
+            &public_seed,
+            &address,
+            XmssNodePosition {
+                height: 2,
+                index: 0,
+            },
+            &left,
+            &right,
+            &mut expected,
+        )
+        .unwrap();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn node_rejects_heights_above_the_xmss_tree() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0_u8; 16];
+        let public_seed = [0_u8; 16];
+        let height = u32::try_from(parameters.hp + 1).unwrap();
+        let mut output = [0_u8; 16];
+
+        assert_eq!(
+            node(
+                &parameters,
+                &secret_seed,
+                &public_seed,
+                &test_address(),
+                XmssNodePosition { height, index: 0 },
+                &mut output,
+            ),
+            Err(XmssError::InvalidNodeHeight {
+                height,
+                tree_height: parameters.hp,
+            })
+        );
+    }
+
+    #[test]
+    fn node_rejects_indices_outside_the_selected_height() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0_u8; 16];
+        let public_seed = [0_u8; 16];
+        let height = 1;
+        let node_count = 1_u64 << (parameters.hp - height as usize);
+        let index = u32::try_from(node_count).unwrap();
+        let mut output = [0_u8; 16];
+
+        assert_eq!(
+            node(
+                &parameters,
+                &secret_seed,
+                &public_seed,
+                &test_address(),
+                XmssNodePosition { height, index },
+                &mut output,
+            ),
+            Err(XmssError::InvalidNodeIndex {
+                index,
+                height,
+                node_count,
+            })
+        );
+    }
+
+    #[test]
+    fn every_parameter_set_generates_a_small_xmss_subtree() {
+        let secret_seed = [0x77_u8; 32];
+        let public_seed = [0x88_u8; 32];
+        let address = test_address();
+        let mut output = [0_u8; 32];
+
+        for parameter_set in PARAMETER_SETS {
+            let mut parameters = parameter_set.parameters();
+
+            // Keep this cross-parameter test inexpensive while exercising the
+            // complete SHA2/SHAKE and n = 16/24/32 dispatch matrix.
+            parameters.hp = 2;
+
+            node(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                XmssNodePosition {
+                    height: 2,
+                    index: 0,
+                },
                 &mut output[..parameters.n],
             )
             .unwrap();
