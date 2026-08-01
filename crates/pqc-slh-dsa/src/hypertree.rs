@@ -459,6 +459,65 @@ pub fn sign(
     Ok(())
 }
 
+/// Reconstruct the top hypertree root from a signature.
+///
+/// `message` is the `n`-byte value authenticated by the bottom XMSS layer,
+/// normally the public key reconstructed from the FORS signature. Each XMSS
+/// signature segment reconstructs the root that becomes the message for the
+/// next hypertree layer. The final reconstructed value is the top root.
+pub fn root_from_signature(
+    parameters: &SlhDsaParameters,
+    signature: &[u8],
+    message: &[u8],
+    public_seed: &[u8],
+    tree_index: u64,
+    leaf_index: u32,
+    output: &mut [u8],
+) -> Result<(), HypertreeError> {
+    validate_signature_buffer(parameters, signature)?;
+
+    if message.len() != parameters.n {
+        return Err(HypertreeError::InvalidMessageLength {
+            expected: parameters.n,
+            actual: message.len(),
+        });
+    }
+
+    if output.len() != parameters.n {
+        return Err(HypertreeError::InvalidMessageLength {
+            expected: parameters.n,
+            actual: output.len(),
+        });
+    }
+
+    let initial = initial_position(parameters, tree_index, leaf_index)?;
+    let mut current = [0_u8; 32];
+    current[..parameters.n].copy_from_slice(message);
+
+    for layer in 0..parameters.d {
+        let context = layer_context(parameters, initial, layer)?;
+        let layer_signature = &signature[context.signature_start..context.signature_end];
+
+        let mut reconstructed = [0_u8; 32];
+
+        xmss::root_from_signature(
+            parameters,
+            layer_signature,
+            &current[..parameters.n],
+            public_seed,
+            &context.address,
+            context.position.leaf_index,
+            &mut reconstructed[..parameters.n],
+        )?;
+
+        current[..parameters.n].copy_from_slice(&reconstructed[..parameters.n]);
+    }
+
+    output.copy_from_slice(&current[..parameters.n]);
+
+    Ok(())
+}
+
 /// Return the position of the next XMSS layer.
 ///
 /// The transition consumes the low `hp` bits of the current tree index as the
@@ -1378,6 +1437,381 @@ mod tests {
 
             assert_eq!(reconstructed, expected, "layer {layer}");
             current = reconstructed;
+        }
+    }
+
+    #[test]
+    fn root_from_signature_rejects_the_wrong_signature_length() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let expected = signature_bytes(&parameters).unwrap();
+        let signature = [0_u8; 8192];
+        let message = [0_u8; 16];
+        let public_seed = [0_u8; 16];
+        let mut output = [0_u8; 16];
+
+        assert_eq!(
+            root_from_signature(
+                &parameters,
+                &signature[..expected - 1],
+                &message,
+                &public_seed,
+                0,
+                0,
+                &mut output,
+            ),
+            Err(HypertreeError::InvalidSignatureLength {
+                expected,
+                actual: expected - 1,
+            })
+        );
+    }
+
+    #[test]
+    fn root_from_signature_rejects_the_wrong_message_length() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let signature_length = signature_bytes(&parameters).unwrap();
+        let signature = [0_u8; 8192];
+        let message = [0_u8; 15];
+        let public_seed = [0_u8; 16];
+        let mut output = [0_u8; 16];
+
+        assert_eq!(
+            root_from_signature(
+                &parameters,
+                &signature[..signature_length],
+                &message,
+                &public_seed,
+                0,
+                0,
+                &mut output,
+            ),
+            Err(HypertreeError::InvalidMessageLength {
+                expected: parameters.n,
+                actual: message.len(),
+            })
+        );
+    }
+
+    #[test]
+    fn root_from_signature_rejects_the_wrong_output_length() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let signature_length = signature_bytes(&parameters).unwrap();
+        let signature = [0_u8; 8192];
+        let message = [0_u8; 16];
+        let public_seed = [0_u8; 16];
+        let mut output = [0_u8; 15];
+
+        assert_eq!(
+            root_from_signature(
+                &parameters,
+                &signature[..signature_length],
+                &message,
+                &public_seed,
+                0,
+                0,
+                &mut output,
+            ),
+            Err(HypertreeError::InvalidMessageLength {
+                expected: parameters.n,
+                actual: output.len(),
+            })
+        );
+    }
+
+    #[test]
+    fn signed_hypertree_reconstructs_the_top_root() {
+        let mut parameters = SlhDsaParameterSet::Shake128s.parameters();
+        parameters.hp = 2;
+        parameters.d = 3;
+        parameters.h = 6;
+
+        let secret_seed = [0x21_u8; 16];
+        let public_seed = [0x43_u8; 16];
+        let message = [0x65_u8; 16];
+        let tree_index = 0b1011;
+        let leaf_index = 2;
+        let signature_length = signature_bytes(&parameters).unwrap();
+
+        let mut signature = [0_u8; 8192];
+
+        sign(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &message,
+            tree_index,
+            leaf_index,
+            &mut signature[..signature_length],
+        )
+        .unwrap();
+
+        let mut reconstructed = [0_u8; 16];
+
+        root_from_signature(
+            &parameters,
+            &signature[..signature_length],
+            &message,
+            &public_seed,
+            tree_index,
+            leaf_index,
+            &mut reconstructed,
+        )
+        .unwrap();
+
+        let initial = initial_position(&parameters, tree_index, leaf_index).unwrap();
+        let top = layer_context(&parameters, initial, parameters.d - 1).unwrap();
+
+        let mut expected = [0_u8; 16];
+
+        xmss::root(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &top.address,
+            &mut expected,
+        )
+        .unwrap();
+
+        assert_eq!(reconstructed, expected);
+    }
+
+    #[test]
+    fn reconstruction_matches_manual_layer_walk() {
+        let mut parameters = SlhDsaParameterSet::Sha2_128s.parameters();
+        parameters.hp = 2;
+        parameters.d = 3;
+        parameters.h = 6;
+
+        let secret_seed = [0x87_u8; 16];
+        let public_seed = [0xa9_u8; 16];
+        let message = [0xcb_u8; 16];
+        let tree_index = 0b1011;
+        let leaf_index = 1;
+        let signature_length = signature_bytes(&parameters).unwrap();
+
+        let mut signature = [0_u8; 8192];
+
+        sign(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &message,
+            tree_index,
+            leaf_index,
+            &mut signature[..signature_length],
+        )
+        .unwrap();
+
+        let mut actual = [0_u8; 16];
+
+        root_from_signature(
+            &parameters,
+            &signature[..signature_length],
+            &message,
+            &public_seed,
+            tree_index,
+            leaf_index,
+            &mut actual,
+        )
+        .unwrap();
+
+        let initial = initial_position(&parameters, tree_index, leaf_index).unwrap();
+        let mut current = message;
+
+        for layer in 0..parameters.d {
+            let context = layer_context(&parameters, initial, layer).unwrap();
+            let layer_signature = &signature[context.signature_start..context.signature_end];
+
+            let mut next = [0_u8; 16];
+
+            xmss::root_from_signature(
+                &parameters,
+                layer_signature,
+                &current,
+                &public_seed,
+                &context.address,
+                context.position.leaf_index,
+                &mut next,
+            )
+            .unwrap();
+
+            current = next;
+        }
+
+        assert_eq!(actual, current);
+    }
+
+    #[test]
+    fn changing_the_hypertree_signature_changes_the_top_root() {
+        let mut parameters = SlhDsaParameterSet::Shake128s.parameters();
+        parameters.hp = 2;
+        parameters.d = 3;
+        parameters.h = 6;
+
+        let secret_seed = [0xed_u8; 16];
+        let public_seed = [0x0f_u8; 16];
+        let message = [0x31_u8; 16];
+        let tree_index = 0b1011;
+        let leaf_index = 3;
+        let signature_length = signature_bytes(&parameters).unwrap();
+
+        let mut signature = [0_u8; 8192];
+
+        sign(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &message,
+            tree_index,
+            leaf_index,
+            &mut signature[..signature_length],
+        )
+        .unwrap();
+
+        let mut original = [0_u8; 16];
+
+        root_from_signature(
+            &parameters,
+            &signature[..signature_length],
+            &message,
+            &public_seed,
+            tree_index,
+            leaf_index,
+            &mut original,
+        )
+        .unwrap();
+
+        signature[0] ^= 1;
+
+        let mut modified = [0_u8; 16];
+
+        root_from_signature(
+            &parameters,
+            &signature[..signature_length],
+            &message,
+            &public_seed,
+            tree_index,
+            leaf_index,
+            &mut modified,
+        )
+        .unwrap();
+
+        assert_ne!(original, modified);
+    }
+
+    #[test]
+    fn changing_the_message_changes_the_reconstructed_top_root() {
+        let mut parameters = SlhDsaParameterSet::Shake128s.parameters();
+        parameters.hp = 2;
+        parameters.d = 3;
+        parameters.h = 6;
+
+        let secret_seed = [0x53_u8; 16];
+        let public_seed = [0x75_u8; 16];
+        let message = [0x97_u8; 16];
+        let changed_message = [0xb9_u8; 16];
+        let signature_length = signature_bytes(&parameters).unwrap();
+
+        let mut signature = [0_u8; 8192];
+
+        sign(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &message,
+            0,
+            1,
+            &mut signature[..signature_length],
+        )
+        .unwrap();
+
+        let mut original = [0_u8; 16];
+        let mut modified = [0_u8; 16];
+
+        root_from_signature(
+            &parameters,
+            &signature[..signature_length],
+            &message,
+            &public_seed,
+            0,
+            1,
+            &mut original,
+        )
+        .unwrap();
+
+        root_from_signature(
+            &parameters,
+            &signature[..signature_length],
+            &changed_message,
+            &public_seed,
+            0,
+            1,
+            &mut modified,
+        )
+        .unwrap();
+
+        assert_ne!(original, modified);
+    }
+
+    #[test]
+    fn every_parameter_set_reconstructs_a_small_hypertree_root() {
+        let secret_seed = [0xdb_u8; 32];
+        let public_seed = [0xfc_u8; 32];
+        let message = [0x1d_u8; 32];
+
+        let mut signature = [0_u8; 8192];
+        let mut reconstructed = [0_u8; 32];
+        let mut expected = [0_u8; 32];
+
+        for parameter_set in PARAMETER_SETS {
+            let mut parameters = parameter_set.parameters();
+            parameters.hp = 2;
+            parameters.d = 3;
+            parameters.h = 6;
+
+            let signature_length = signature_bytes(&parameters).unwrap();
+            let tree_index = 0b1011;
+            let leaf_index = 2;
+
+            sign(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &message[..parameters.n],
+                tree_index,
+                leaf_index,
+                &mut signature[..signature_length],
+            )
+            .unwrap();
+
+            root_from_signature(
+                &parameters,
+                &signature[..signature_length],
+                &message[..parameters.n],
+                &public_seed[..parameters.n],
+                tree_index,
+                leaf_index,
+                &mut reconstructed[..parameters.n],
+            )
+            .unwrap();
+
+            let initial = initial_position(&parameters, tree_index, leaf_index).unwrap();
+            let top = layer_context(&parameters, initial, parameters.d - 1).unwrap();
+
+            xmss::root(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &top.address,
+                &mut expected[..parameters.n],
+            )
+            .unwrap();
+
+            assert_eq!(
+                &reconstructed[..parameters.n],
+                &expected[..parameters.n],
+                "{parameter_set:?}"
+            );
         }
     }
 }
