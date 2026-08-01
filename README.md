@@ -11,14 +11,16 @@ PQC-rs is a Rust workspace for post-quantum cryptography and post-quantum key es
 
 ## Scope
 
-The workspace contains implemented, experimental, and planned workstreams for:
+The workspace implements the three finalized NIST post-quantum cryptography
+standards together with protocol-composition and validation infrastructure:
 
 - ML-KEM (FIPS 203);
 - ML-DSA (FIPS 204);
 - SLH-DSA (FIPS 205);
-- HPKE foundations and post-quantum KEM integration;
+- HPKE with post-quantum KEM integration;
 - post-quantum/traditional hybrid key establishment;
-- ACVP-oriented validation, fuzzing, side-channel regression testing, and release assurance.
+- ACVP-oriented validation, interoperability, fuzzing, side-channel regression
+  testing, and release assurance.
 
 RFC 9958 is used as an informational engineering guide. Normative conformance claims are traced separately to the applicable FIPS, RFC, and future ISO/IEC specifications.
 
@@ -29,7 +31,7 @@ RFC 9958 is used as an informational engineering guide. Normative conformance cl
 | [`pqc-rs-core`](https://crates.io/crates/pqc-rs-core) | Common traits, byte wrappers, errors, and secret containers | Published (`0.4.0`) |
 | [`pqc-rs-ml-kem`](https://crates.io/crates/pqc-rs-ml-kem) | ML-KEM implementation | Published (`0.4.0`) |
 | [`pqc-rs-ml-dsa`](https://crates.io/crates/pqc-rs-ml-dsa) | ML-DSA implementation | Published (`0.4.0`) |
-| `pqc-rs-slh-dsa` | SLH-DSA workstream | Planned; not published |
+| `pqc-rs-slh-dsa` | FIPS 205 SLH-DSA implementation | Complete; publication pending |
 | [`pqc-rs-hpke`](https://crates.io/crates/pqc-rs-hpke) | HPKE and post-quantum KEM integration | Published (`0.4.0`) |
 | `pqc-rs-hybrid` | Experimental hybrid composition support | Experimental; not published |
 | `pqc-rs-test-harness` | ACVP, protocol-vector, and validation tooling | Internal; not published |
@@ -47,6 +49,9 @@ pqc-rs-ml-kem = "0.4.0"
 pqc-rs-ml-dsa = "0.4.0"
 pqc-rs-hpke = "0.4.0"
 ```
+
+The FIPS 205 `pqc-rs-slh-dsa` crate is complete and undergoing final release
+qualification. It will be added to this installation block once published.
 
 The corresponding Rust library names are `pqc_core`, `pqc_ml_kem`,
 `pqc_ml_dsa`, and `pqc_hpke`. These are pre-1.0 packages and should be
