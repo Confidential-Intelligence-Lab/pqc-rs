@@ -3,6 +3,8 @@
 //! These wrappers reduce accidental exposure by omitting `Debug`, zeroizing
 //! their contents on drop, and exposing only explicit byte accessors.
 
+#[cfg(feature = "alloc")]
+use alloc::vec::Vec;
 use zeroize::{Zeroize, ZeroizeOnDrop};
 
 /// Fixed-size secret byte array.
@@ -48,11 +50,13 @@ impl<const N: usize> AsRef<[u8]> for SecretBytes<N> {
 ///
 /// This type intentionally does not implement `Debug`, `Display`, `Serialize`,
 /// or `Clone`.
+#[cfg(feature = "alloc")]
 #[derive(Zeroize, ZeroizeOnDrop)]
 pub struct SecretVec {
     bytes: Vec<u8>,
 }
 
+#[cfg(feature = "alloc")]
 impl SecretVec {
     /// Construct a heap-allocated secret container.
     pub fn new(bytes: Vec<u8>) -> Self {
@@ -70,6 +74,7 @@ impl SecretVec {
     }
 }
 
+#[cfg(feature = "alloc")]
 impl AsRef<[u8]> for SecretVec {
     fn as_ref(&self) -> &[u8] {
         &self.bytes
@@ -86,9 +91,10 @@ mod tests {
         assert_eq!(secret.as_bytes(), &[7u8; 32]);
     }
 
+    #[cfg(feature = "alloc")]
     #[test]
     fn heap_secret_round_trip() {
-        let secret = SecretVec::new(vec![3u8; 48]);
-        assert_eq!(secret.as_bytes(), vec![3u8; 48]);
+        let secret = SecretVec::new(alloc::vec![3u8; 48]);
+        assert_eq!(secret.as_bytes(), &[3u8; 48]);
     }
 }
