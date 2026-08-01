@@ -532,6 +532,115 @@ pub fn sign(
     Ok(())
 }
 
+/// Reconstruct an XMSS root from a signature and message.
+///
+/// The WOTS+ portion of the signature reconstructs the selected XMSS leaf.
+/// The remaining authentication-path nodes are then combined from the leaf
+/// level upward until the tree root is reached.
+pub fn root_from_signature(
+    parameters: &SlhDsaParameters,
+    signature: &[u8],
+    message: &[u8],
+    public_seed: &[u8],
+    xmss_address: &Address,
+    leaf_index: u32,
+    output: &mut [u8],
+) -> Result<(), XmssError> {
+    let expected = signature_bytes(parameters)?;
+
+    if signature.len() != expected {
+        return Err(XmssError::InvalidSignatureLength {
+            expected,
+            actual: signature.len(),
+        });
+    }
+
+    if output.len() != parameters.n {
+        return Err(XmssError::InvalidByteLength {
+            expected: parameters.n,
+            actual: output.len(),
+        });
+    }
+
+    let leaf_count = leaf_count(parameters)?;
+
+    if u64::from(leaf_index) >= leaf_count {
+        return Err(XmssError::InvalidLeafIndex {
+            index: leaf_index,
+            leaf_count,
+        });
+    }
+
+    let wots_signature_bytes = wots::signature_bytes(parameters)?;
+    let (wots_signature, authentication_path_input) = signature.split_at(wots_signature_bytes);
+
+    let mut wots_address = *xmss_address;
+    wots_address.set_key_pair_address(leaf_index);
+
+    let mut current = [0_u8; 32];
+
+    wots::public_key_from_signature(
+        parameters,
+        wots_signature,
+        message,
+        public_seed,
+        &wots_address,
+        &mut current[..parameters.n],
+    )?;
+
+    for level in 0..parameters.hp {
+        let level_u32 = u32::try_from(level).map_err(|_| XmssError::ParameterOverflow)?;
+
+        let parent_height = level_u32
+            .checked_add(1)
+            .ok_or(XmssError::ParameterOverflow)?;
+
+        let parent_shift = parent_height;
+
+        let parent_index = leaf_index
+            .checked_shr(parent_shift)
+            .ok_or(XmssError::ParameterOverflow)?;
+
+        let path_start = level
+            .checked_mul(parameters.n)
+            .ok_or(XmssError::ParameterOverflow)?;
+
+        let path_end = path_start
+            .checked_add(parameters.n)
+            .ok_or(XmssError::ParameterOverflow)?;
+
+        let sibling = &authentication_path_input[path_start..path_end];
+        let current_is_right_child = ((leaf_index >> level_u32) & 1) != 0;
+
+        let mut parent = [0_u8; 32];
+
+        let (left, right) = if current_is_right_child {
+            (sibling, &current[..parameters.n])
+        } else {
+            (&current[..parameters.n], sibling)
+        };
+
+        parent_node(
+            parameters,
+            public_seed,
+            xmss_address,
+            XmssNodePosition {
+                height: parent_height,
+                index: parent_index,
+            },
+            left,
+            right,
+            &mut parent[..parameters.n],
+        )?;
+
+        current[..parameters.n].copy_from_slice(&parent[..parameters.n]);
+    }
+
+    output.copy_from_slice(&current[..parameters.n]);
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1791,6 +1900,313 @@ mod tests {
                 &mut signature[..signature_length],
             )
             .unwrap();
+        }
+    }
+
+    #[test]
+    fn root_from_signature_rejects_the_wrong_signature_length() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let expected = signature_bytes(&parameters).unwrap();
+        let signature = [0_u8; 4096];
+        let message = [0_u8; 16];
+        let public_seed = [0_u8; 16];
+        let mut output = [0_u8; 16];
+
+        assert_eq!(
+            root_from_signature(
+                &parameters,
+                &signature[..expected - 1],
+                &message,
+                &public_seed,
+                &test_address(),
+                0,
+                &mut output,
+            ),
+            Err(XmssError::InvalidSignatureLength {
+                expected,
+                actual: expected - 1,
+            })
+        );
+    }
+
+    #[test]
+    fn root_from_signature_rejects_the_wrong_output_length() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let signature_length = signature_bytes(&parameters).unwrap();
+        let signature = [0_u8; 4096];
+        let message = [0_u8; 16];
+        let public_seed = [0_u8; 16];
+        let mut output = [0_u8; 15];
+
+        assert_eq!(
+            root_from_signature(
+                &parameters,
+                &signature[..signature_length],
+                &message,
+                &public_seed,
+                &test_address(),
+                0,
+                &mut output,
+            ),
+            Err(XmssError::InvalidByteLength {
+                expected: parameters.n,
+                actual: output.len(),
+            })
+        );
+    }
+
+    #[test]
+    fn root_from_signature_rejects_an_out_of_range_leaf() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let signature_length = signature_bytes(&parameters).unwrap();
+        let signature = [0_u8; 4096];
+        let message = [0_u8; 16];
+        let public_seed = [0_u8; 16];
+        let leaf_count = leaf_count(&parameters).unwrap();
+        let leaf_index = u32::try_from(leaf_count).unwrap();
+        let mut output = [0_u8; 16];
+
+        assert_eq!(
+            root_from_signature(
+                &parameters,
+                &signature[..signature_length],
+                &message,
+                &public_seed,
+                &test_address(),
+                leaf_index,
+                &mut output,
+            ),
+            Err(XmssError::InvalidLeafIndex {
+                index: leaf_index,
+                leaf_count,
+            })
+        );
+    }
+
+    #[test]
+    fn signed_message_reconstructs_the_direct_xmss_root() {
+        for parameter_set in [
+            SlhDsaParameterSet::Sha2_128s,
+            SlhDsaParameterSet::Shake128s,
+            SlhDsaParameterSet::Sha2_192f,
+            SlhDsaParameterSet::Shake256f,
+        ] {
+            let mut parameters = parameter_set.parameters();
+            parameters.hp = 3;
+
+            let secret_seed = [0x21_u8; 32];
+            let public_seed = [0x43_u8; 32];
+            let message = [0x65_u8; 32];
+            let address = test_address();
+            let leaf_index = 5;
+            let signature_length = signature_bytes(&parameters).unwrap();
+
+            let mut signature = [0_u8; 4096];
+
+            sign(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &message[..parameters.n],
+                &address,
+                leaf_index,
+                &mut signature[..signature_length],
+            )
+            .unwrap();
+
+            let mut reconstructed = [0_u8; 32];
+
+            root_from_signature(
+                &parameters,
+                &signature[..signature_length],
+                &message[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                leaf_index,
+                &mut reconstructed[..parameters.n],
+            )
+            .unwrap();
+
+            let mut expected = [0_u8; 32];
+
+            root(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                &mut expected[..parameters.n],
+            )
+            .unwrap();
+
+            assert_eq!(
+                &reconstructed[..parameters.n],
+                &expected[..parameters.n],
+                "{parameter_set:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn reconstruction_matches_an_independent_path_walk() {
+        let mut parameters = SlhDsaParameterSet::Shake128s.parameters();
+        parameters.hp = 4;
+
+        let secret_seed = [0x87_u8; 16];
+        let public_seed = [0xa9_u8; 16];
+        let message = [0xcb_u8; 16];
+        let address = test_address();
+        let leaf_index = 11;
+        let signature_length = signature_bytes(&parameters).unwrap();
+
+        let mut signature = [0_u8; 4096];
+
+        sign(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &message,
+            &address,
+            leaf_index,
+            &mut signature[..signature_length],
+        )
+        .unwrap();
+
+        let mut reconstructed = [0_u8; 16];
+
+        root_from_signature(
+            &parameters,
+            &signature[..signature_length],
+            &message,
+            &public_seed,
+            &address,
+            leaf_index,
+            &mut reconstructed,
+        )
+        .unwrap();
+
+        let mut expected = [0_u8; 16];
+
+        root(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            &mut expected,
+        )
+        .unwrap();
+
+        assert_eq!(reconstructed, expected);
+    }
+
+    #[test]
+    fn changing_the_xmss_signature_changes_the_reconstructed_root() {
+        let mut parameters = SlhDsaParameterSet::Shake128s.parameters();
+        parameters.hp = 3;
+
+        let secret_seed = [0xed_u8; 16];
+        let public_seed = [0x0f_u8; 16];
+        let message = [0x31_u8; 16];
+        let address = test_address();
+        let leaf_index = 3;
+        let signature_length = signature_bytes(&parameters).unwrap();
+
+        let mut signature = [0_u8; 4096];
+
+        sign(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &message,
+            &address,
+            leaf_index,
+            &mut signature[..signature_length],
+        )
+        .unwrap();
+
+        let mut original = [0_u8; 16];
+
+        root_from_signature(
+            &parameters,
+            &signature[..signature_length],
+            &message,
+            &public_seed,
+            &address,
+            leaf_index,
+            &mut original,
+        )
+        .unwrap();
+
+        signature[0] ^= 1;
+
+        let mut modified = [0_u8; 16];
+
+        root_from_signature(
+            &parameters,
+            &signature[..signature_length],
+            &message,
+            &public_seed,
+            &address,
+            leaf_index,
+            &mut modified,
+        )
+        .unwrap();
+
+        assert_ne!(original, modified);
+    }
+
+    #[test]
+    fn every_parameter_set_reconstructs_a_small_xmss_root() {
+        let secret_seed = [0x53_u8; 32];
+        let public_seed = [0x75_u8; 32];
+        let message = [0x97_u8; 32];
+        let address = test_address();
+
+        let mut signature = [0_u8; 4096];
+        let mut reconstructed = [0_u8; 32];
+        let mut expected = [0_u8; 32];
+
+        for parameter_set in PARAMETER_SETS {
+            let mut parameters = parameter_set.parameters();
+            parameters.hp = 2;
+
+            let signature_length = signature_bytes(&parameters).unwrap();
+
+            sign(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &message[..parameters.n],
+                &address,
+                1,
+                &mut signature[..signature_length],
+            )
+            .unwrap();
+
+            root_from_signature(
+                &parameters,
+                &signature[..signature_length],
+                &message[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                1,
+                &mut reconstructed[..parameters.n],
+            )
+            .unwrap();
+
+            root(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                &mut expected[..parameters.n],
+            )
+            .unwrap();
+
+            assert_eq!(
+                &reconstructed[..parameters.n],
+                &expected[..parameters.n],
+                "{parameter_set:?}"
+            );
         }
     }
 }
