@@ -469,6 +469,126 @@ impl SlhDsa {
         }
     }
 
+    /// Verify a Pure SLH-DSA signature.
+    ///
+    /// Returns `Ok(false)` when the signature is structurally well formed but
+    /// does not authenticate the supplied public key, message, and context.
+    pub fn verify(
+        &self,
+        public_key: &SlhDsaPublicKey,
+        message: &[u8],
+        context: &[u8],
+        signature: &SlhDsaSignature,
+    ) -> Result<bool, SlhDsaError> {
+        if public_key.parameter_set() != self.parameter_set
+            || signature.parameter_set() != self.parameter_set
+        {
+            return Err(SlhDsaError::ParameterSetMismatch);
+        }
+
+        self.ensure_context_length(context)?;
+
+        let parameters = self.parameter_set.parameters();
+        let encoded_public_key = public_key.as_bytes();
+        let encoded_signature = signature.as_bytes();
+
+        if encoded_public_key.len() != parameters.public_key_bytes {
+            return Err(SlhDsaError::InvalidPublicKey);
+        }
+
+        if encoded_signature.len() != parameters.signature_bytes {
+            return Err(SlhDsaError::InvalidSignature);
+        }
+
+        let public_seed = &encoded_public_key[..parameters.n];
+        let public_root = &encoded_public_key[parameters.n..2 * parameters.n];
+
+        let randomizer = &encoded_signature[..parameters.n];
+
+        let prefixed_length = 2_usize
+            .checked_add(context.len())
+            .and_then(|length| length.checked_add(message.len()))
+            .ok_or(SlhDsaError::InternalError)?;
+
+        let mut prefixed_message = Vec::with_capacity(prefixed_length);
+        prefixed_message.push(0);
+        prefixed_message
+            .push(u8::try_from(context.len()).map_err(|_| SlhDsaError::ContextTooLong)?);
+        prefixed_message.extend_from_slice(context);
+        prefixed_message.extend_from_slice(message);
+
+        let mut digest = vec![0_u8; parameters.m];
+
+        HashSuite::new(&parameters)
+            .h_msg(
+                randomizer,
+                public_seed,
+                public_root,
+                &prefixed_message,
+                &mut digest,
+            )
+            .map_err(|_| SlhDsaError::InternalError)?;
+
+        let parsed =
+            parse_message_digest(&parameters, &digest).map_err(|_| SlhDsaError::InternalError)?;
+
+        let fors_bytes =
+            fors::signature_bytes(&parameters).map_err(|_| SlhDsaError::InternalError)?;
+
+        let hypertree_bytes =
+            hypertree::signature_bytes(&parameters).map_err(|_| SlhDsaError::InternalError)?;
+
+        let fors_start = parameters.n;
+        let fors_end = fors_start
+            .checked_add(fors_bytes)
+            .ok_or(SlhDsaError::InternalError)?;
+
+        let hypertree_end = fors_end
+            .checked_add(hypertree_bytes)
+            .ok_or(SlhDsaError::InternalError)?;
+
+        if hypertree_end != encoded_signature.len() {
+            return Err(SlhDsaError::InvalidSignature);
+        }
+
+        let fors_signature = &encoded_signature[fors_start..fors_end];
+
+        let hypertree_signature = &encoded_signature[fors_end..hypertree_end];
+
+        let mut fors_address = Address::new();
+        fors_address.set_tree_address(parsed.tree_index);
+        fors_address.set_type_and_clear(AddressType::ForsTree);
+        fors_address.set_key_pair_address(parsed.leaf_index);
+
+        let mut fors_public_key = vec![0_u8; parameters.n];
+
+        fors::public_key_from_signature(
+            &parameters,
+            fors_signature,
+            parsed.fors_digest,
+            public_seed,
+            &fors_address,
+            parsed.leaf_index,
+            &mut fors_public_key,
+        )
+        .map_err(|_| SlhDsaError::InternalError)?;
+
+        let mut reconstructed_root = vec![0_u8; parameters.n];
+
+        hypertree::root_from_signature(
+            &parameters,
+            hypertree_signature,
+            &fors_public_key,
+            public_seed,
+            parsed.tree_index,
+            parsed.leaf_index,
+            &mut reconstructed_root,
+        )
+        .map_err(|_| SlhDsaError::InternalError)?;
+
+        Ok(reconstructed_root.as_slice() == public_root)
+    }
+
     /// Deterministically derive an SLH-DSA key pair from a key-generation seed.
     ///
     /// The `3n`-byte input is interpreted as:
@@ -1322,5 +1442,217 @@ mod tests {
             .unwrap();
 
         assert_ne!(deterministic, hedged);
+    }
+
+    #[test]
+    fn deterministic_signature_verifies() {
+        let parameter_set = SlhDsaParameterSet::Shake128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let slh_dsa = SlhDsa::new(parameter_set);
+        let message = b"deterministic verification";
+        let context = b"test";
+
+        let signature = slh_dsa
+            .sign_deterministic(key_pair.private_key(), message, context)
+            .unwrap();
+
+        assert_eq!(
+            slh_dsa.verify(key_pair.public_key(), message, context, &signature,),
+            Ok(true)
+        );
+    }
+
+    #[test]
+    fn hedged_signature_verifies() {
+        let parameter_set = SlhDsaParameterSet::Sha2_128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let slh_dsa = SlhDsa::new(parameter_set);
+        let message = b"hedged verification";
+        let context = b"ctx";
+        let mut rng = DeterministicRng::new(0x42);
+
+        let signature = slh_dsa
+            .sign_hedged(key_pair.private_key(), message, context, &mut rng)
+            .unwrap();
+
+        assert_eq!(
+            slh_dsa.verify(key_pair.public_key(), message, context, &signature,),
+            Ok(true)
+        );
+    }
+
+    #[test]
+    fn verification_rejects_a_changed_message() {
+        let parameter_set = SlhDsaParameterSet::Shake128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let slh_dsa = SlhDsa::new(parameter_set);
+
+        let signature = slh_dsa
+            .sign_deterministic(key_pair.private_key(), b"original message", b"context")
+            .unwrap();
+
+        assert_eq!(
+            slh_dsa.verify(
+                key_pair.public_key(),
+                b"changed message",
+                b"context",
+                &signature,
+            ),
+            Ok(false)
+        );
+    }
+
+    #[test]
+    fn verification_rejects_a_changed_context() {
+        let parameter_set = SlhDsaParameterSet::Sha2_128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let slh_dsa = SlhDsa::new(parameter_set);
+
+        let signature = slh_dsa
+            .sign_deterministic(key_pair.private_key(), b"message", b"original context")
+            .unwrap();
+
+        assert_eq!(
+            slh_dsa.verify(
+                key_pair.public_key(),
+                b"message",
+                b"changed context",
+                &signature,
+            ),
+            Ok(false)
+        );
+    }
+
+    #[test]
+    fn verification_rejects_a_modified_signature() {
+        let parameter_set = SlhDsaParameterSet::Shake128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let slh_dsa = SlhDsa::new(parameter_set);
+
+        let signature = slh_dsa
+            .sign_deterministic(key_pair.private_key(), b"message", b"context")
+            .unwrap();
+
+        let mut modified = signature.clone().into_bytes();
+        let modified_index = modified.len() / 2;
+        modified[modified_index] ^= 1;
+
+        let modified_signature = SlhDsaSignature::from_bytes(parameter_set, &modified).unwrap();
+
+        assert_eq!(
+            slh_dsa.verify(
+                key_pair.public_key(),
+                b"message",
+                b"context",
+                &modified_signature,
+            ),
+            Ok(false)
+        );
+    }
+
+    #[test]
+    fn verification_rejects_a_different_public_key() {
+        let parameter_set = SlhDsaParameterSet::Shake128f;
+        let first_pair = signing_key_pair(parameter_set);
+
+        let parameters = parameter_set.parameters();
+        let second_seed_bytes: Vec<u8> = (0..parameters.keygen_seed_bytes)
+            .map(|offset| 0xa1_u8.wrapping_add(offset as u8))
+            .collect();
+
+        let second_seed = SlhDsaKeyGenSeed::from_bytes(parameter_set, &second_seed_bytes).unwrap();
+
+        let second_pair = SlhDsa::new(parameter_set)
+            .keygen_from_seed(&second_seed)
+            .unwrap();
+
+        let slh_dsa = SlhDsa::new(parameter_set);
+
+        let signature = slh_dsa
+            .sign_deterministic(first_pair.private_key(), b"message", b"context")
+            .unwrap();
+
+        assert_eq!(
+            slh_dsa.verify(second_pair.public_key(), b"message", b"context", &signature,),
+            Ok(false)
+        );
+    }
+
+    #[test]
+    fn verification_rejects_a_public_key_parameter_set_mismatch() {
+        let key_pair = signing_key_pair(SlhDsaParameterSet::Shake128f);
+        let slh_dsa = SlhDsa::new(SlhDsaParameterSet::Sha2_128f);
+
+        let signature = SlhDsaSignature::from_bytes(
+            SlhDsaParameterSet::Sha2_128f,
+            &vec![0_u8; SlhDsaParameterSet::Sha2_128f.parameters().signature_bytes],
+        )
+        .unwrap();
+
+        assert_eq!(
+            slh_dsa
+                .verify(key_pair.public_key(), b"message", b"", &signature,)
+                .err(),
+            Some(SlhDsaError::ParameterSetMismatch)
+        );
+    }
+
+    #[test]
+    fn verification_rejects_a_signature_parameter_set_mismatch() {
+        let parameter_set = SlhDsaParameterSet::Shake128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let slh_dsa = SlhDsa::new(parameter_set);
+
+        let mismatched_signature = SlhDsaSignature::from_bytes(
+            SlhDsaParameterSet::Sha2_128f,
+            &vec![0_u8; SlhDsaParameterSet::Sha2_128f.parameters().signature_bytes],
+        )
+        .unwrap();
+
+        assert_eq!(
+            slh_dsa
+                .verify(
+                    key_pair.public_key(),
+                    b"message",
+                    b"",
+                    &mismatched_signature,
+                )
+                .err(),
+            Some(SlhDsaError::ParameterSetMismatch)
+        );
+    }
+
+    #[test]
+    fn verification_rejects_an_oversized_context() {
+        let parameter_set = SlhDsaParameterSet::Shake128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let slh_dsa = SlhDsa::new(parameter_set);
+
+        let signature = slh_dsa
+            .sign_deterministic(key_pair.private_key(), b"message", b"")
+            .unwrap();
+
+        assert_eq!(
+            slh_dsa
+                .verify(key_pair.public_key(), b"message", &[0_u8; 256], &signature,)
+                .err(),
+            Some(SlhDsaError::ContextTooLong)
+        );
+    }
+
+    #[test]
+    fn empty_message_and_context_verify() {
+        let parameter_set = SlhDsaParameterSet::Sha2_128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let slh_dsa = SlhDsa::new(parameter_set);
+
+        let signature = slh_dsa
+            .sign_deterministic(key_pair.private_key(), b"", b"")
+            .unwrap();
+
+        assert_eq!(
+            slh_dsa.verify(key_pair.public_key(), b"", b"", &signature,),
+            Ok(true)
+        );
     }
 }
