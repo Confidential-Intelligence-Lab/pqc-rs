@@ -74,6 +74,15 @@ pub enum WotsError {
         steps: u32,
     },
 
+    /// The supplied WOTS+ signature buffer has the wrong length.
+    InvalidSignatureLength {
+        /// Required signature length in bytes.
+        expected: usize,
+
+        /// Supplied signature-buffer length in bytes.
+        actual: usize,
+    },
+
     /// Byte-to-base conversion failed.
     Conversion(ConversionError),
 
@@ -118,6 +127,12 @@ impl fmt::Display for WotsError {
                 write!(
                     formatter,
                     "WOTS+ chain interval starting at {start} with {steps} steps exceeds the chain"
+                )
+            }
+            Self::InvalidSignatureLength { expected, actual } => {
+                write!(
+                    formatter,
+                    "invalid WOTS+ signature length: expected {expected} bytes, got {actual}"
                 )
             }
             Self::Conversion(error) => {
@@ -388,6 +403,86 @@ pub fn public_key(
         &endpoints[..endpoint_bytes],
         output,
     )?;
+
+    Ok(())
+}
+
+/// Return the encoded length of a WOTS+ signature.
+///
+/// A signature contains one `n`-byte value for each of the `len` WOTS+
+/// chains.
+pub fn signature_bytes(parameters: &SlhDsaParameters) -> Result<usize, WotsError> {
+    len(parameters)?
+        .checked_mul(parameters.n)
+        .ok_or(WotsError::ParameterOverflow)
+}
+
+/// Generate a deterministic WOTS+ signature.
+///
+/// The message is converted into `len` chain lengths. For each chain `i`, the
+/// corresponding secret-key element is generated and advanced from position
+/// zero through `chain_lengths[i]` applications of `F`.
+pub fn sign(
+    parameters: &SlhDsaParameters,
+    secret_seed: &[u8],
+    public_seed: &[u8],
+    message: &[u8],
+    wots_address: &Address,
+    signature: &mut [u8],
+) -> Result<(), WotsError> {
+    let expected = signature_bytes(parameters)?;
+
+    if signature.len() != expected {
+        return Err(WotsError::InvalidSignatureLength {
+            expected,
+            actual: signature.len(),
+        });
+    }
+
+    let chain_count = len(parameters)?;
+    let mut lengths = [0_u32; MAX_WOTS_LEN];
+
+    chain_lengths(parameters, message, &mut lengths[..chain_count])?;
+
+    let key_pair_address = wots_address.key_pair_address();
+
+    for (chain_index, steps) in lengths[..chain_count].iter().copied().enumerate() {
+        let signature_start = chain_index
+            .checked_mul(parameters.n)
+            .ok_or(WotsError::ParameterOverflow)?;
+
+        let signature_end = signature_start
+            .checked_add(parameters.n)
+            .ok_or(WotsError::ParameterOverflow)?;
+
+        let mut secret_value = [0_u8; 32];
+
+        secret_key_element(
+            parameters,
+            secret_seed,
+            public_seed,
+            wots_address,
+            chain_index,
+            &mut secret_value[..parameters.n],
+        )?;
+
+        let chain_index = u32::try_from(chain_index).map_err(|_| WotsError::ParameterOverflow)?;
+
+        let mut chain_address = *wots_address;
+        chain_address.set_type_and_clear(AddressType::WotsHash);
+        chain_address.set_key_pair_address(key_pair_address);
+        chain_address.set_chain_address(chain_index);
+
+        chain(
+            parameters,
+            public_seed,
+            &chain_address,
+            &secret_value[..parameters.n],
+            0,
+            steps,
+            &mut signature[signature_start..signature_end],
+        )?;
+    }
 
     Ok(())
 }
@@ -862,6 +957,264 @@ mod tests {
         .unwrap();
 
         assert_ne!(first, second);
+    }
+
+    #[test]
+    fn signature_length_is_len_times_n() {
+        for parameter_set in PARAMETER_SETS {
+            let parameters = parameter_set.parameters();
+
+            assert_eq!(
+                signature_bytes(&parameters),
+                Ok(len(&parameters).unwrap() * parameters.n)
+            );
+        }
+    }
+
+    #[test]
+    fn sign_rejects_the_wrong_signature_length() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0_u8; 16];
+        let public_seed = [0_u8; 16];
+        let message = [0_u8; 16];
+        let expected = signature_bytes(&parameters).unwrap();
+        let mut signature = [0_u8; MAX_WOTS_LEN * 32];
+
+        assert_eq!(
+            sign(
+                &parameters,
+                &secret_seed,
+                &public_seed,
+                &message,
+                &test_address(5),
+                &mut signature[..expected - 1],
+            ),
+            Err(WotsError::InvalidSignatureLength {
+                expected,
+                actual: expected - 1,
+            })
+        );
+    }
+
+    #[test]
+    fn sign_rejects_the_wrong_message_length() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0_u8; 16];
+        let public_seed = [0_u8; 16];
+        let message = [0_u8; 15];
+        let signature_length = signature_bytes(&parameters).unwrap();
+        let mut signature = [0_u8; MAX_WOTS_LEN * 32];
+
+        assert_eq!(
+            sign(
+                &parameters,
+                &secret_seed,
+                &public_seed,
+                &message,
+                &test_address(7),
+                &mut signature[..signature_length],
+            ),
+            Err(WotsError::InvalidMessageLength {
+                expected: parameters.n,
+                actual: message.len(),
+            })
+        );
+    }
+
+    #[test]
+    fn signature_elements_match_independent_chain_evaluation() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0x21_u8; 16];
+        let public_seed = [0x43_u8; 16];
+        let message = [0xa5_u8; 16];
+        let address = test_address(11);
+
+        let chain_count = len(&parameters).unwrap();
+        let signature_length = signature_bytes(&parameters).unwrap();
+        let mut signature = [0_u8; MAX_WOTS_LEN * 32];
+
+        sign(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &message,
+            &address,
+            &mut signature[..signature_length],
+        )
+        .unwrap();
+
+        let mut lengths = [0_u32; MAX_WOTS_LEN];
+        chain_lengths(&parameters, &message, &mut lengths[..chain_count]).unwrap();
+
+        for (chain_index, steps) in lengths[..chain_count].iter().copied().enumerate() {
+            let mut secret_value = [0_u8; 16];
+
+            secret_key_element(
+                &parameters,
+                &secret_seed,
+                &public_seed,
+                &address,
+                chain_index,
+                &mut secret_value,
+            )
+            .unwrap();
+
+            let mut chain_address = address;
+            chain_address.set_type_and_clear(AddressType::WotsHash);
+            chain_address.set_key_pair_address(address.key_pair_address());
+            chain_address.set_chain_address(u32::try_from(chain_index).unwrap());
+
+            let mut expected = [0_u8; 16];
+
+            chain(
+                &parameters,
+                &public_seed,
+                &chain_address,
+                &secret_value,
+                0,
+                steps,
+                &mut expected,
+            )
+            .unwrap();
+
+            let start = chain_index * parameters.n;
+            let end = start + parameters.n;
+
+            assert_eq!(
+                &signature[start..end],
+                &expected,
+                "signature mismatch at chain {chain_index}"
+            );
+        }
+    }
+
+    #[test]
+    fn sign_is_deterministic() {
+        let parameters = SlhDsaParameterSet::Sha2_192f.parameters();
+        let secret_seed = [0x65_u8; 32];
+        let public_seed = [0x87_u8; 32];
+        let message = [0xa9_u8; 32];
+        let signature_length = signature_bytes(&parameters).unwrap();
+        let address = test_address(13);
+
+        let mut first = [0_u8; MAX_WOTS_LEN * 32];
+        let mut second = [0_u8; MAX_WOTS_LEN * 32];
+
+        sign(
+            &parameters,
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &message[..parameters.n],
+            &address,
+            &mut first[..signature_length],
+        )
+        .unwrap();
+
+        sign(
+            &parameters,
+            &secret_seed[..parameters.n],
+            &public_seed[..parameters.n],
+            &message[..parameters.n],
+            &address,
+            &mut second[..signature_length],
+        )
+        .unwrap();
+
+        assert_eq!(&first[..signature_length], &second[..signature_length]);
+    }
+
+    #[test]
+    fn different_messages_produce_different_signatures() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0xcb_u8; 16];
+        let public_seed = [0xed_u8; 16];
+        let first_message = [0x00_u8; 16];
+        let second_message = [0xff_u8; 16];
+        let signature_length = signature_bytes(&parameters).unwrap();
+        let address = test_address(17);
+
+        let mut first = [0_u8; MAX_WOTS_LEN * 32];
+        let mut second = [0_u8; MAX_WOTS_LEN * 32];
+
+        sign(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &first_message,
+            &address,
+            &mut first[..signature_length],
+        )
+        .unwrap();
+
+        sign(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &second_message,
+            &address,
+            &mut second[..signature_length],
+        )
+        .unwrap();
+
+        assert_ne!(&first[..signature_length], &second[..signature_length]);
+    }
+
+    #[test]
+    fn signatures_are_domain_separated_by_key_pair_address() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0x19_u8; 16];
+        let public_seed = [0x2a_u8; 16];
+        let message = [0x3b_u8; 16];
+        let signature_length = signature_bytes(&parameters).unwrap();
+
+        let mut first = [0_u8; MAX_WOTS_LEN * 32];
+        let mut second = [0_u8; MAX_WOTS_LEN * 32];
+
+        sign(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &message,
+            &test_address(19),
+            &mut first[..signature_length],
+        )
+        .unwrap();
+
+        sign(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &message,
+            &test_address(20),
+            &mut second[..signature_length],
+        )
+        .unwrap();
+
+        assert_ne!(&first[..signature_length], &second[..signature_length]);
+    }
+
+    #[test]
+    fn every_parameter_set_generates_a_wots_signature() {
+        let secret_seed = [0x4c_u8; 32];
+        let public_seed = [0x5d_u8; 32];
+        let message = [0x6e_u8; 32];
+        let address = test_address(23);
+        let mut signature = [0_u8; MAX_WOTS_LEN * 32];
+
+        for parameter_set in PARAMETER_SETS {
+            let parameters = parameter_set.parameters();
+            let signature_length = signature_bytes(&parameters).unwrap();
+
+            sign(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &message[..parameters.n],
+                &address,
+                &mut signature[..signature_length],
+            )
+            .unwrap();
+        }
     }
 
     #[test]
