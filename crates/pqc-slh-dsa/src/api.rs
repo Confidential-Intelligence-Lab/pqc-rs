@@ -271,27 +271,73 @@ impl SlhDsa {
     ///
     /// `0x00 || len(context) || context || message`.
     ///
-    /// For deterministic signing, `PK.seed` is used as the optional
-    /// randomization input to `PRF_msg`.
+    /// Deterministic signing uses `PK.seed` as the optional randomization
+    /// input to `PRF_msg`.
     pub fn sign_deterministic(
         &self,
         private_key: &SlhDsaPrivateKey,
         message: &[u8],
         context: &[u8],
     ) -> Result<SlhDsaSignature, SlhDsaError> {
-        if private_key.parameter_set() != self.parameter_set {
-            return Err(SlhDsaError::ParameterSetMismatch);
-        }
-
-        if context.len() > u8::MAX as usize {
-            return Err(SlhDsaError::ContextTooLong);
-        }
+        self.ensure_private_key_parameter_set(private_key)?;
+        self.ensure_context_length(context)?;
 
         let parameters = self.parameter_set.parameters();
         let encoded_key = private_key.as_bytes();
 
         if encoded_key.len() != parameters.private_key_bytes {
             return Err(SlhDsaError::InvalidPrivateKey);
+        }
+
+        let public_seed = &encoded_key[2 * parameters.n..3 * parameters.n];
+
+        self.sign_with_randomness(private_key, message, context, public_seed)
+    }
+
+    /// Generate a hedged Pure SLH-DSA signature.
+    ///
+    /// The caller-supplied cryptographic RNG generates the `n`-byte
+    /// `opt_rand` input to `PRF_msg`. This hedges the signature against failures
+    /// or compromise of either the private deterministic state or the external
+    /// randomness source alone.
+    pub fn sign_hedged<R>(
+        &self,
+        private_key: &SlhDsaPrivateKey,
+        message: &[u8],
+        context: &[u8],
+        rng: &mut R,
+    ) -> Result<SlhDsaSignature, SlhDsaError>
+    where
+        R: CryptoRng + RngCore,
+    {
+        self.ensure_private_key_parameter_set(private_key)?;
+        self.ensure_context_length(context)?;
+
+        let parameters = self.parameter_set.parameters();
+        let mut optional_randomness = vec![0_u8; parameters.n];
+
+        rng.try_fill_bytes(&mut optional_randomness)
+            .map_err(|_| SlhDsaError::RandomnessFailure)?;
+
+        self.sign_with_randomness(private_key, message, context, &optional_randomness)
+    }
+
+    fn sign_with_randomness(
+        &self,
+        private_key: &SlhDsaPrivateKey,
+        message: &[u8],
+        context: &[u8],
+        optional_randomness: &[u8],
+    ) -> Result<SlhDsaSignature, SlhDsaError> {
+        let parameters = self.parameter_set.parameters();
+        let encoded_key = private_key.as_bytes();
+
+        if encoded_key.len() != parameters.private_key_bytes {
+            return Err(SlhDsaError::InvalidPrivateKey);
+        }
+
+        if optional_randomness.len() != parameters.n {
+            return Err(SlhDsaError::InternalError);
         }
 
         let secret_seed = &encoded_key[..parameters.n];
@@ -315,7 +361,12 @@ impl SlhDsa {
         let mut randomizer = vec![0_u8; parameters.n];
 
         suite
-            .prf_msg(secret_prf, public_seed, &prefixed_message, &mut randomizer)
+            .prf_msg(
+                secret_prf,
+                optional_randomness,
+                &prefixed_message,
+                &mut randomizer,
+            )
             .map_err(|_| SlhDsaError::InternalError)?;
 
         let mut digest = vec![0_u8; parameters.m];
@@ -343,6 +394,7 @@ impl SlhDsa {
         let fors_end = fors_start
             .checked_add(fors_bytes)
             .ok_or(SlhDsaError::InternalError)?;
+
         let hypertree_end = fors_end
             .checked_add(hypertree_bytes)
             .ok_or(SlhDsaError::InternalError)?;
@@ -352,6 +404,7 @@ impl SlhDsa {
         }
 
         let mut encoded_signature = vec![0_u8; parameters.signature_bytes];
+
         encoded_signature[..parameters.n].copy_from_slice(&randomizer);
 
         let mut fors_address = Address::new();
@@ -395,6 +448,25 @@ impl SlhDsa {
         .map_err(|_| SlhDsaError::InternalError)?;
 
         SlhDsaSignature::from_bytes(self.parameter_set, &encoded_signature)
+    }
+
+    fn ensure_private_key_parameter_set(
+        &self,
+        private_key: &SlhDsaPrivateKey,
+    ) -> Result<(), SlhDsaError> {
+        if private_key.parameter_set() == self.parameter_set {
+            Ok(())
+        } else {
+            Err(SlhDsaError::ParameterSetMismatch)
+        }
+    }
+
+    fn ensure_context_length(&self, context: &[u8]) -> Result<(), SlhDsaError> {
+        if context.len() <= u8::MAX as usize {
+            Ok(())
+        } else {
+            Err(SlhDsaError::ContextTooLong)
+        }
     }
 
     /// Deterministically derive an SLH-DSA key pair from a key-generation seed.
@@ -1063,5 +1135,192 @@ mod tests {
             .unwrap();
 
         assert_ne!(first, second);
+    }
+
+    #[test]
+    fn hedged_signing_rejects_a_parameter_set_mismatch() {
+        let key_pair = signing_key_pair(SlhDsaParameterSet::Shake128f);
+        let slh_dsa = SlhDsa::new(SlhDsaParameterSet::Sha2_128f);
+        let mut rng = DeterministicRng::new(0x11);
+
+        assert_eq!(
+            slh_dsa
+                .sign_hedged(key_pair.private_key(), b"message", b"", &mut rng,)
+                .err(),
+            Some(SlhDsaError::ParameterSetMismatch)
+        );
+    }
+
+    #[test]
+    fn hedged_signing_rejects_an_oversized_context() {
+        let parameter_set = SlhDsaParameterSet::Shake128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let slh_dsa = SlhDsa::new(parameter_set);
+        let context = [0_u8; 256];
+        let mut rng = DeterministicRng::new(0x22);
+
+        assert_eq!(
+            slh_dsa
+                .sign_hedged(key_pair.private_key(), b"message", &context, &mut rng,)
+                .err(),
+            Some(SlhDsaError::ContextTooLong)
+        );
+    }
+
+    #[test]
+    fn hedged_signing_maps_rng_failures() {
+        let parameter_set = SlhDsaParameterSet::Shake128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let slh_dsa = SlhDsa::new(parameter_set);
+        let mut rng = FailingRng;
+
+        assert_eq!(
+            slh_dsa
+                .sign_hedged(key_pair.private_key(), b"message", b"context", &mut rng,)
+                .err(),
+            Some(SlhDsaError::RandomnessFailure)
+        );
+    }
+
+    #[test]
+    fn hedged_signature_has_the_expected_length() {
+        let parameter_set = SlhDsaParameterSet::Shake128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let slh_dsa = SlhDsa::new(parameter_set);
+        let mut rng = DeterministicRng::new(0x33);
+
+        let signature = slh_dsa
+            .sign_hedged(
+                key_pair.private_key(),
+                b"hedged SLH-DSA signing",
+                b"test",
+                &mut rng,
+            )
+            .unwrap();
+
+        assert_eq!(signature.parameter_set(), parameter_set);
+        assert_eq!(
+            signature.as_bytes().len(),
+            parameter_set.parameters().signature_bytes
+        );
+    }
+
+    #[test]
+    fn identical_rng_streams_produce_identical_hedged_signatures() {
+        let parameter_set = SlhDsaParameterSet::Shake128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let slh_dsa = SlhDsa::new(parameter_set);
+        let mut first_rng = DeterministicRng::new(0x44);
+        let mut second_rng = DeterministicRng::new(0x44);
+
+        let first = slh_dsa
+            .sign_hedged(
+                key_pair.private_key(),
+                b"same message",
+                b"same context",
+                &mut first_rng,
+            )
+            .unwrap();
+
+        let second = slh_dsa
+            .sign_hedged(
+                key_pair.private_key(),
+                b"same message",
+                b"same context",
+                &mut second_rng,
+            )
+            .unwrap();
+
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn different_rng_streams_produce_different_hedged_signatures() {
+        let parameter_set = SlhDsaParameterSet::Shake128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let slh_dsa = SlhDsa::new(parameter_set);
+        let mut first_rng = DeterministicRng::new(0x55);
+        let mut second_rng = DeterministicRng::new(0x99);
+
+        let first = slh_dsa
+            .sign_hedged(
+                key_pair.private_key(),
+                b"same message",
+                b"same context",
+                &mut first_rng,
+            )
+            .unwrap();
+
+        let second = slh_dsa
+            .sign_hedged(
+                key_pair.private_key(),
+                b"same message",
+                b"same context",
+                &mut second_rng,
+            )
+            .unwrap();
+
+        assert_ne!(first, second);
+    }
+
+    #[test]
+    fn hedged_signature_randomizer_matches_direct_prf_msg() {
+        let parameter_set = SlhDsaParameterSet::Sha2_128f;
+        let parameters = parameter_set.parameters();
+        let key_pair = signing_key_pair(parameter_set);
+        let slh_dsa = SlhDsa::new(parameter_set);
+        let message = b"hedged randomizer test";
+        let context = b"ctx";
+        let starting_byte = 0x6a;
+        let mut rng = DeterministicRng::new(starting_byte);
+
+        let signature = slh_dsa
+            .sign_hedged(key_pair.private_key(), message, context, &mut rng)
+            .unwrap();
+
+        let private_key = key_pair.private_key().as_bytes();
+        let secret_prf = &private_key[parameters.n..2 * parameters.n];
+
+        let optional_randomness: Vec<u8> = (0..parameters.n)
+            .map(|offset| starting_byte.wrapping_add(offset as u8))
+            .collect();
+
+        let mut prefixed_message = Vec::with_capacity(2 + context.len() + message.len());
+
+        prefixed_message.push(0);
+        prefixed_message.push(context.len() as u8);
+        prefixed_message.extend_from_slice(context);
+        prefixed_message.extend_from_slice(message);
+
+        let mut expected = vec![0_u8; parameters.n];
+
+        HashSuite::new(&parameters)
+            .prf_msg(
+                secret_prf,
+                &optional_randomness,
+                &prefixed_message,
+                &mut expected,
+            )
+            .unwrap();
+
+        assert_eq!(&signature.as_bytes()[..parameters.n], expected);
+    }
+
+    #[test]
+    fn deterministic_and_hedged_signatures_use_distinct_randomization() {
+        let parameter_set = SlhDsaParameterSet::Shake128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let slh_dsa = SlhDsa::new(parameter_set);
+        let mut rng = DeterministicRng::new(0xc1);
+
+        let deterministic = slh_dsa
+            .sign_deterministic(key_pair.private_key(), b"message", b"context")
+            .unwrap();
+
+        let hedged = slh_dsa
+            .sign_hedged(key_pair.private_key(), b"message", b"context", &mut rng)
+            .unwrap();
+
+        assert_ne!(deterministic, hedged);
     }
 }
