@@ -423,6 +423,28 @@ pub fn authentication_path(
     Ok(())
 }
 
+/// Generate the root of an XMSS tree.
+///
+/// The root is the unique full-height node at position `(hp, 0)`.
+pub fn root(
+    parameters: &SlhDsaParameters,
+    secret_seed: &[u8],
+    public_seed: &[u8],
+    xmss_address: &Address,
+    output: &mut [u8],
+) -> Result<(), XmssError> {
+    let height = u32::try_from(parameters.hp).map_err(|_| XmssError::ParameterOverflow)?;
+
+    node(
+        parameters,
+        secret_seed,
+        public_seed,
+        xmss_address,
+        XmssNodePosition { height, index: 0 },
+        output,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1290,6 +1312,162 @@ mod tests {
                 &address,
                 5,
                 &mut output[..path_length],
+            )
+            .unwrap();
+        }
+    }
+
+    #[test]
+    fn root_matches_the_full_height_node() {
+        let mut parameters = SlhDsaParameterSet::Shake128s.parameters();
+        parameters.hp = 4;
+
+        let secret_seed = [0x21_u8; 16];
+        let public_seed = [0x43_u8; 16];
+        let address = test_address();
+
+        let mut actual = [0_u8; 16];
+
+        root(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            &mut actual,
+        )
+        .unwrap();
+
+        let mut expected = [0_u8; 16];
+
+        node(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            XmssNodePosition {
+                height: u32::try_from(parameters.hp).unwrap(),
+                index: 0,
+            },
+            &mut expected,
+        )
+        .unwrap();
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn root_rejects_the_wrong_output_length() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0_u8; 16];
+        let public_seed = [0_u8; 16];
+        let mut output = [0_u8; 15];
+
+        assert_eq!(
+            root(
+                &parameters,
+                &secret_seed,
+                &public_seed,
+                &test_address(),
+                &mut output,
+            ),
+            Err(XmssError::InvalidByteLength {
+                expected: parameters.n,
+                actual: output.len(),
+            })
+        );
+    }
+
+    #[test]
+    fn root_is_deterministic() {
+        let mut parameters = SlhDsaParameterSet::Sha2_128s.parameters();
+        parameters.hp = 3;
+
+        let secret_seed = [0x65_u8; 16];
+        let public_seed = [0x87_u8; 16];
+        let address = test_address();
+
+        let mut first = [0_u8; 16];
+        let mut second = [0_u8; 16];
+
+        root(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            &mut first,
+        )
+        .unwrap();
+
+        root(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            &mut second,
+        )
+        .unwrap();
+
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn roots_are_domain_separated_by_tree_address() {
+        let mut parameters = SlhDsaParameterSet::Shake128s.parameters();
+        parameters.hp = 3;
+
+        let secret_seed = [0xa9_u8; 16];
+        let public_seed = [0xcb_u8; 16];
+
+        let mut first_address = test_address();
+        first_address.set_tree_address(7);
+
+        let mut second_address = test_address();
+        second_address.set_tree_address(8);
+
+        let mut first = [0_u8; 16];
+        let mut second = [0_u8; 16];
+
+        root(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &first_address,
+            &mut first,
+        )
+        .unwrap();
+
+        root(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &second_address,
+            &mut second,
+        )
+        .unwrap();
+
+        assert_ne!(first, second);
+    }
+
+    #[test]
+    fn every_parameter_set_generates_a_small_xmss_root() {
+        let secret_seed = [0xed_u8; 32];
+        let public_seed = [0x0f_u8; 32];
+        let address = test_address();
+        let mut output = [0_u8; 32];
+
+        for parameter_set in PARAMETER_SETS {
+            let mut parameters = parameter_set.parameters();
+
+            // Exercise all hash families and security categories without
+            // constructing production-height trees in this unit test.
+            parameters.hp = 3;
+
+            root(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &address,
+                &mut output[..parameters.n],
             )
             .unwrap();
         }
