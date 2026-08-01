@@ -3,6 +3,7 @@
 use core::fmt;
 
 use pqc_core::secret::SecretVec;
+use rand_core::{CryptoRng, RngCore};
 
 use crate::{
     hypertree::{self, HypertreePosition},
@@ -233,6 +234,33 @@ impl SlhDsa {
         self.parameter_set.parameters().signature_bytes
     }
 
+    /// Generate a fresh SLH-DSA key pair using caller-supplied
+    /// cryptographic randomness.
+    pub fn keygen<R>(&self, rng: &mut R) -> Result<SlhDsaKeyPair, SlhDsaError>
+    where
+        R: CryptoRng + RngCore,
+    {
+        let seed = self.generate_keygen_seed(rng)?;
+        self.keygen_from_seed(&seed)
+    }
+
+    /// Generate a fresh parameter-bound SLH-DSA key-generation seed.
+    ///
+    /// The returned seed contains `SK.seed || SK.prf || PK.seed` and can be
+    /// retained for deterministic reprovisioning through
+    /// [`Self::keygen_from_seed`].
+    pub fn generate_keygen_seed<R>(&self, rng: &mut R) -> Result<SlhDsaKeyGenSeed, SlhDsaError>
+    where
+        R: CryptoRng + RngCore,
+    {
+        let mut bytes = vec![0_u8; self.keygen_seed_bytes()];
+
+        rng.try_fill_bytes(&mut bytes)
+            .map_err(|_| SlhDsaError::RandomnessFailure)?;
+
+        SlhDsaKeyGenSeed::from_bytes(self.parameter_set, &bytes)
+    }
+
     /// Deterministically derive an SLH-DSA key pair from a key-generation seed.
     ///
     /// The `3n`-byte input is interpreted as:
@@ -330,6 +358,72 @@ impl SlhDsa {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rand_core::{CryptoRng, Error as RandError, RngCore};
+
+    #[derive(Clone)]
+    struct DeterministicRng {
+        next: u8,
+    }
+
+    impl DeterministicRng {
+        const fn new(next: u8) -> Self {
+            Self { next }
+        }
+    }
+
+    impl RngCore for DeterministicRng {
+        fn next_u32(&mut self) -> u32 {
+            let mut bytes = [0_u8; 4];
+            self.fill_bytes(&mut bytes);
+            u32::from_le_bytes(bytes)
+        }
+
+        fn next_u64(&mut self) -> u64 {
+            let mut bytes = [0_u8; 8];
+            self.fill_bytes(&mut bytes);
+            u64::from_le_bytes(bytes)
+        }
+
+        fn fill_bytes(&mut self, destination: &mut [u8]) {
+            self.try_fill_bytes(destination)
+                .expect("deterministic RNG cannot fail");
+        }
+
+        fn try_fill_bytes(&mut self, destination: &mut [u8]) -> Result<(), RandError> {
+            for byte in destination {
+                *byte = self.next;
+                self.next = self.next.wrapping_add(1);
+            }
+
+            Ok(())
+        }
+    }
+
+    impl CryptoRng for DeterministicRng {}
+
+    struct FailingRng;
+
+    impl RngCore for FailingRng {
+        fn next_u32(&mut self) -> u32 {
+            0
+        }
+
+        fn next_u64(&mut self) -> u64 {
+            0
+        }
+
+        fn fill_bytes(&mut self, destination: &mut [u8]) {
+            destination.fill(0);
+        }
+
+        fn try_fill_bytes(&mut self, _destination: &mut [u8]) -> Result<(), RandError> {
+            Err(RandError::from(
+                core::num::NonZeroU32::new(1).expect("nonzero error code"),
+            ))
+        }
+    }
+
+    impl CryptoRng for FailingRng {}
 
     #[test]
     fn typed_objects_enforce_parameter_specific_lengths() {
@@ -565,6 +659,130 @@ mod tests {
             xmss::root(&parameters, secret_seed, public_seed, &address, &mut root).unwrap();
 
             assert_eq!(root.len(), parameters.n, "{parameter_set:?}");
+        }
+    }
+
+    #[test]
+    fn generated_keygen_seed_has_the_expected_length_and_parameter_set() {
+        let parameter_set = SlhDsaParameterSet::Shake128f;
+        let slh_dsa = SlhDsa::new(parameter_set);
+        let mut rng = DeterministicRng::new(0x21);
+
+        let seed = slh_dsa.generate_keygen_seed(&mut rng).unwrap();
+
+        assert_eq!(seed.parameter_set(), parameter_set);
+        assert_eq!(seed.as_bytes().len(), slh_dsa.keygen_seed_bytes());
+    }
+
+    #[test]
+    fn generated_keygen_seed_contains_the_rng_stream() {
+        let slh_dsa = SlhDsa::new(SlhDsaParameterSet::Shake128f);
+        let mut rng = DeterministicRng::new(0x40);
+
+        let seed = slh_dsa.generate_keygen_seed(&mut rng).unwrap();
+
+        let expected: Vec<u8> = (0..slh_dsa.keygen_seed_bytes())
+            .map(|offset| 0x40_u8.wrapping_add(offset as u8))
+            .collect();
+
+        assert_eq!(seed.as_bytes(), expected);
+    }
+
+    #[test]
+    fn keygen_matches_seed_generation_followed_by_expansion() {
+        let slh_dsa = SlhDsa::new(SlhDsaParameterSet::Shake128f);
+        let mut direct_rng = DeterministicRng::new(0x65);
+        let mut staged_rng = DeterministicRng::new(0x65);
+
+        let direct = slh_dsa.keygen(&mut direct_rng).unwrap();
+
+        let seed = slh_dsa.generate_keygen_seed(&mut staged_rng).unwrap();
+
+        let staged = slh_dsa.keygen_from_seed(&seed).unwrap();
+
+        assert_eq!(
+            direct.public_key().as_bytes(),
+            staged.public_key().as_bytes()
+        );
+
+        assert_eq!(
+            direct.private_key().as_bytes(),
+            staged.private_key().as_bytes()
+        );
+    }
+
+    #[test]
+    fn keygen_is_reproducible_for_identical_rng_streams() {
+        let slh_dsa = SlhDsa::new(SlhDsaParameterSet::Sha2_128f);
+        let mut first_rng = DeterministicRng::new(0x87);
+        let mut second_rng = DeterministicRng::new(0x87);
+
+        let first = slh_dsa.keygen(&mut first_rng).unwrap();
+        let second = slh_dsa.keygen(&mut second_rng).unwrap();
+
+        assert_eq!(
+            first.public_key().as_bytes(),
+            second.public_key().as_bytes()
+        );
+
+        assert_eq!(
+            first.private_key().as_bytes(),
+            second.private_key().as_bytes()
+        );
+    }
+
+    #[test]
+    fn generate_keygen_seed_maps_rng_failures() {
+        let slh_dsa = SlhDsa::new(SlhDsaParameterSet::Shake128f);
+        let mut rng = FailingRng;
+
+        assert_eq!(
+            slh_dsa.generate_keygen_seed(&mut rng).err(),
+            Some(SlhDsaError::RandomnessFailure)
+        );
+    }
+
+    #[test]
+    fn keygen_maps_rng_failures() {
+        let slh_dsa = SlhDsa::new(SlhDsaParameterSet::Shake128f);
+        let mut rng = FailingRng;
+
+        assert_eq!(
+            slh_dsa.keygen(&mut rng).err(),
+            Some(SlhDsaError::RandomnessFailure)
+        );
+    }
+
+    #[test]
+    fn every_parameter_set_generates_the_expected_seed_length() {
+        let parameter_sets = [
+            SlhDsaParameterSet::Sha2_128s,
+            SlhDsaParameterSet::Sha2_128f,
+            SlhDsaParameterSet::Sha2_192s,
+            SlhDsaParameterSet::Sha2_192f,
+            SlhDsaParameterSet::Sha2_256s,
+            SlhDsaParameterSet::Sha2_256f,
+            SlhDsaParameterSet::Shake128s,
+            SlhDsaParameterSet::Shake128f,
+            SlhDsaParameterSet::Shake192s,
+            SlhDsaParameterSet::Shake192f,
+            SlhDsaParameterSet::Shake256s,
+            SlhDsaParameterSet::Shake256f,
+        ];
+
+        for (offset, parameter_set) in parameter_sets.into_iter().enumerate() {
+            let slh_dsa = SlhDsa::new(parameter_set);
+            let mut rng = DeterministicRng::new(offset as u8);
+
+            let seed = slh_dsa.generate_keygen_seed(&mut rng).unwrap();
+
+            assert_eq!(
+                seed.as_bytes().len(),
+                parameter_set.parameters().keygen_seed_bytes,
+                "{parameter_set:?}"
+            );
+
+            assert_eq!(seed.parameter_set(), parameter_set);
         }
     }
 }
