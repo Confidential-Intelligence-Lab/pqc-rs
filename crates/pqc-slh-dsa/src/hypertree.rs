@@ -25,6 +25,29 @@ pub struct HypertreePosition {
     pub leaf_index: u32,
 }
 
+/// Structural context for one XMSS layer of the hypertree.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct HypertreeLayer {
+    /// Position of the XMSS operation within the hypertree.
+    pub position: HypertreePosition,
+
+    /// Base XMSS address derived from the position.
+    pub address: Address,
+
+    /// Inclusive byte offset of this layer's XMSS signature.
+    pub signature_start: usize,
+
+    /// Exclusive byte offset of this layer's XMSS signature.
+    pub signature_end: usize,
+}
+
+impl HypertreeLayer {
+    /// Return the encoded XMSS-signature length for this layer.
+    pub fn signature_len(self) -> usize {
+        self.signature_end - self.signature_start
+    }
+}
+
 /// Errors returned by hypertree structural operations.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum HypertreeError {
@@ -73,6 +96,15 @@ pub enum HypertreeError {
         tree_bits: usize,
     },
 
+    /// The supplied hypertree-signature buffer has the wrong length.
+    InvalidSignatureLength {
+        /// Required hypertree-signature length in bytes.
+        expected: usize,
+
+        /// Supplied hypertree-signature length in bytes.
+        actual: usize,
+    },
+
     /// A hypertree size calculation overflowed.
     ParameterOverflow,
 
@@ -117,6 +149,12 @@ impl fmt::Display for HypertreeError {
                 write!(
                     formatter,
                     "hypertree tree index {tree_index} exceeds the available {tree_bits} bits"
+                )
+            }
+            Self::InvalidSignatureLength { expected, actual } => {
+                write!(
+                    formatter,
+                    "invalid hypertree signature length: expected {expected} bytes, got {actual}"
                 )
             }
             Self::ParameterOverflow => {
@@ -211,6 +249,137 @@ pub fn xmss_address(
     address.set_tree_address(position.tree_index);
 
     Ok(address)
+}
+
+/// Return the encoded length of one XMSS signature layer.
+pub fn layer_signature_bytes(parameters: &SlhDsaParameters) -> Result<usize, HypertreeError> {
+    validate_parameters(parameters)?;
+    Ok(xmss::signature_bytes(parameters)?)
+}
+
+/// Construct the structural context for one hypertree layer.
+///
+/// `initial` must be the validated layer-zero position. The function advances
+/// through the deterministic hypertree transitions until `layer` is reached,
+/// then derives the corresponding XMSS address and signature-byte range.
+pub fn layer_context(
+    parameters: &SlhDsaParameters,
+    initial: HypertreePosition,
+    layer: usize,
+) -> Result<HypertreeLayer, HypertreeError> {
+    validate_parameters(parameters)?;
+    validate_position(parameters, initial)?;
+
+    if initial.layer != 0 {
+        return Err(HypertreeError::InvalidLayer {
+            layer: initial.layer,
+            layer_count: parameters.d,
+        });
+    }
+
+    if layer >= parameters.d {
+        return Err(HypertreeError::InvalidLayer {
+            layer,
+            layer_count: parameters.d,
+        });
+    }
+
+    let mut position = initial;
+
+    for _ in 0..layer {
+        position = next_position(parameters, position)?.ok_or(HypertreeError::InvalidLayer {
+            layer,
+            layer_count: parameters.d,
+        })?;
+    }
+
+    let xmss_bytes = layer_signature_bytes(parameters)?;
+
+    let signature_start = layer
+        .checked_mul(xmss_bytes)
+        .ok_or(HypertreeError::ParameterOverflow)?;
+
+    let signature_end = signature_start
+        .checked_add(xmss_bytes)
+        .ok_or(HypertreeError::ParameterOverflow)?;
+
+    Ok(HypertreeLayer {
+        position,
+        address: xmss_address(parameters, position)?,
+        signature_start,
+        signature_end,
+    })
+}
+
+/// Visit every hypertree layer in ascending order.
+///
+/// The callback receives the validated position, derived XMSS address, and
+/// exact signature-byte range for each layer. No cryptographic operation is
+/// performed by this structural traversal.
+pub fn for_each_layer<F>(
+    parameters: &SlhDsaParameters,
+    initial: HypertreePosition,
+    mut visit: F,
+) -> Result<(), HypertreeError>
+where
+    F: FnMut(HypertreeLayer) -> Result<(), HypertreeError>,
+{
+    validate_parameters(parameters)?;
+    validate_position(parameters, initial)?;
+
+    if initial.layer != 0 {
+        return Err(HypertreeError::InvalidLayer {
+            layer: initial.layer,
+            layer_count: parameters.d,
+        });
+    }
+
+    let mut position = initial;
+    let xmss_bytes = layer_signature_bytes(parameters)?;
+
+    for layer in 0..parameters.d {
+        let signature_start = layer
+            .checked_mul(xmss_bytes)
+            .ok_or(HypertreeError::ParameterOverflow)?;
+
+        let signature_end = signature_start
+            .checked_add(xmss_bytes)
+            .ok_or(HypertreeError::ParameterOverflow)?;
+
+        visit(HypertreeLayer {
+            position,
+            address: xmss_address(parameters, position)?,
+            signature_start,
+            signature_end,
+        })?;
+
+        if layer + 1 < parameters.d {
+            position =
+                next_position(parameters, position)?.ok_or(HypertreeError::InvalidLayer {
+                    layer: layer + 1,
+                    layer_count: parameters.d,
+                })?;
+        }
+    }
+
+    Ok(())
+}
+
+/// Validate a complete hypertree-signature buffer.
+pub fn validate_signature_buffer(
+    parameters: &SlhDsaParameters,
+    signature: &[u8],
+) -> Result<(), HypertreeError> {
+    let expected = signature_bytes(parameters)?;
+
+    if signature.len() != expected {
+        return Err(HypertreeError::InvalidSignatureLength {
+            expected,
+            actual: signature.len(),
+        });
+    }
+
+    Ok(())
 }
 
 /// Return the position of the next XMSS layer.
@@ -649,5 +818,157 @@ mod tests {
                 }
             }
         }
+    }
+
+    #[test]
+    fn layer_signature_length_matches_xmss_signature_length() {
+        for parameter_set in PARAMETER_SETS {
+            let parameters = parameter_set.parameters();
+
+            assert_eq!(
+                layer_signature_bytes(&parameters),
+                xmss::signature_bytes(&parameters).map_err(HypertreeError::from)
+            );
+        }
+    }
+
+    #[test]
+    fn first_layer_context_matches_the_initial_position() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let initial = initial_position(&parameters, 0x1234, 7).unwrap();
+        let context = layer_context(&parameters, initial, 0).unwrap();
+
+        assert_eq!(context.position, initial);
+        assert_eq!(context.address, xmss_address(&parameters, initial).unwrap());
+        assert_eq!(context.signature_start, 0);
+        assert_eq!(
+            context.signature_end,
+            xmss::signature_bytes(&parameters).unwrap()
+        );
+    }
+
+    #[test]
+    fn layer_context_matches_repeated_position_transitions() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let initial = initial_position(&parameters, 0x0003_4567_89ab_cdef, 5).unwrap();
+
+        let mut expected = initial;
+
+        for layer in 0..parameters.d {
+            let context = layer_context(&parameters, initial, layer).unwrap();
+
+            assert_eq!(context.position, expected);
+            assert_eq!(
+                context.address,
+                xmss_address(&parameters, expected).unwrap()
+            );
+
+            if layer + 1 < parameters.d {
+                expected = next_position(&parameters, expected).unwrap().unwrap();
+            }
+        }
+    }
+
+    #[test]
+    fn layer_signature_ranges_are_contiguous() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let initial = initial_position(&parameters, 0, 0).unwrap();
+        let xmss_bytes = xmss::signature_bytes(&parameters).unwrap();
+
+        for layer in 0..parameters.d {
+            let context = layer_context(&parameters, initial, layer).unwrap();
+
+            assert_eq!(context.signature_start, layer * xmss_bytes);
+            assert_eq!(context.signature_end, (layer + 1) * xmss_bytes);
+            assert_eq!(context.signature_len(), xmss_bytes);
+        }
+    }
+
+    #[test]
+    fn final_layer_ends_at_the_hypertree_signature_length() {
+        for parameter_set in PARAMETER_SETS {
+            let parameters = parameter_set.parameters();
+            let initial = initial_position(&parameters, 0, 0).unwrap();
+            let final_layer = layer_context(&parameters, initial, parameters.d - 1).unwrap();
+
+            assert_eq!(
+                final_layer.signature_end,
+                signature_bytes(&parameters).unwrap(),
+                "{parameter_set:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn layer_context_rejects_an_out_of_range_layer() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let initial = initial_position(&parameters, 0, 0).unwrap();
+
+        assert_eq!(
+            layer_context(&parameters, initial, parameters.d),
+            Err(HypertreeError::InvalidLayer {
+                layer: parameters.d,
+                layer_count: parameters.d,
+            })
+        );
+    }
+
+    #[test]
+    fn traversal_visits_every_layer_once() {
+        for parameter_set in PARAMETER_SETS {
+            let parameters = parameter_set.parameters();
+            let initial = initial_position(&parameters, 0, 0).unwrap();
+            let mut visited = 0;
+
+            for_each_layer(&parameters, initial, |context| {
+                assert_eq!(context.position.layer, visited);
+                visited += 1;
+                Ok(())
+            })
+            .unwrap();
+
+            assert_eq!(visited, parameters.d, "{parameter_set:?}");
+        }
+    }
+
+    #[test]
+    fn traversal_contexts_match_direct_layer_contexts() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let initial = initial_position(&parameters, 0x0003_4567_89ab_cdef, 5).unwrap();
+        let mut layer = 0;
+
+        for_each_layer(&parameters, initial, |actual| {
+            let expected = layer_context(&parameters, initial, layer).unwrap();
+            assert_eq!(actual, expected);
+            layer += 1;
+            Ok(())
+        })
+        .unwrap();
+
+        assert_eq!(layer, parameters.d);
+    }
+
+    #[test]
+    fn signature_buffer_validation_accepts_the_exact_length() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let expected = signature_bytes(&parameters).unwrap();
+        let signature = vec![0_u8; expected];
+
+        assert_eq!(validate_signature_buffer(&parameters, &signature), Ok(()));
+    }
+
+    #[test]
+    fn signature_buffer_validation_rejects_the_wrong_length() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let expected = signature_bytes(&parameters).unwrap();
+        let signature = vec![0_u8; expected - 1];
+
+        assert_eq!(
+            validate_signature_buffer(&parameters, &signature),
+            Err(HypertreeError::InvalidSignatureLength {
+                expected,
+                actual: expected - 1,
+            })
+        );
     }
 }
