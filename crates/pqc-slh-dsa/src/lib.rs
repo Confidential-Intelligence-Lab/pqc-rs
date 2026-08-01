@@ -1,10 +1,36 @@
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
-//! FIPS 205 SLH-DSA implementation crate.
+//! NIST FIPS 205 SLH-DSA implementation.
 //!
-//! The current stage establishes the approved parameter sets and the
-//! publication-facing typed object model. Cryptographic key generation,
-//! signing, and verification are introduced in subsequent stages.
+//! This crate implements all twelve standardized SLH-DSA parameter sets,
+//! including the SHA-2 and SHAKE families at security categories 1, 3, and 5.
+//!
+//! The application-facing API provides:
+//!
+//! - cryptographic key generation;
+//! - deterministic key generation from a parameter-bound seed;
+//! - deterministic Pure SLH-DSA signing;
+//! - hedged Pure SLH-DSA signing;
+//! - Pure SLH-DSA signature verification;
+//! - typed key, seed, and signature import and export.
+//!
+//! # Parameter binding
+//!
+//! Keys, signatures, and key-generation seeds are bound to a specific
+//! [`SlhDsaParameterSet`]. Operations reject objects created for a different
+//! parameter set.
+//!
+//! # Validation-only interfaces
+//!
+//! The `internal-api` feature exposes low-level implementation and
+//! conformance-testing interfaces. It is unstable and is not part of the
+//! supported application-facing API.
+//!
+//! # Assurance boundary
+//!
+//! Agreement with NIST ACVP sample vectors is implementation-validation
+//! evidence. It is not CMVP validation, FIPS 140 validation, certification,
+//! or an independent security audit.
 
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]

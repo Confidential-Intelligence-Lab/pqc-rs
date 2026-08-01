@@ -7,9 +7,15 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 rust-version.workspace = true
+readme = "README.md"
+documentation = "https://docs.rs/pqc-rs-slh-dsa"
 categories = ["cryptography"]
 keywords = ["post-quantum", "cryptography", "slh-dsa", "signatures", "rust"]
 publish = false
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs", "-D", "warnings"]
 
 [features]
 default = []
