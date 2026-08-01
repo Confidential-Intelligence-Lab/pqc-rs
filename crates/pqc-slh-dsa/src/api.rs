@@ -291,15 +291,15 @@ impl SlhDsa {
 
         let public_seed = &encoded_key[2 * parameters.n..3 * parameters.n];
 
-        self.sign_with_randomness(private_key, message, context, public_seed)
+        let encoded_message = Self::encode_external_message(message, context)?;
+
+        self.sign_with_randomness(private_key, &encoded_message, public_seed)
     }
 
     /// Generate a hedged Pure SLH-DSA signature.
     ///
     /// The caller-supplied cryptographic RNG generates the `n`-byte
-    /// `opt_rand` input to `PRF_msg`. This hedges the signature against failures
-    /// or compromise of either the private deterministic state or the external
-    /// randomness source alone.
+    /// `opt_rand` input to `PRF_msg`.
     pub fn sign_hedged<R>(
         &self,
         private_key: &SlhDsaPrivateKey,
@@ -319,14 +319,66 @@ impl SlhDsa {
         rng.try_fill_bytes(&mut optional_randomness)
             .map_err(|_| SlhDsaError::RandomnessFailure)?;
 
-        self.sign_with_randomness(private_key, message, context, &optional_randomness)
+        let encoded_message = Self::encode_external_message(message, context)?;
+
+        self.sign_with_randomness(private_key, &encoded_message, &optional_randomness)
+    }
+
+    /// Sign a FIPS 205 internal-interface message deterministically.
+    ///
+    /// This entry point exists for conformance validation. Unlike the public
+    /// Pure SLH-DSA interface, the supplied message is passed directly to the
+    /// internal signing algorithm without external-interface framing.
+    #[cfg(feature = "internal-api")]
+    #[doc(hidden)]
+    pub fn sign_internal_deterministic(
+        &self,
+        private_key: &SlhDsaPrivateKey,
+        message: &[u8],
+    ) -> Result<SlhDsaSignature, SlhDsaError> {
+        self.ensure_private_key_parameter_set(private_key)?;
+
+        let parameters = self.parameter_set.parameters();
+        let encoded_key = private_key.as_bytes();
+
+        if encoded_key.len() != parameters.private_key_bytes {
+            return Err(SlhDsaError::InvalidPrivateKey);
+        }
+
+        let public_seed = &encoded_key[2 * parameters.n..3 * parameters.n];
+
+        self.sign_with_randomness(private_key, message, public_seed)
+    }
+
+    /// Sign a FIPS 205 internal-interface message with hedged randomness.
+    ///
+    /// This entry point exists for conformance validation.
+    #[cfg(feature = "internal-api")]
+    #[doc(hidden)]
+    pub fn sign_internal_hedged<R>(
+        &self,
+        private_key: &SlhDsaPrivateKey,
+        message: &[u8],
+        rng: &mut R,
+    ) -> Result<SlhDsaSignature, SlhDsaError>
+    where
+        R: CryptoRng + RngCore,
+    {
+        self.ensure_private_key_parameter_set(private_key)?;
+
+        let parameters = self.parameter_set.parameters();
+        let mut optional_randomness = vec![0_u8; parameters.n];
+
+        rng.try_fill_bytes(&mut optional_randomness)
+            .map_err(|_| SlhDsaError::RandomnessFailure)?;
+
+        self.sign_with_randomness(private_key, message, &optional_randomness)
     }
 
     fn sign_with_randomness(
         &self,
         private_key: &SlhDsaPrivateKey,
-        message: &[u8],
-        context: &[u8],
+        encoded_message: &[u8],
         optional_randomness: &[u8],
     ) -> Result<SlhDsaSignature, SlhDsaError> {
         let parameters = self.parameter_set.parameters();
@@ -345,18 +397,6 @@ impl SlhDsa {
         let public_seed = &encoded_key[2 * parameters.n..3 * parameters.n];
         let public_root = &encoded_key[3 * parameters.n..4 * parameters.n];
 
-        let prefixed_length = 2_usize
-            .checked_add(context.len())
-            .and_then(|length| length.checked_add(message.len()))
-            .ok_or(SlhDsaError::InternalError)?;
-
-        let mut prefixed_message = Vec::with_capacity(prefixed_length);
-        prefixed_message.push(0);
-        prefixed_message
-            .push(u8::try_from(context.len()).map_err(|_| SlhDsaError::ContextTooLong)?);
-        prefixed_message.extend_from_slice(context);
-        prefixed_message.extend_from_slice(message);
-
         let suite = HashSuite::new(&parameters);
         let mut randomizer = vec![0_u8; parameters.n];
 
@@ -364,7 +404,7 @@ impl SlhDsa {
             .prf_msg(
                 secret_prf,
                 optional_randomness,
-                &prefixed_message,
+                encoded_message,
                 &mut randomizer,
             )
             .map_err(|_| SlhDsaError::InternalError)?;
@@ -376,7 +416,7 @@ impl SlhDsa {
                 &randomizer,
                 public_seed,
                 public_root,
-                &prefixed_message,
+                encoded_message,
                 &mut digest,
             )
             .map_err(|_| SlhDsaError::InternalError)?;
@@ -469,6 +509,21 @@ impl SlhDsa {
         }
     }
 
+    fn encode_external_message(message: &[u8], context: &[u8]) -> Result<Vec<u8>, SlhDsaError> {
+        let encoded_length = 2_usize
+            .checked_add(context.len())
+            .and_then(|length| length.checked_add(message.len()))
+            .ok_or(SlhDsaError::InternalError)?;
+
+        let mut encoded = Vec::with_capacity(encoded_length);
+        encoded.push(0);
+        encoded.push(u8::try_from(context.len()).map_err(|_| SlhDsaError::ContextTooLong)?);
+        encoded.extend_from_slice(context);
+        encoded.extend_from_slice(message);
+
+        Ok(encoded)
+    }
+
     /// Verify a Pure SLH-DSA signature.
     ///
     /// Returns `Ok(false)` when the signature is structurally well formed but
@@ -480,13 +535,39 @@ impl SlhDsa {
         context: &[u8],
         signature: &SlhDsaSignature,
     ) -> Result<bool, SlhDsaError> {
+        self.ensure_context_length(context)?;
+
+        let encoded_message = Self::encode_external_message(message, context)?;
+
+        self.verify_encoded_message(public_key, &encoded_message, signature)
+    }
+
+    /// Verify a FIPS 205 internal-interface signature.
+    ///
+    /// This entry point exists for conformance validation and passes the
+    /// supplied message directly to the internal verification algorithm.
+    #[cfg(feature = "internal-api")]
+    #[doc(hidden)]
+    pub fn verify_internal(
+        &self,
+        public_key: &SlhDsaPublicKey,
+        message: &[u8],
+        signature: &SlhDsaSignature,
+    ) -> Result<bool, SlhDsaError> {
+        self.verify_encoded_message(public_key, message, signature)
+    }
+
+    fn verify_encoded_message(
+        &self,
+        public_key: &SlhDsaPublicKey,
+        encoded_message: &[u8],
+        signature: &SlhDsaSignature,
+    ) -> Result<bool, SlhDsaError> {
         if public_key.parameter_set() != self.parameter_set
             || signature.parameter_set() != self.parameter_set
         {
             return Err(SlhDsaError::ParameterSetMismatch);
         }
-
-        self.ensure_context_length(context)?;
 
         let parameters = self.parameter_set.parameters();
         let encoded_public_key = public_key.as_bytes();
@@ -504,19 +585,6 @@ impl SlhDsa {
         let public_root = &encoded_public_key[parameters.n..2 * parameters.n];
 
         let randomizer = &encoded_signature[..parameters.n];
-
-        let prefixed_length = 2_usize
-            .checked_add(context.len())
-            .and_then(|length| length.checked_add(message.len()))
-            .ok_or(SlhDsaError::InternalError)?;
-
-        let mut prefixed_message = Vec::with_capacity(prefixed_length);
-        prefixed_message.push(0);
-        prefixed_message
-            .push(u8::try_from(context.len()).map_err(|_| SlhDsaError::ContextTooLong)?);
-        prefixed_message.extend_from_slice(context);
-        prefixed_message.extend_from_slice(message);
-
         let mut digest = vec![0_u8; parameters.m];
 
         HashSuite::new(&parameters)
@@ -524,7 +592,7 @@ impl SlhDsa {
                 randomizer,
                 public_seed,
                 public_root,
-                &prefixed_message,
+                encoded_message,
                 &mut digest,
             )
             .map_err(|_| SlhDsaError::InternalError)?;
@@ -1653,6 +1721,93 @@ mod tests {
         assert_eq!(
             slh_dsa.verify(key_pair.public_key(), b"", b"", &signature,),
             Ok(true)
+        );
+    }
+
+    #[cfg(feature = "internal-api")]
+    #[test]
+    fn internal_deterministic_signature_verifies() {
+        let parameter_set = SlhDsaParameterSet::Shake128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let implementation = SlhDsa::new(parameter_set);
+        let message = b"internal interface message";
+
+        let signature = implementation
+            .sign_internal_deterministic(key_pair.private_key(), message)
+            .unwrap();
+
+        assert_eq!(
+            implementation.verify_internal(key_pair.public_key(), message, &signature,),
+            Ok(true)
+        );
+    }
+
+    #[cfg(feature = "internal-api")]
+    #[test]
+    fn internal_hedged_signature_verifies() {
+        let parameter_set = SlhDsaParameterSet::Sha2_128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let implementation = SlhDsa::new(parameter_set);
+        let message = b"internal hedged message";
+        let mut rng = DeterministicRng::new(0x72);
+
+        let signature = implementation
+            .sign_internal_hedged(key_pair.private_key(), message, &mut rng)
+            .unwrap();
+
+        assert_eq!(
+            implementation.verify_internal(key_pair.public_key(), message, &signature,),
+            Ok(true)
+        );
+    }
+
+    #[cfg(feature = "internal-api")]
+    #[test]
+    fn external_verification_rejects_an_internal_signature() {
+        let parameter_set = SlhDsaParameterSet::Shake128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let implementation = SlhDsa::new(parameter_set);
+        let message = b"interface separation";
+
+        let signature = implementation
+            .sign_internal_deterministic(key_pair.private_key(), message)
+            .unwrap();
+
+        assert_eq!(
+            implementation.verify(key_pair.public_key(), message, b"", &signature,),
+            Ok(false)
+        );
+    }
+
+    #[cfg(feature = "internal-api")]
+    #[test]
+    fn internal_verification_rejects_an_external_signature() {
+        let parameter_set = SlhDsaParameterSet::Sha2_128f;
+        let key_pair = signing_key_pair(parameter_set);
+        let implementation = SlhDsa::new(parameter_set);
+        let message = b"interface separation";
+
+        let signature = implementation
+            .sign_deterministic(key_pair.private_key(), message, b"")
+            .unwrap();
+
+        assert_eq!(
+            implementation.verify_internal(key_pair.public_key(), message, &signature,),
+            Ok(false)
+        );
+    }
+
+    #[cfg(feature = "internal-api")]
+    #[test]
+    fn internal_signing_rejects_a_parameter_set_mismatch() {
+        let key_pair = signing_key_pair(SlhDsaParameterSet::Shake128f);
+        let implementation = SlhDsa::new(SlhDsaParameterSet::Sha2_128f);
+
+        assert_eq!(
+            implementation
+                .sign_internal_deterministic(key_pair.private_key(), b"message",)
+                .err(),
+            Some(SlhDsaError::ParameterSetMismatch)
         );
     }
 }
