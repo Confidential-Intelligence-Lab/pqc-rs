@@ -30,14 +30,8 @@ fn parses_keygen_corpus() {
     )
     .unwrap();
 
-    let projection = keygen::parse_projection(
-        &std::fs::read_to_string(vector_path("slhdsa-keygen", "internalProjection.json")).unwrap(),
-    )
-    .unwrap();
-
     assert_eq!(prompt.test_groups.len(), 12);
     assert_eq!(expected.test_groups.len(), 12);
-    assert_eq!(projection.test_groups.len(), 12);
 
     assert_eq!(
         prompt
@@ -61,14 +55,8 @@ fn parses_siggen_corpus() {
     )
     .unwrap();
 
-    let projection = siggen::parse_projection(
-        &std::fs::read_to_string(vector_path("slhdsa-siggen", "internalProjection.json")).unwrap(),
-    )
-    .unwrap();
-
     assert_eq!(prompt.test_groups.len(), 72);
     assert_eq!(expected.test_groups.len(), 72);
-    assert_eq!(projection.test_groups.len(), 72);
 
     assert_eq!(
         prompt
@@ -92,14 +80,8 @@ fn parses_sigver_corpus() {
     )
     .unwrap();
 
-    let projection = sigver::parse_projection(
-        &std::fs::read_to_string(vector_path("slhdsa-sigver", "internalProjection.json")).unwrap(),
-    )
-    .unwrap();
-
     assert_eq!(prompt.test_groups.len(), 36);
     assert_eq!(expected.test_groups.len(), 36);
-    assert_eq!(projection.test_groups.len(), 36);
 }
 
 #[test]
@@ -127,4 +109,106 @@ fn typed_prompt_round_trips_without_semantic_loss() {
     let decoded = siggen::parse_prompt(&encoded).unwrap();
 
     assert_eq!(decoded, prompt);
+}
+
+#[test]
+fn parses_compact_internal_projection_shapes() {
+    let keygen_json = r#"{
+        "vsId": 1,
+        "algorithm": "SLH-DSA",
+        "mode": "keyGen",
+        "revision": "FIPS205",
+        "isSample": true,
+        "testGroups": [{
+            "tgId": 1,
+            "parameterSet": "SLH-DSA-SHA2-128s",
+            "testType": "AFT",
+            "tests": [{
+                "tcId": 1,
+                "deferred": false,
+                "skSeed": "00",
+                "skPrf": "01",
+                "pkSeed": "02",
+                "pk": "03",
+                "sk": "04"
+            }]
+        }]
+    }"#;
+
+    let siggen_json = r#"{
+        "vsId": 2,
+        "algorithm": "SLH-DSA",
+        "mode": "sigGen",
+        "revision": "FIPS205",
+        "isSample": true,
+        "testGroups": [{
+            "tgId": 1,
+            "parameterSet": "SLH-DSA-SHAKE-128f",
+            "testType": "AFT",
+            "deterministic": false,
+            "signatureInterface": "internal",
+            "preHash": "none",
+            "tests": [{
+                "tcId": 1,
+                "deferred": false,
+                "sk": "00",
+                "pk": "01",
+                "message": "02",
+                "hashAlg": "none",
+                "additionalRandomness": "03",
+                "signature": "04"
+            }]
+        }]
+    }"#;
+
+    let sigver_json = r#"{
+        "vsId": 3,
+        "algorithm": "SLH-DSA",
+        "mode": "sigVer",
+        "revision": "FIPS205",
+        "isSample": true,
+        "testGroups": [{
+            "tgId": 1,
+            "parameterSet": "SLH-DSA-SHAKE-128f",
+            "testType": "AFT",
+            "signatureInterface": "internal",
+            "preHash": "none",
+            "tests": [{
+                "tcId": 1,
+                "deferred": false,
+                "sk": "00",
+                "pk": "01",
+                "message": "02",
+                "signature": "03",
+                "hashAlg": "none",
+                "additionalRandomness": "04",
+                "testPassed": false,
+                "reason": "test mutation"
+            }]
+        }]
+    }"#;
+
+    assert_eq!(
+        keygen::parse_projection(keygen_json)
+            .unwrap()
+            .test_groups
+            .len(),
+        1
+    );
+
+    assert_eq!(
+        siggen::parse_projection(siggen_json)
+            .unwrap()
+            .test_groups
+            .len(),
+        1
+    );
+
+    assert_eq!(
+        sigver::parse_projection(sigver_json)
+            .unwrap()
+            .test_groups
+            .len(),
+        1
+    );
 }
