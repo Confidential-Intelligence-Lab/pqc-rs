@@ -7,6 +7,7 @@
 use core::fmt;
 
 use crate::{
+    address::Address,
     params::SlhDsaParameters,
     xmss::{self, XmssError},
 };
@@ -189,6 +190,27 @@ pub fn initial_position(
     validate_position(parameters, position)?;
 
     Ok(position)
+}
+
+/// Derive the base XMSS address for one hypertree position.
+///
+/// The returned address contains the position's hypertree layer and XMSS tree
+/// index. Its type-dependent words remain zero; XMSS and WOTS+ operations set
+/// those words when entering their respective domain-separation namespaces.
+pub fn xmss_address(
+    parameters: &SlhDsaParameters,
+    position: HypertreePosition,
+) -> Result<Address, HypertreeError> {
+    validate_parameters(parameters)?;
+    validate_position(parameters, position)?;
+
+    let layer = u32::try_from(position.layer).map_err(|_| HypertreeError::ParameterOverflow)?;
+
+    let mut address = Address::new();
+    address.set_layer_address(layer);
+    address.set_tree_address(position.tree_index);
+
+    Ok(address)
 }
 
 /// Return the position of the next XMSS layer.
@@ -472,6 +494,160 @@ mod tests {
             assert_eq!(visited, parameters.d, "{parameter_set:?}");
             assert_eq!(position.layer, parameters.d - 1);
             assert_eq!(position.tree_index, 0);
+        }
+    }
+
+    #[test]
+    fn xmss_address_encodes_the_layer_and_tree_index() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let position = HypertreePosition {
+            layer: 3,
+            tree_index: 0x0123_4567,
+            leaf_index: 7,
+        };
+
+        let actual = xmss_address(&parameters, position).unwrap();
+
+        let mut expected = Address::new();
+        expected.set_layer_address(3);
+        expected.set_tree_address(0x0123_4567);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn xmss_address_does_not_encode_the_leaf_index() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+
+        let first = xmss_address(
+            &parameters,
+            HypertreePosition {
+                layer: 1,
+                tree_index: 9,
+                leaf_index: 3,
+            },
+        )
+        .unwrap();
+
+        let second = xmss_address(
+            &parameters,
+            HypertreePosition {
+                layer: 1,
+                tree_index: 9,
+                leaf_index: 17,
+            },
+        )
+        .unwrap();
+
+        assert_eq!(first, second);
+    }
+
+    #[test]
+    fn xmss_addresses_are_domain_separated_by_layer() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+
+        let first = xmss_address(
+            &parameters,
+            HypertreePosition {
+                layer: 1,
+                tree_index: 5,
+                leaf_index: 0,
+            },
+        )
+        .unwrap();
+
+        let second = xmss_address(
+            &parameters,
+            HypertreePosition {
+                layer: 2,
+                tree_index: 5,
+                leaf_index: 0,
+            },
+        )
+        .unwrap();
+
+        assert_ne!(first, second);
+    }
+
+    #[test]
+    fn xmss_addresses_are_domain_separated_by_tree_index() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+
+        let first = xmss_address(
+            &parameters,
+            HypertreePosition {
+                layer: 1,
+                tree_index: 5,
+                leaf_index: 0,
+            },
+        )
+        .unwrap();
+
+        let second = xmss_address(
+            &parameters,
+            HypertreePosition {
+                layer: 1,
+                tree_index: 6,
+                leaf_index: 0,
+            },
+        )
+        .unwrap();
+
+        assert_ne!(first, second);
+    }
+
+    #[test]
+    fn xmss_address_rejects_an_invalid_position() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let position = HypertreePosition {
+            layer: parameters.d,
+            tree_index: 0,
+            leaf_index: 0,
+        };
+
+        assert_eq!(
+            xmss_address(&parameters, position),
+            Err(HypertreeError::InvalidLayer {
+                layer: parameters.d,
+                layer_count: parameters.d,
+            })
+        );
+    }
+
+    #[test]
+    fn transitioned_positions_derive_the_expected_addresses() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let initial = initial_position(&parameters, 0x1234_5678, 3).unwrap();
+        let next = next_position(&parameters, initial).unwrap().unwrap();
+
+        let actual = xmss_address(&parameters, next).unwrap();
+
+        let mut expected = Address::new();
+        expected.set_layer_address(1);
+        expected.set_tree_address(0x1234_5678 >> parameters.hp);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn every_parameter_set_derives_addresses_for_all_layers() {
+        for parameter_set in PARAMETER_SETS {
+            let parameters = parameter_set.parameters();
+            let mut position = initial_position(&parameters, 0, 0).unwrap();
+
+            loop {
+                let address = xmss_address(&parameters, position).unwrap();
+
+                let layer_bytes = u32::try_from(position.layer).unwrap().to_be_bytes();
+
+                assert_eq!(&address.as_bytes()[0..4], &layer_bytes);
+                assert_eq!(&address.as_bytes()[16..32], &[0_u8; 16]);
+
+                match next_position(&parameters, position).unwrap() {
+                    Some(next) => position = next,
+                    None => break,
+                }
+            }
         }
     }
 }
