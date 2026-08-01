@@ -70,6 +70,14 @@ pub mod xmss;
 #[allow(dead_code)]
 mod xmss;
 
+#[cfg(feature = "internal-api")]
+#[doc(hidden)]
+pub mod hypertree;
+
+#[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
+mod hypertree;
+
 pub mod api;
 pub mod error;
 pub mod params;
