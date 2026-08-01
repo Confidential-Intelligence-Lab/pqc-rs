@@ -81,6 +81,15 @@ pub enum XmssError {
         actual: usize,
     },
 
+    /// The supplied XMSS signature buffer has the wrong length.
+    InvalidSignatureLength {
+        /// Required XMSS signature length in bytes.
+        expected: usize,
+
+        /// Supplied XMSS signature length in bytes.
+        actual: usize,
+    },
+
     /// An XMSS parameter calculation overflowed.
     ParameterOverflow,
 
@@ -135,6 +144,12 @@ impl fmt::Display for XmssError {
                 write!(
                     formatter,
                     "invalid XMSS authentication-path length: expected {expected} bytes, got {actual}"
+                )
+            }
+            Self::InvalidSignatureLength { expected, actual } => {
+                write!(
+                    formatter,
+                    "invalid XMSS signature length: expected {expected} bytes, got {actual}"
                 )
             }
             Self::ParameterOverflow => {
@@ -443,6 +458,78 @@ pub fn root(
         XmssNodePosition { height, index: 0 },
         output,
     )
+}
+
+/// Return the encoded length of an XMSS signature.
+///
+/// An XMSS signature consists of one WOTS+ signature followed by the selected
+/// leaf's XMSS authentication path.
+pub fn signature_bytes(parameters: &SlhDsaParameters) -> Result<usize, XmssError> {
+    wots::signature_bytes(parameters)?
+        .checked_add(authentication_path_bytes(parameters)?)
+        .ok_or(XmssError::ParameterOverflow)
+}
+
+/// Generate a deterministic XMSS signature.
+///
+/// The signature encoding is:
+///
+/// `WOTS+ signature || authentication path`.
+///
+/// The WOTS+ key-pair address is set to `leaf_index`, and the authentication
+/// path contains sibling nodes in increasing-height order.
+pub fn sign(
+    parameters: &SlhDsaParameters,
+    secret_seed: &[u8],
+    public_seed: &[u8],
+    message: &[u8],
+    xmss_address: &Address,
+    leaf_index: u32,
+    signature: &mut [u8],
+) -> Result<(), XmssError> {
+    let expected = signature_bytes(parameters)?;
+
+    if signature.len() != expected {
+        return Err(XmssError::InvalidSignatureLength {
+            expected,
+            actual: signature.len(),
+        });
+    }
+
+    let leaf_count = leaf_count(parameters)?;
+
+    if u64::from(leaf_index) >= leaf_count {
+        return Err(XmssError::InvalidLeafIndex {
+            index: leaf_index,
+            leaf_count,
+        });
+    }
+
+    let wots_signature_bytes = wots::signature_bytes(parameters)?;
+    let (wots_signature, authentication_path_output) = signature.split_at_mut(wots_signature_bytes);
+
+    let mut wots_address = *xmss_address;
+    wots_address.set_key_pair_address(leaf_index);
+
+    wots::sign(
+        parameters,
+        secret_seed,
+        public_seed,
+        message,
+        &wots_address,
+        wots_signature,
+    )?;
+
+    authentication_path(
+        parameters,
+        secret_seed,
+        public_seed,
+        xmss_address,
+        leaf_index,
+        authentication_path_output,
+    )?;
+
+    Ok(())
 }
 
 #[cfg(test)]
@@ -1468,6 +1555,240 @@ mod tests {
                 &public_seed[..parameters.n],
                 &address,
                 &mut output[..parameters.n],
+            )
+            .unwrap();
+        }
+    }
+
+    #[test]
+    fn signature_length_combines_wots_and_authentication_path() {
+        for parameter_set in PARAMETER_SETS {
+            let parameters = parameter_set.parameters();
+
+            assert_eq!(
+                signature_bytes(&parameters),
+                Ok(wots::signature_bytes(&parameters).unwrap()
+                    + authentication_path_bytes(&parameters).unwrap())
+            );
+        }
+    }
+
+    #[test]
+    fn sign_rejects_the_wrong_signature_length() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0_u8; 16];
+        let public_seed = [0_u8; 16];
+        let message = [0_u8; 16];
+        let expected = signature_bytes(&parameters).unwrap();
+        let mut signature = [0_u8; 4096];
+
+        assert_eq!(
+            sign(
+                &parameters,
+                &secret_seed,
+                &public_seed,
+                &message,
+                &test_address(),
+                0,
+                &mut signature[..expected - 1],
+            ),
+            Err(XmssError::InvalidSignatureLength {
+                expected,
+                actual: expected - 1,
+            })
+        );
+    }
+
+    #[test]
+    fn sign_rejects_an_out_of_range_leaf() {
+        let parameters = SlhDsaParameterSet::Shake128s.parameters();
+        let secret_seed = [0_u8; 16];
+        let public_seed = [0_u8; 16];
+        let message = [0_u8; 16];
+        let leaf_count = leaf_count(&parameters).unwrap();
+        let leaf_index = u32::try_from(leaf_count).unwrap();
+        let signature_length = signature_bytes(&parameters).unwrap();
+        let mut signature = [0_u8; 4096];
+
+        assert_eq!(
+            sign(
+                &parameters,
+                &secret_seed,
+                &public_seed,
+                &message,
+                &test_address(),
+                leaf_index,
+                &mut signature[..signature_length],
+            ),
+            Err(XmssError::InvalidLeafIndex {
+                index: leaf_index,
+                leaf_count,
+            })
+        );
+    }
+
+    #[test]
+    fn signature_encodes_wots_signature_then_authentication_path() {
+        let mut parameters = SlhDsaParameterSet::Shake128s.parameters();
+        parameters.hp = 3;
+
+        let secret_seed = [0x21_u8; 16];
+        let public_seed = [0x43_u8; 16];
+        let message = [0x65_u8; 16];
+        let address = test_address();
+        let leaf_index = 5;
+
+        let wots_length = wots::signature_bytes(&parameters).unwrap();
+        let path_length = authentication_path_bytes(&parameters).unwrap();
+        let signature_length = signature_bytes(&parameters).unwrap();
+
+        let mut signature = [0_u8; 4096];
+
+        sign(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &message,
+            &address,
+            leaf_index,
+            &mut signature[..signature_length],
+        )
+        .unwrap();
+
+        let mut expected_wots = [0_u8; 4096];
+        let mut wots_address = address;
+        wots_address.set_key_pair_address(leaf_index);
+
+        wots::sign(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &message,
+            &wots_address,
+            &mut expected_wots[..wots_length],
+        )
+        .unwrap();
+
+        let mut expected_path = [0_u8; 512];
+
+        authentication_path(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &address,
+            leaf_index,
+            &mut expected_path[..path_length],
+        )
+        .unwrap();
+
+        assert_eq!(&signature[..wots_length], &expected_wots[..wots_length]);
+
+        assert_eq!(
+            &signature[wots_length..signature_length],
+            &expected_path[..path_length]
+        );
+    }
+
+    #[test]
+    fn xmss_signing_is_deterministic() {
+        let mut parameters = SlhDsaParameterSet::Sha2_128s.parameters();
+        parameters.hp = 3;
+
+        let secret_seed = [0x87_u8; 16];
+        let public_seed = [0xa9_u8; 16];
+        let message = [0xcb_u8; 16];
+        let address = test_address();
+        let signature_length = signature_bytes(&parameters).unwrap();
+
+        let mut first = [0_u8; 4096];
+        let mut second = [0_u8; 4096];
+
+        sign(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &message,
+            &address,
+            3,
+            &mut first[..signature_length],
+        )
+        .unwrap();
+
+        sign(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &message,
+            &address,
+            3,
+            &mut second[..signature_length],
+        )
+        .unwrap();
+
+        assert_eq!(&first[..signature_length], &second[..signature_length]);
+    }
+
+    #[test]
+    fn different_leaf_indices_produce_different_xmss_signatures() {
+        let mut parameters = SlhDsaParameterSet::Shake128s.parameters();
+        parameters.hp = 3;
+
+        let secret_seed = [0xed_u8; 16];
+        let public_seed = [0x0f_u8; 16];
+        let message = [0x31_u8; 16];
+        let address = test_address();
+        let signature_length = signature_bytes(&parameters).unwrap();
+
+        let mut first = [0_u8; 4096];
+        let mut second = [0_u8; 4096];
+
+        sign(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &message,
+            &address,
+            2,
+            &mut first[..signature_length],
+        )
+        .unwrap();
+
+        sign(
+            &parameters,
+            &secret_seed,
+            &public_seed,
+            &message,
+            &address,
+            3,
+            &mut second[..signature_length],
+        )
+        .unwrap();
+
+        assert_ne!(&first[..signature_length], &second[..signature_length]);
+    }
+
+    #[test]
+    fn every_parameter_set_generates_a_small_xmss_signature() {
+        let secret_seed = [0x53_u8; 32];
+        let public_seed = [0x75_u8; 32];
+        let message = [0x97_u8; 32];
+        let address = test_address();
+        let mut signature = [0_u8; 4096];
+
+        for parameter_set in PARAMETER_SETS {
+            let mut parameters = parameter_set.parameters();
+            parameters.hp = 2;
+
+            let signature_length = signature_bytes(&parameters).unwrap();
+
+            sign(
+                &parameters,
+                &secret_seed[..parameters.n],
+                &public_seed[..parameters.n],
+                &message[..parameters.n],
+                &address,
+                1,
+                &mut signature[..signature_length],
             )
             .unwrap();
         }
