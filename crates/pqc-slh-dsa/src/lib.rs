@@ -62,6 +62,14 @@ pub mod wots;
 #[allow(dead_code)]
 mod wots;
 
+#[cfg(feature = "internal-api")]
+#[doc(hidden)]
+pub mod xmss;
+
+#[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
+mod xmss;
+
 pub mod api;
 pub mod error;
 pub mod params;
