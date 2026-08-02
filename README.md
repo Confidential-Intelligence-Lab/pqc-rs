@@ -57,24 +57,86 @@ evaluated under the security limitations stated above.
 
 ## Reference applications
 
-The repository includes executable reference applications demonstrating how
-the published APIs can be composed into larger secure-system workflows.
+The reference applications demonstrate how the published APIs compose into
+complete post-quantum workflows. They form a progression from primitive
+composition to signatures, standardized secure messaging, and
+configuration-driven cryptographic agility.
 
-| Application | Demonstrates |
-|---|---|
-| [`01_mlkem_secure_channel.rs`](crates/pqc-ml-kem/examples/01_mlkem_secure_channel.rs) | ML-KEM-768 key establishment, HKDF-SHA-256 key and nonce derivation, ChaCha20-Poly1305 authenticated encryption, associated-data binding, successful decryption, and ciphertext tamper detection. |
-| [`02_mldsa_document_signing.rs`](crates/pqc-ml-dsa/examples/02_mldsa_document_signing.rs) | ML-DSA-65 hedged document signing, context-bound verification, modified-document rejection, and modified-signature rejection. |
-| [`03_hpke_secure_messaging.rs`](crates/pqc-hpke/examples/03_hpke_secure_messaging.rs) | ML-KEM-768 HPKE Base-mode setup, ordered authenticated messaging, associated-data binding, modified-ciphertext rejection, and receiver-state preservation after failed authentication. |
+| # | Application | Purpose |
+|---|---|---|
+| 01 | [`01_mlkem_secure_channel.rs`](crates/pqc-ml-kem/examples/01_mlkem_secure_channel.rs) | Educational composition of ML-KEM-768, HKDF-SHA-256, and ChaCha20-Poly1305, including associated-data binding and tamper detection. |
+| 02 | [`02_mldsa_document_signing.rs`](crates/pqc-ml-dsa/examples/02_mldsa_document_signing.rs) | ML-DSA-65 detached document authentication with context binding and rejection of modified documents and signatures. |
+| 03 | [`03_hpke_secure_messaging.rs`](crates/pqc-hpke/examples/03_hpke_secure_messaging.rs) | ML-KEM-768 HPKE Base-mode setup, ordered authenticated messaging, tamper rejection, and receiver-state preservation. |
+| 04 | [`04_hpke_crypto_agility.rs`](crates/pqc-hpke/examples/04_hpke_crypto_agility.rs) | Policy-driven selection of KEM, KDF, and AEAD while reusing one unchanged messaging workflow. |
 
-Run the applications with:
+### Run the examples
+
+Run these commands from the workspace root:
 
 ```bash
 cargo run -p pqc-rs-ml-kem --example 01_mlkem_secure_channel --all-features
 cargo run -p pqc-rs-ml-dsa --example 02_mldsa_document_signing --all-features
 cargo run -p pqc-rs-hpke --example 03_hpke_secure_messaging --all-features
+cargo run -p pqc-rs-hpke --example 04_hpke_crypto_agility --all-features
 ```
 
-The ML-KEM secure-channel example is an educational composition rather than a standardized channel protocol. Production systems should generally use a reviewed protocol such as HPKE or TLS.
+No server, network connection, or additional process is required. Each
+example executes locally as one command-line program.
+
+### Intended protocol model
+
+The examples model workflows that would normally involve separate protocol
+participants. In an HPKE deployment, for example, the recipient provisions
+a key pair and distributes its public key. The sender uses that public key
+to create an HPKE sender context and transmits an encapsulated key together
+with one or more ciphertexts. The recipient retains the private key locally,
+reconstructs the receiver context, and authenticates and decrypts the
+ciphertexts in protocol order.
+
+Conceptually, the transport boundary is:
+
+```text
+Recipient                                      Sender
+---------                                      ------
+generate key pair
+publish public key  -------------------------->
+
+                                               HPKE sender setup
+encapsulated key  <----------------------------
+ciphertext 1      <----------------------------
+ciphertext 2      <----------------------------
+
+reconstruct receiver context
+authenticate and decrypt messages
+```
+
+### Current implementation
+
+The current reference applications execute sender and receiver roles within
+one process. Public keys, encapsulated keys, signatures, documents, and
+ciphertexts move through in-memory variables rather than through sockets or
+files. The cryptographic operations, protocol state transitions, sequence
+numbers, authentication checks, and failure behavior are real; only the
+transport boundary is simulated.
+
+This form keeps the examples focused on correct API usage and cryptographic
+composition without introducing unrelated networking concerns such as
+framing, partial reads, timeouts, retries, serialization, and connection
+management.
+
+### Planned evolution
+
+Future reference applications will separate protocol participants into
+independent client and server executables. They will introduce explicit wire
+formats, message framing, session identifiers, ordering rules, and transport
+over mechanisms such as TCP, QUIC, or HTTP. The underlying cryptographic
+workflow will remain the same: provision keys, establish contexts, exchange
+serialized protocol artifacts, and authenticate every protected message.
+
+The ML-KEM secure-channel example is an educational KEM-plus-symmetric-
+cryptography composition rather than a standardized channel protocol.
+Production systems should generally use a reviewed protocol such as HPKE or
+TLS.
 
 ## Engineering principles
 

@@ -58,7 +58,7 @@ let receiver = setup_base_receiver_with_suite(
 The deterministic setup APIs remain available for reproducible vectors,
 interoperability testing, and protocol validation.
 
-## Reference application
+## Reference applications
 
 The crate includes an executable HPKE secure-messaging application:
 
@@ -76,6 +76,30 @@ The application demonstrates ML-KEM-768 recipient key generation, validated
 HPKE ciphersuite selection, randomized Base-mode sender setup, stateful
 authenticated messaging, associated-data binding, modified-ciphertext
 rejection, and preservation of receiver state after failed authentication.
+
+### Cryptographic agility
+
+The agility application keeps the messaging workflow unchanged while a
+policy selects the KEM, KDF, and AEAD:
+
+```text
+examples/04_hpke_crypto_agility.rs
+```
+
+Run it from the workspace root:
+
+```bash
+cargo run -p pqc-rs-hpke --example 04_hpke_crypto_agility --all-features
+```
+
+It exercises compact, balanced, and high-security policies using ML-KEM-512,
+ML-KEM-768, and ML-KEM-1024 respectively. The same sender and receiver
+application logic is reused for every policy.
+
+Both HPKE applications currently execute sender and receiver roles within
+one process and use in-memory values instead of network transport. Future
+versions will separate those roles into independently executable clients
+and servers with explicit serialization and framing.
 
 ## Status
 

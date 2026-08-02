@@ -37,6 +37,20 @@
 //! authenticated messaging, associated-data binding, ciphertext-tamper
 //! rejection, and receiver-state preservation after failed authentication.
 //!
+//!
+//! ## Cryptographic agility
+//!
+//! The crate also includes a policy-driven agility example:
+//!
+//! ```text
+//! crates/pqc-hpke/examples/04_hpke_crypto_agility.rs
+//! ```
+//!
+//! It selects the KEM, KDF, and AEAD through configuration while reusing
+//! one unchanged sender and receiver workflow. Both protocol roles execute
+//! locally; future examples will introduce separate processes and explicit
+//! transport serialization.
+//!
 pub mod aead;
 pub mod context;
 pub mod error;
