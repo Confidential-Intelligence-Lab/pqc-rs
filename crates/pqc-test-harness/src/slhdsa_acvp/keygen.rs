@@ -1,5 +1,6 @@
 //! SLH-DSA ACVP key-generation models.
 
+use core::fmt;
 use serde::{Deserialize, Serialize};
 
 use super::common::{AcvpEnvelope, AcvpParameterSet, AcvpTestType, SlhDsaAcvpError};
@@ -35,7 +36,7 @@ pub struct KeyGenPromptGroup {
 }
 
 /// KeyGen prompt test case.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KeyGenPromptCase {
     /// Test-case identifier.
@@ -51,6 +52,21 @@ pub struct KeyGenPromptCase {
     pub pk_seed: String,
 }
 
+impl fmt::Debug for KeyGenPromptCase {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("KeyGenPromptCase")
+            .field("tc_id", &self.tc_id)
+            .field("sk_seed", &"<redacted>")
+            .field("sk_prf", &"<redacted>")
+            .field(
+                "pk_seed",
+                &format_args!("<{} hex characters>", self.pk_seed.len()),
+            )
+            .finish()
+    }
+}
+
 /// KeyGen expected-results group.
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -64,7 +80,7 @@ pub struct KeyGenExpectedGroup {
 }
 
 /// KeyGen expected test case.
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct KeyGenExpectedCase {
     /// Test-case identifier.
@@ -75,6 +91,17 @@ pub struct KeyGenExpectedCase {
 
     /// Expected private key, encoded as hexadecimal.
     pub sk: String,
+}
+
+impl fmt::Debug for KeyGenExpectedCase {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("KeyGenExpectedCase")
+            .field("tc_id", &self.tc_id)
+            .field("pk", &format_args!("<{} hex characters>", self.pk.len()))
+            .field("sk", &"<redacted>")
+            .finish()
+    }
 }
 
 /// KeyGen internal-projection group.
