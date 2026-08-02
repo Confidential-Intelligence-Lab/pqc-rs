@@ -58,6 +58,25 @@ let receiver = setup_base_receiver_with_suite(
 The deterministic setup APIs remain available for reproducible vectors,
 interoperability testing, and protocol validation.
 
+## Reference application
+
+The crate includes an executable HPKE secure-messaging application:
+
+```text
+examples/03_hpke_secure_messaging.rs
+```
+
+Run it from the workspace root:
+
+```bash
+cargo run -p pqc-rs-hpke --example 03_hpke_secure_messaging --all-features
+```
+
+The application demonstrates ML-KEM-768 recipient key generation, validated
+HPKE ciphersuite selection, randomized Base-mode sender setup, stateful
+authenticated messaging, associated-data binding, modified-ciphertext
+rejection, and preservation of receiver state after failed authentication.
+
 ## Status
 
 This is a pre-1.0 cryptographic library. Review the repository security policy,

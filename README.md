@@ -64,12 +64,14 @@ the published APIs can be composed into larger secure-system workflows.
 |---|---|
 | [`01_mlkem_secure_channel.rs`](crates/pqc-ml-kem/examples/01_mlkem_secure_channel.rs) | ML-KEM-768 key establishment, HKDF-SHA-256 key and nonce derivation, ChaCha20-Poly1305 authenticated encryption, associated-data binding, successful decryption, and ciphertext tamper detection. |
 | [`02_mldsa_document_signing.rs`](crates/pqc-ml-dsa/examples/02_mldsa_document_signing.rs) | ML-DSA-65 hedged document signing, context-bound verification, modified-document rejection, and modified-signature rejection. |
+| [`03_hpke_secure_messaging.rs`](crates/pqc-hpke/examples/03_hpke_secure_messaging.rs) | ML-KEM-768 HPKE Base-mode setup, ordered authenticated messaging, associated-data binding, modified-ciphertext rejection, and receiver-state preservation after failed authentication. |
 
 Run the applications with:
 
 ```bash
 cargo run -p pqc-rs-ml-kem --example 01_mlkem_secure_channel --all-features
 cargo run -p pqc-rs-ml-dsa --example 02_mldsa_document_signing --all-features
+cargo run -p pqc-rs-hpke --example 03_hpke_secure_messaging --all-features
 ```
 
 The ML-KEM secure-channel example is an educational composition rather than a standardized channel protocol. Production systems should generally use a reviewed protocol such as HPKE or TLS.

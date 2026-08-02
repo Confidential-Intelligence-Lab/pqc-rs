@@ -19,6 +19,24 @@
 //! Deterministic entry points remain available for test vectors and
 //! interoperability validation.
 //!
+//! # Reference application
+//!
+//! The crate includes an executable HPKE secure-messaging application:
+//!
+//! ```text
+//! crates/pqc-hpke/examples/03_hpke_secure_messaging.rs
+//! ```
+//!
+//! Run it from the workspace root:
+//!
+//! ```text
+//! cargo run -p pqc-rs-hpke --example 03_hpke_secure_messaging --all-features
+//! ```
+//!
+//! The application demonstrates randomized Base-mode setup, ordered
+//! authenticated messaging, associated-data binding, ciphertext-tamper
+//! rejection, and receiver-state preservation after failed authentication.
+//!
 pub mod aead;
 pub mod context;
 pub mod error;
