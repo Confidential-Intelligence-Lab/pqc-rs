@@ -11,6 +11,7 @@ use pqc_ml_kem::ml_kem_keygen::{
     ml_kem_1024_keygen_internal, ml_kem_512_keygen_internal, ml_kem_768_keygen_internal,
 };
 use pqc_ml_kem::MlKemParameterSet;
+use rand_core::{CryptoRng, RngCore};
 use sha3::{
     digest::{ExtendableOutput, Update, XofReader},
     Shake256,
@@ -87,6 +88,18 @@ impl MlKemHpke {
     /// The HPKE adapter uses the 64-byte seed format `d || z`.
     pub const fn private_key_length(self) -> usize {
         64
+    }
+
+    /// Generate a fresh HPKE ML-KEM key pair from caller-supplied
+    /// cryptographic randomness.
+    pub fn generate_key_pair<R>(self, rng: &mut R) -> Result<MlKemHpkeKeyPair, MlKemHpkeError>
+    where
+        R: CryptoRng + RngCore,
+    {
+        let mut ikm = [0_u8; 64];
+        rng.try_fill_bytes(&mut ikm)
+            .map_err(|_| MlKemHpkeError::RandomnessFailure)?;
+        self.derive_key_pair(&ikm)
     }
 
     /// Deterministically derive an HPKE ML-KEM key pair from `ikm`.
@@ -283,6 +296,8 @@ pub enum MlKemHpkeError {
     OutputTooLong,
     /// Internal fixed-length conversion failed.
     InternalLength,
+    /// Caller-supplied randomness generation failed.
+    RandomnessFailure,
     /// ML-KEM key generation failed.
     KeyGeneration,
     /// HPKE encapsulation failed.
@@ -300,6 +315,7 @@ impl core::fmt::Display for MlKemHpkeError {
             Self::InputTooLong => "labeled-derive input is too long",
             Self::OutputTooLong => "labeled-derive output is too long",
             Self::InternalLength => "internal fixed-length conversion failed",
+            Self::RandomnessFailure => "ML-KEM HPKE randomness generation failed",
             Self::KeyGeneration => "ML-KEM key generation failed",
             Self::EncapError => "ML-KEM HPKE encapsulation failed",
             Self::DecapError => "ML-KEM HPKE decapsulation failed",

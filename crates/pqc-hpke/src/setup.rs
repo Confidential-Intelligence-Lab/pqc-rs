@@ -1,5 +1,7 @@
 //! RFC 9180 Base- and PSK-mode sender and receiver setup.
 
+use rand_core::{CryptoRng, RngCore};
+
 use crate::aead::AeadAlgorithm;
 use crate::context::{ReceiverContext, SenderContext};
 use crate::identifiers::HpkeSuiteId;
@@ -19,6 +21,25 @@ pub struct SenderSetup {
 
 /// Backward-compatible name for Base-mode sender setup.
 pub type BaseSenderSetup = SenderSetup;
+
+/// Execute `SetupBaseS` using fresh caller-supplied cryptographic
+/// randomness.
+pub fn setup_base_sender_with_suite<R>(
+    kem: MlKemHpke,
+    suite: HpkeSuite,
+    recipient_public_key: &[u8],
+    info: &[u8],
+    rng: &mut R,
+) -> Result<BaseSenderSetup, HpkeError>
+where
+    R: CryptoRng + RngCore,
+{
+    let mut randomness = [0_u8; 32];
+    rng.try_fill_bytes(&mut randomness)
+        .map_err(|_| HpkeError::RandomnessFailure)?;
+
+    setup_base_sender_with_suite_deterministic(kem, suite, recipient_public_key, info, &randomness)
+}
 
 /// Deterministically execute `SetupBaseS` using a validated ciphersuite.
 ///

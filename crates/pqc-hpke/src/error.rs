@@ -22,6 +22,8 @@ pub enum HpkeError {
     UnsupportedKdf,
     /// The selected AEAD identifier is unsupported.
     UnsupportedAead,
+    /// Caller-supplied randomness generation failed.
+    RandomnessFailure,
     /// The HPKE KEM operation failed.
     KemError,
     /// The AEAD key length is invalid.
@@ -51,6 +53,7 @@ impl core::fmt::Display for HpkeError {
             Self::KemIdentifierMismatch => "KEM implementation does not match suite identifier",
             Self::UnsupportedKdf => "unsupported HPKE KDF",
             Self::UnsupportedAead => "unsupported HPKE AEAD",
+            Self::RandomnessFailure => "HPKE randomness generation failed",
             Self::KemError => "HPKE KEM operation failed",
             Self::InvalidAeadKey => "invalid AEAD key length",
             Self::InvalidAeadNonce => "invalid AEAD nonce length",
