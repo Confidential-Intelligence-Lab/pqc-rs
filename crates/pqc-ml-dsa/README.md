@@ -128,6 +128,25 @@ and [FIPS 204 traceability documentation](https://github.com/Confidential-Intell
 for the supported-version policy, reporting instructions, and detailed
 standards mapping.
 
+## Reference application
+
+The crate includes an executable document-signing application:
+
+```text
+examples/02_mldsa_document_signing.rs
+```
+
+Run it from the workspace root:
+
+```bash
+cargo run -p pqc-rs-ml-dsa --example 02_mldsa_document_signing --all-features
+```
+
+The application demonstrates ML-DSA-65 key generation, hedged Pure ML-DSA
+signing, context-bound verification, rejection of a modified document, and
+rejection of a modified signature. It models detached document authentication
+and does not define a serialization or transport protocol.
+
 ## License
 
 Licensed under the MIT License.
