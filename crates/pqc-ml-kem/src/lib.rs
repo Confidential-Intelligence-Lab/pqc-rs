@@ -1,11 +1,34 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
-//! ML-KEM API and implementation scaffold.
+//! Typed public API and FIPS 203 ML-KEM implementation.
 //!
-//! Stage 6.3 adds opt-in normative KeyGen tracing while the verified ML-KEM
-//! arithmetic and public APIs remain unchanged.
-
+//! The public API delegates to the validated key-generation,
+//! encapsulation, and decapsulation implementation.
+//!
+//! # Reference application
+//!
+//! The crate includes an executable ML-KEM secure-channel example:
+//!
+//! ```text
+//! crates/pqc-ml-kem/examples/01_mlkem_secure_channel.rs
+//! ```
+//!
+//! Run it from the workspace root:
+//!
+//! ```text
+//! cargo run -p pqc-rs-ml-kem --example 01_mlkem_secure_channel --all-features
+//! ```
+//!
+//! The example demonstrates ML-KEM-768 key establishment, HKDF-SHA-256 key
+//! and nonce derivation, ChaCha20-Poly1305 authenticated encryption,
+//! associated-data binding, successful decryption, and ciphertext tamper
+//! detection.
+//!
+//! This is an educational composition, not a standardized secure-channel
+//! protocol. Production applications should generally use a reviewed
+//! protocol such as HPKE or TLS.
+//!
 extern crate alloc;
 
 pub mod arithmetic;
@@ -36,7 +59,7 @@ pub mod symmetric;
 pub mod zetas;
 
 use pqc_core::{
-    CiphertextBytes, Kem, PqcResult, PublicKeyBytes, SecretKeyBytes, SharedSecretBytes,
+    CiphertextBytes, Kem, PqcError, PqcResult, PublicKeyBytes, SecretKeyBytes, SharedSecretBytes,
 };
 use rand_core::{CryptoRng, RngCore};
 
@@ -190,14 +213,22 @@ pub type MlKem1024SecretKey = SecretKeyBytes<ML_KEM_1024_SECRET_KEY_BYTES>;
 /// ML-KEM-1024 ciphertext.
 pub type MlKem1024Ciphertext = CiphertextBytes<ML_KEM_1024_CIPHERTEXT_BYTES>;
 
-macro_rules! impl_ml_kem_scaffold {
-    ($scheme:ident, $param:expr, $pk:ty, $sk:ty, $ct:ty, $pk_len:expr, $sk_len:expr, $ct_len:expr) => {
+macro_rules! impl_ml_kem {
+    (
+        $scheme:ident,
+        $parameter_set:expr,
+        $keygen:path,
+        $public_key:ty,
+        $secret_key:ty,
+        $ciphertext:ty,
+        $ciphertext_bytes:expr
+    ) => {
         impl $scheme {
             /// Parameter set.
-            pub const PARAMETER_SET: MlKemParameterSet = $param;
+            pub const PARAMETER_SET: MlKemParameterSet = $parameter_set;
 
-            /// Generate a key pair.
-            pub fn keygen<R>(rng: &mut R) -> PqcResult<($pk, $sk)>
+            /// Generate a FIPS 203 ML-KEM key pair.
+            pub fn keygen<R>(rng: &mut R) -> PqcResult<($public_key, $secret_key)>
             where
                 R: CryptoRng + RngCore,
             {
@@ -205,7 +236,10 @@ macro_rules! impl_ml_kem_scaffold {
             }
 
             /// Encapsulate to a public key.
-            pub fn encaps<R>(public_key: &$pk, rng: &mut R) -> PqcResult<($ct, MlKemSharedSecret)>
+            pub fn encaps<R>(
+                public_key: &$public_key,
+                rng: &mut R,
+            ) -> PqcResult<($ciphertext, MlKemSharedSecret)>
             where
                 R: CryptoRng + RngCore,
             {
@@ -213,33 +247,35 @@ macro_rules! impl_ml_kem_scaffold {
             }
 
             /// Decapsulate a ciphertext.
-            pub fn decaps(secret_key: &$sk, ciphertext: &$ct) -> PqcResult<MlKemSharedSecret> {
+            pub fn decaps(
+                secret_key: &$secret_key,
+                ciphertext: &$ciphertext,
+            ) -> PqcResult<MlKemSharedSecret> {
                 <Self as Kem>::decaps(secret_key, ciphertext)
             }
         }
 
         impl Kem for $scheme {
-            type PublicKey = $pk;
-            type SecretKey = $sk;
-            type Ciphertext = $ct;
+            type PublicKey = $public_key;
+            type SecretKey = $secret_key;
+            type Ciphertext = $ciphertext;
             type SharedSecret = MlKemSharedSecret;
 
             fn keygen<R>(rng: &mut R) -> PqcResult<(Self::PublicKey, Self::SecretKey)>
             where
                 R: CryptoRng + RngCore,
             {
-                let mut public_key = [0u8; $pk_len];
-                let mut secret_key = [0u8; $sk_len];
+                let mut d = [0u8; 32];
+                let mut z = [0u8; 32];
 
-                rng.fill_bytes(&mut public_key);
-                rng.fill_bytes(&mut secret_key);
+                rng.fill_bytes(&mut d);
+                rng.fill_bytes(&mut z);
 
-                let copy_len = core::cmp::min($pk_len, $sk_len);
-                secret_key[..copy_len].copy_from_slice(&public_key[..copy_len]);
+                let output = $keygen(&d, &z)?;
 
                 Ok((
-                    PublicKeyBytes::new(public_key),
-                    SecretKeyBytes::new(secret_key),
+                    PublicKeyBytes::new(output.encapsulation_key),
+                    SecretKeyBytes::new(output.decapsulation_key),
                 ))
             }
 
@@ -250,85 +286,73 @@ macro_rules! impl_ml_kem_scaffold {
             where
                 R: CryptoRng + RngCore,
             {
-                let mut ciphertext = [0u8; $ct_len];
-                rng.fill_bytes(&mut ciphertext);
+                let mut m = [0u8; 32];
+                rng.fill_bytes(&mut m);
 
-                let shared_secret =
-                    placeholder_shared_secret($param.name(), public_key.as_bytes(), &ciphertext);
+                let output = crate::ml_kem_encaps::encaps_internal(
+                    $parameter_set,
+                    public_key.as_bytes(),
+                    &m,
+                )?;
 
-                Ok((CiphertextBytes::new(ciphertext), shared_secret))
+                let actual = output.ciphertext.len();
+                let ciphertext =
+                    output
+                        .ciphertext
+                        .try_into()
+                        .map_err(|_| PqcError::InvalidLength {
+                            expected: $ciphertext_bytes,
+                            actual,
+                        })?;
+
+                Ok((CiphertextBytes::new(ciphertext), output.shared_secret))
             }
 
             fn decaps(
                 secret_key: &Self::SecretKey,
                 ciphertext: &Self::Ciphertext,
             ) -> PqcResult<Self::SharedSecret> {
-                let public_key_bytes = &secret_key.as_bytes()[..$pk_len];
-                Ok(placeholder_shared_secret(
-                    $param.name(),
-                    public_key_bytes,
+                let output = crate::ml_kem_decaps::decaps_internal(
+                    $parameter_set,
+                    secret_key.as_bytes(),
                     ciphertext.as_bytes(),
-                ))
+                )?;
+
+                Ok(output.shared_secret)
             }
         }
     };
 }
 
-impl_ml_kem_scaffold!(
+impl_ml_kem!(
     MlKem512,
     MlKemParameterSet::MlKem512,
+    crate::ml_kem_keygen::ml_kem_512_keygen_internal,
     MlKem512PublicKey,
     MlKem512SecretKey,
     MlKem512Ciphertext,
-    ML_KEM_512_PUBLIC_KEY_BYTES,
-    ML_KEM_512_SECRET_KEY_BYTES,
     ML_KEM_512_CIPHERTEXT_BYTES
 );
 
-impl_ml_kem_scaffold!(
+impl_ml_kem!(
     MlKem768,
     MlKemParameterSet::MlKem768,
+    crate::ml_kem_keygen::ml_kem_768_keygen_internal,
     MlKem768PublicKey,
     MlKem768SecretKey,
     MlKem768Ciphertext,
-    ML_KEM_768_PUBLIC_KEY_BYTES,
-    ML_KEM_768_SECRET_KEY_BYTES,
     ML_KEM_768_CIPHERTEXT_BYTES
 );
 
-impl_ml_kem_scaffold!(
+impl_ml_kem!(
     MlKem1024,
     MlKemParameterSet::MlKem1024,
+    crate::ml_kem_keygen::ml_kem_1024_keygen_internal,
     MlKem1024PublicKey,
     MlKem1024SecretKey,
     MlKem1024Ciphertext,
-    ML_KEM_1024_PUBLIC_KEY_BYTES,
-    ML_KEM_1024_SECRET_KEY_BYTES,
     ML_KEM_1024_CIPHERTEXT_BYTES
 );
-
-fn placeholder_shared_secret(
-    parameter_name: &str,
-    public_key: &[u8],
-    ciphertext: &[u8],
-) -> MlKemSharedSecret {
-    let mut input = [0u8; 64];
-    let domain = symmetric::h(b"pqc-rfc9958-rs stage6_1 ml-kem scaffold");
-    input[..32].copy_from_slice(&domain);
-
-    let pk_hash = symmetric::h(public_key);
-    let ct_hash = symmetric::h(ciphertext);
-
-    let mut i = 0;
-    while i < 32 {
-        input[32 + i] =
-            pk_hash[i] ^ ct_hash[i] ^ parameter_name.as_bytes()[i % parameter_name.len()];
-        i += 1;
-    }
-
-    let digest = symmetric::h(&input);
-    SharedSecretBytes::new(digest)
-}
 
 #[cfg(test)]
 mod tests {
@@ -355,7 +379,7 @@ mod tests {
     }
 
     #[test]
-    fn ml_kem_512_round_trip_scaffold() {
+    fn ml_kem_512_public_api_round_trip() {
         let mut rng = OsRng;
         let (pk, sk) = MlKem512::keygen(&mut rng).unwrap();
         let (ct, ss1) = MlKem512::encaps(&pk, &mut rng).unwrap();
@@ -364,7 +388,7 @@ mod tests {
     }
 
     #[test]
-    fn ml_kem_768_round_trip_scaffold() {
+    fn ml_kem_768_public_api_round_trip() {
         let mut rng = OsRng;
         let (pk, sk) = MlKem768::keygen(&mut rng).unwrap();
         let (ct, ss1) = MlKem768::encaps(&pk, &mut rng).unwrap();
@@ -373,7 +397,7 @@ mod tests {
     }
 
     #[test]
-    fn ml_kem_1024_round_trip_scaffold() {
+    fn ml_kem_1024_public_api_round_trip() {
         let mut rng = OsRng;
         let (pk, sk) = MlKem1024::keygen(&mut rng).unwrap();
         let (ct, ss1) = MlKem1024::encaps(&pk, &mut rng).unwrap();

@@ -765,9 +765,12 @@ dependencies = [
 name = "pqc-rs-ml-kem"
 version = "0.4.1"
 dependencies = [
+ "chacha20poly1305",
  "criterion",
+ "hkdf",
  "pqc-rs-core",
  "rand_core",
+ "sha2",
  "sha3",
  "subtle",
  "zeroize",
