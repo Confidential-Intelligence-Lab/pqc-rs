@@ -5,7 +5,30 @@
 //!
 //! The public API delegates to the validated key-generation,
 //! encapsulation, and decapsulation implementation.
-
+//!
+//! # Reference application
+//!
+//! The crate includes an executable ML-KEM secure-channel example:
+//!
+//! ```text
+//! crates/pqc-ml-kem/examples/01_mlkem_secure_channel.rs
+//! ```
+//!
+//! Run it from the workspace root:
+//!
+//! ```text
+//! cargo run -p pqc-rs-ml-kem --example 01_mlkem_secure_channel --all-features
+//! ```
+//!
+//! The example demonstrates ML-KEM-768 key establishment, HKDF-SHA-256 key
+//! and nonce derivation, ChaCha20-Poly1305 authenticated encryption,
+//! associated-data binding, successful decryption, and ciphertext tamper
+//! detection.
+//!
+//! This is an educational composition, not a standardized secure-channel
+//! protocol. Production applications should generally use a reviewed
+//! protocol such as HPKE or TLS.
+//!
 extern crate alloc;
 
 pub mod arithmetic;

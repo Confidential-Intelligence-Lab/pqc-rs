@@ -55,6 +55,23 @@ The corresponding Rust library names are `pqc_core`, `pqc_ml_kem`,
 `pqc_ml_dsa`, `pqc_slh_dsa`, and `pqc_hpke`. These are pre-1.0 packages and should be
 evaluated under the security limitations stated above.
 
+## Reference applications
+
+The repository includes executable reference applications demonstrating how
+the published APIs can be composed into larger secure-system workflows.
+
+| Application | Demonstrates |
+|---|---|
+| [`01_mlkem_secure_channel.rs`](crates/pqc-ml-kem/examples/01_mlkem_secure_channel.rs) | ML-KEM-768 key establishment, HKDF-SHA-256 key and nonce derivation, ChaCha20-Poly1305 authenticated encryption, associated-data binding, successful decryption, and ciphertext tamper detection. |
+
+Run the application with:
+
+```bash
+cargo run -p pqc-rs-ml-kem --example 01_mlkem_secure_channel --all-features
+```
+
+This is an educational composition rather than a standardized channel protocol. Production systems should generally use a reviewed protocol such as HPKE or TLS.
+
 ## Engineering principles
 
 1. **Standards before claims** — map normative requirements to code, tests, and evidence.

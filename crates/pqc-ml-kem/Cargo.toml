@@ -25,7 +25,10 @@ zeroize = { workspace = true }
 subtle = { workspace = true }
 
 [dev-dependencies]
+chacha20poly1305 = { workspace = true }
 criterion = { workspace = true }
+hkdf = { workspace = true }
+sha2 = { workspace = true }
 
 [[bench]]
 name = "ml_kem"
