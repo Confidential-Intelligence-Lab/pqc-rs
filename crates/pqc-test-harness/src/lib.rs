@@ -4,6 +4,9 @@
 
 pub mod acvp;
 pub mod acvp_encap_decap;
+
+/// NIST ACVP FIPS 205 SLH-DSA vector models.
+pub mod slhdsa_acvp;
 pub mod standards_scope;
 
 /// A parsed known-answer-test vector.

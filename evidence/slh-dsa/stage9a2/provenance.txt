@@ -1,0 +1,4 @@
+Repository: https://github.com/usnistgov/ACVP-Server.git
+Requested revision: v1.1.0.42
+Resolved commit: 15c0f3deeefbfa8cb6cd32a99e1ca3b738c66bf0
+Retrieved: 2026-08-01T04:33:11Z

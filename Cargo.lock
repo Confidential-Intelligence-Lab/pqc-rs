@@ -779,6 +779,8 @@ version = "0.4.0"
 dependencies = [
  "pqc-rs-core",
  "rand_core",
+ "sha2",
+ "sha3",
 ]
 
 [[package]]
@@ -790,6 +792,7 @@ dependencies = [
  "pqc-rs-hpke",
  "pqc-rs-ml-dsa",
  "pqc-rs-ml-kem",
+ "pqc-rs-slh-dsa",
  "rand_core",
  "serde",
  "serde_json",

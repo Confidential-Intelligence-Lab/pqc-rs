@@ -1,22 +1,32 @@
 [package]
+description = "FIPS 205 SLH-DSA implementation for PQC-rs"
 name = "pqc-rs-slh-dsa"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
+homepage.workspace = true
 rust-version.workspace = true
-publish = false
+readme = "README.md"
+documentation = "https://docs.rs/pqc-rs-slh-dsa"
+categories = ["cryptography"]
+keywords = ["post-quantum", "cryptography", "slh-dsa", "signatures", "rust"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs", "-D", "warnings"]
 
 [features]
-default = ["std"]
-std = ["pqc-core/std"]
-alloc = ["pqc-core/alloc"]
+default = []
 acvp = ["pqc-core/acvp"]
 bench = ["pqc-core/bench"]
+internal-api = []
 
 [dependencies]
 pqc-core = { workspace = true }
 rand_core = { workspace = true }
+sha2 = { workspace = true }
+sha3 = { workspace = true }
 
 [lib]
 name = "pqc_slh_dsa"
