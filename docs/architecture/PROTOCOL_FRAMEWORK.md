@@ -8,7 +8,8 @@ protocol state, wire semantics, and application workflows from the
 underlying cryptographic implementations.
 
 The framework is experimental. Its first development stage defines only
-participant roles, protocol versions, cryptographic-policy identifiers,
+participant roles, logical directionality, protocol and capability
+identifiers, protocol versions, cryptographic-policy identifiers,
 opaque session identifiers, and protocol-layer errors.
 
 ## Architectural layering
@@ -32,9 +33,11 @@ Post-quantum cryptographic primitives
 ### Protocol framework
 
 `pqc-rs-protocol` owns concepts that describe a protocol exchange rather
-than a cryptographic primitive. These include participant roles, protocol
-versions, policy identifiers, session identifiers, wire messages, framing,
-session state, and transport-independent orchestration.
+than a cryptographic primitive. These include participant roles,
+logical directionality, protocol and capability identifiers,
+protocol versions, policy identifiers, session identifiers,
+wire messages, framing, session state, and
+transport-independent orchestration.
 
 ### Protocol implementations
 

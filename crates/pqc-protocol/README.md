@@ -8,6 +8,8 @@ for the PQC-rs ecosystem.
 The crate currently defines:
 
 - client and server protocol roles;
+- logical protocol directionality;
+- protocol-family and capability identifiers;
 - protocol-version identifiers;
 - cryptographic-policy identifiers;
 - opaque session identifiers;
