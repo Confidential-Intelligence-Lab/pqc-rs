@@ -9,9 +9,9 @@ underlying cryptographic implementations.
 
 The framework is experimental. Its first development stage defines only
 participant roles, logical directionality, protocol and capability
-identifiers, message identifiers and semantic classes, protocol versions,
-cryptographic-policy identifiers, opaque session identifiers, and
-protocol-layer errors.
+identifiers, message identifiers and semantic classes, a transport-
+independent protocol-message trait, protocol versions, cryptographic-
+policy identifiers, opaque session identifiers, and protocol-layer errors.
 
 ## Architectural layering
 
@@ -47,6 +47,10 @@ classes distinguish control, handshake, and application semantics without
 defining payload representation, delivery guarantees, ordering, framing,
 serialization, or cryptographic protection. Those concerns belong to later
 protocol-framework stages.
+
+The `ProtocolMessage` trait exposes semantic metadata only: protocol,
+version, message identifier, message class, and logical direction. It does
+not prescribe payload ownership or any wire representation.
 
 ### Protocol implementations
 

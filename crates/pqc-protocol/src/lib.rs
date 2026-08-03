@@ -13,11 +13,13 @@
 mod error;
 mod identifiers;
 mod message;
+mod message_trait;
 mod metadata;
 mod role;
 
 pub use error::{ProtocolError, ProtocolResult};
 pub use identifiers::{PolicyId, ProtocolVersion, SessionId};
 pub use message::{MessageClass, MessageId};
+pub use message_trait::ProtocolMessage;
 pub use metadata::{CapabilityId, ProtocolDirection, ProtocolId};
 pub use role::ProtocolRole;

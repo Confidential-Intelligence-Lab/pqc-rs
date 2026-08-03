@@ -11,6 +11,7 @@ The crate currently defines:
 - logical protocol directionality;
 - protocol-family and capability identifiers;
 - protocol-message identifiers and semantic classes;
+- a transport-independent protocol-message trait;
 - protocol-version identifiers;
 - cryptographic-policy identifiers;
 - opaque session identifiers;
