@@ -6,9 +6,10 @@ This report consolidates repository-local engineering evidence. It is not third-
 
 | Item | Scope | Status | Evidence |
 |---|---|---|---|
-| `Public API and protocol profiles` | Application-facing APIs, RFC 9958 and HPKE profiles | **PASS** | `crates/pqc-hpke`<br>`crates/pqc-hybrid` |
-| `Post-quantum primitives` | ML-KEM and ML-DSA algorithms and parameter sets | **PASS** | `crates/pqc-ml-kem`<br>`crates/pqc-ml-dsa` |
-| `Core security types` | Errors, secret containers, constant-time helpers, serialization boundaries | **PASS** | `crates/pqc-core` |
+| `Protocol framework` | Transport-independent roles, identifiers, versioning, and future wire-protocol orchestration | **PASS** | `crates/pqc-protocol` |
+| `Protocol implementations and profiles` | Application-facing HPKE APIs, RFC 9180 profiles, and hybrid protocol composition | **PASS** | `crates/pqc-hpke`<br>`crates/pqc-hybrid` |
+| `Post-quantum primitives` | ML-KEM, ML-DSA, and SLH-DSA algorithms and parameter sets | **PASS** | `crates/pqc-ml-kem`<br>`crates/pqc-ml-dsa`<br>`crates/pqc-slh-dsa` |
+| `Core security types` | Errors, secret containers, constant-time helpers, and shared codec boundaries | **PASS** | `crates/pqc-core` |
 | `Assurance and evidence` | Conformance, fuzzing, interoperability, audits, and benchmarks | **PASS** | `compliance`<br>`fuzz`<br>`scripts`<br>`docs` |
 
 ## Decision

@@ -29,6 +29,7 @@ RFC 9958 is used as an informational engineering guide. Normative conformance cl
 | Package | Purpose | Publication status |
 |---|---|---|
 | [`pqc-rs-core`](https://crates.io/crates/pqc-rs-core) | Common traits, byte wrappers, errors, and secret containers | Published (`0.4.0`) |
+| `pqc-rs-protocol` | Transport-independent protocol roles, identifiers, and framework foundations | Experimental; not published |
 | [`pqc-rs-ml-kem`](https://crates.io/crates/pqc-rs-ml-kem) | ML-KEM implementation | Published (`0.4.0`) |
 | [`pqc-rs-ml-dsa`](https://crates.io/crates/pqc-rs-ml-dsa) | ML-DSA implementation | Published (`0.4.0`) |
 | [`pqc-rs-slh-dsa`](https://crates.io/crates/pqc-rs-slh-dsa) | FIPS 205 SLH-DSA implementation | Published (`0.4.0`) |
