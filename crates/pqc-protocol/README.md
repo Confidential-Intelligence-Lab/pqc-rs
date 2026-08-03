@@ -12,6 +12,7 @@ The crate currently defines:
 - protocol-family and capability identifiers;
 - protocol-message identifiers and semantic classes;
 - a transport-independent protocol-message trait;
+- a generic message envelope with payload-type independence;
 - protocol-version identifiers;
 - cryptographic-policy identifiers;
 - opaque session identifiers;

@@ -10,8 +10,9 @@ underlying cryptographic implementations.
 The framework is experimental. Its first development stage defines only
 participant roles, logical directionality, protocol and capability
 identifiers, message identifiers and semantic classes, a transport-
-independent protocol-message trait, protocol versions, cryptographic-
-policy identifiers, opaque session identifiers, and protocol-layer errors.
+independent protocol-message trait, a generic payload-independent message
+envelope, protocol versions, cryptographic-policy identifiers, opaque
+session identifiers, and protocol-layer errors.
 
 ## Architectural layering
 
@@ -51,6 +52,11 @@ protocol-framework stages.
 The `ProtocolMessage` trait exposes semantic metadata only: protocol,
 version, message identifier, message class, and logical direction. It does
 not prescribe payload ownership or any wire representation.
+
+`ProtocolEnvelope<P>` associates the semantic message metadata with an
+unconstrained payload type. The generic parameter permits borrowed,
+fixed-size, allocated, or typed payloads without making allocation or
+serialization part of the protocol-message abstraction.
 
 ### Protocol implementations
 
