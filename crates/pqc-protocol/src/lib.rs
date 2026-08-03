@@ -10,6 +10,7 @@
 //!
 //! The crate intentionally contains no networking code.
 
+mod envelope;
 mod error;
 mod identifiers;
 mod message;
@@ -17,6 +18,7 @@ mod message_trait;
 mod metadata;
 mod role;
 
+pub use envelope::ProtocolEnvelope;
 pub use error::{ProtocolError, ProtocolResult};
 pub use identifiers::{PolicyId, ProtocolVersion, SessionId};
 pub use message::{MessageClass, MessageId};

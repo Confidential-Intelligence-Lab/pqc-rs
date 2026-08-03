@@ -1,8 +1,8 @@
 //! Generic transport-independent protocol message envelope.
 
 use crate::{
-    MessageClass, MessageId, ProtocolDirection, ProtocolId, ProtocolMessage,
-    ProtocolVersion, SessionId,
+    MessageClass, MessageId, ProtocolDirection, ProtocolId, ProtocolMessage, ProtocolVersion,
+    SessionId,
 };
 
 /// Generic transport-independent protocol message envelope.
@@ -130,10 +130,7 @@ mod tests {
         assert_eq!(message.session_id(), SessionId::from_bytes([0x5a; 16]));
         assert_eq!(message.message_id(), MessageId::new(0x0001));
         assert_eq!(message.message_class(), MessageClass::Application);
-        assert_eq!(
-            message.direction(),
-            ProtocolDirection::ClientToServer
-        );
+        assert_eq!(message.direction(), ProtocolDirection::ClientToServer);
     }
 
     #[test]
