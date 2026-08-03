@@ -10,6 +10,7 @@ The crate currently defines:
 - client and server protocol roles;
 - logical protocol directionality;
 - protocol-family and capability identifiers;
+- protocol-message identifiers and semantic classes;
 - protocol-version identifiers;
 - cryptographic-policy identifiers;
 - opaque session identifiers;

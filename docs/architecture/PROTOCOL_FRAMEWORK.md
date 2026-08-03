@@ -9,8 +9,9 @@ underlying cryptographic implementations.
 
 The framework is experimental. Its first development stage defines only
 participant roles, logical directionality, protocol and capability
-identifiers, protocol versions, cryptographic-policy identifiers,
-opaque session identifiers, and protocol-layer errors.
+identifiers, message identifiers and semantic classes, protocol versions,
+cryptographic-policy identifiers, opaque session identifiers, and
+protocol-layer errors.
 
 ## Architectural layering
 
@@ -38,6 +39,14 @@ logical directionality, protocol and capability identifiers,
 protocol versions, policy identifiers, session identifiers,
 wire messages, framing, session state, and
 transport-independent orchestration.
+
+### Message identity
+
+Message identifiers are scoped by protocol family or profile. Message
+classes distinguish control, handshake, and application semantics without
+defining payload representation, delivery guarantees, ordering, framing,
+serialization, or cryptographic protection. Those concerns belong to later
+protocol-framework stages.
 
 ### Protocol implementations
 
