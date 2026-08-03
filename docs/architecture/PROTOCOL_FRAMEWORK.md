@@ -53,6 +53,11 @@ The `ProtocolMessage` trait exposes semantic metadata only: protocol,
 version, message identifier, message class, and logical direction. It does
 not prescribe payload ownership or any wire representation.
 
+`ProtocolEnvelope<P>` associates semantic message metadata with an
+unconstrained payload type. The generic parameter permits borrowed,
+fixed-size, allocated, or typed payloads without making allocation or
+serialization part of the protocol-message abstraction.
+
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or
