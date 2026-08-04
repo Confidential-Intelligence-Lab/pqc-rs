@@ -80,6 +80,13 @@ The common lifecycle validates broad state progression while leaving
 protocol-specific handshake events and typestate wrappers to later stages.
 Closed and failed sessions are terminal and reject further transitions.
 
+`ProtocolSession` binds the session identifier, protocol identifier,
+protocol version, local participant role, and current lifecycle state.
+It applies the common transition rules transactionally: an invalid
+transition returns an error and preserves the prior state. The container
+does not own cryptographic context, transport state, message queues, or
+protocol-specific handshake data.
+
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or

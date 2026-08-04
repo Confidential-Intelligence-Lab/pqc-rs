@@ -18,6 +18,7 @@ The crate currently defines:
 - cryptographic-policy identifiers;
 - opaque session identifiers;
 - validated transport-independent session lifecycle states;
+- a protocol-session metadata container with validated transitions;
 - protocol-layer error types.
 
 It deliberately does not yet define a concrete wire format, message
