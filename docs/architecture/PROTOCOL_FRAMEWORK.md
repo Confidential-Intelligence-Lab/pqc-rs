@@ -58,6 +58,20 @@ unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or
 serialization part of the protocol-message abstraction.
 
+### Codec contracts
+
+`ProtocolEncode` writes canonical protocol values into caller-provided
+storage and therefore does not require allocation. `ProtocolDecode`
+distinguishes prefix decoding, which reports the number of bytes consumed,
+from exact decoding, which rejects trailing input. These contracts define
+buffer and consumption behavior but do not establish a concrete wire
+format or message frame.
+
+The protocol codec contracts complement rather than replace
+`pqc-core::Encode` and `pqc-core::Decode`. The core traits remain suitable
+for standalone canonical cryptographic objects; protocol framing requires
+non-allocating writes and explicit input-consumption semantics.
+
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or

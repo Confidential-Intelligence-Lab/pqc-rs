@@ -13,14 +13,16 @@ The crate currently defines:
 - protocol-message identifiers and semantic classes;
 - a transport-independent protocol-message trait;
 - a generic message envelope with payload-type independence;
+- non-allocating protocol encoding and prefix/exact decoding contracts;
 - protocol-version identifiers;
 - cryptographic-policy identifiers;
 - opaque session identifiers;
 - protocol-layer error types.
 
-It deliberately does not yet define wire messages, serialization, framing,
-sessions, or networking. Those abstractions will be introduced after the
-protocol architecture and binary wire format are specified.
+It deliberately does not yet define a concrete wire format, message
+framing, sessions, or networking. The codec contracts define buffer and
+consumption semantics only; concrete byte assignments will be introduced
+after the binary wire format is specified.
 
 ## Layering
 
