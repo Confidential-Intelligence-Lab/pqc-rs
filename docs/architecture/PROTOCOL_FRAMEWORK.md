@@ -110,9 +110,12 @@ preserves the raw 16-bit field while initially accepting only the empty
 flag set. `WireHeader` describes payload extent without owning payload
 storage and does not require sessions, transports, or allocation.
 
-Concrete byte offsets, big-endian encoding, reserved-field validation, and
-`ProtocolEncode` and `ProtocolDecode` implementations are deferred to the
-next wire-format stage.
+The concrete representation uses fixed offsets and big-endian integers.
+`ProtocolEncode` writes exactly 32 bytes into caller-provided storage, and
+`ProtocolDecode` supports both prefix and exact decoding. Decoding rejects
+invalid magic, unsupported wire versions or flags, incorrect header
+lengths, unknown enum discriminants, truncated input, and nonzero reserved
+bytes. Payload slicing and complete-frame validation remain separate.
 
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,

@@ -23,11 +23,9 @@ The crate currently defines:
 - fixed, independently versioned wire-header primitives and framing constants;
 - protocol-layer error types.
 
-It defines the semantic model and fixed shape of the initial wire header,
-but does not yet define its concrete byte encoding, complete message
-framing, transport integration, or networking. The codec contracts define
-buffer and consumption semantics; concrete field offsets and validation
-rules are introduced in the next wire-format stage.
+It defines the semantic model, fixed shape, big-endian byte encoding, and
+validation rules of the initial wire header. Complete message framing,
+payload slicing, transport integration, and networking remain deferred.
 
 ## Layering
 
