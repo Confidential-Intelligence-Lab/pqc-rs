@@ -96,6 +96,39 @@ terminal states are unavailable through the typed API. The runtime session
 remains available for dynamic dispatch, storage, and interoperability with
 code that cannot represent lifecycle state statically.
 
+### Wire-format primitives
+
+The initial wire-format model uses a fixed 32-byte header. The header
+identifies the binary wire version, protocol version, protocol and message
+identifiers, flags, message class, logical direction, and payload length.
+Magic bytes, encoded header length, and eight reserved bytes are framing
+constants rather than mutable semantic fields.
+
+`WireVersion` is independent from `ProtocolVersion`, allowing binary
+representation and protocol semantics to evolve separately. `WireFlags`
+preserves the raw 16-bit field while initially accepting only the empty
+flag set. `WireHeader` describes payload extent without owning payload
+storage and does not require sessions, transports, or allocation.
+
+The concrete representation uses fixed offsets and big-endian integers.
+`ProtocolEncode` writes exactly 32 bytes into caller-provided storage, and
+`ProtocolDecode` supports both prefix and exact decoding. Decoding rejects
+invalid magic, unsupported wire versions or flags, incorrect header
+lengths, unknown enum discriminants, truncated input, and nonzero reserved
+bytes.
+
+`ProtocolFrame<'a>` composes a validated `WireHeader` with a borrowed
+payload. Construction requires the declared and actual payload lengths to
+agree. Prefix decoding borrows exactly the declared payload bytes and
+reports the complete frame length, while exact decoding rejects trailing
+input. Encoding concatenates the canonical header and payload into
+caller-provided storage without allocation.
+
+The frame decoder is an inherent lifetime-aware API rather than an
+implementation of `ProtocolDecode`, because the generic decoding trait
+cannot express a result that borrows from its input. Transport integration
+and network I/O remain outside the framing layer.
+
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or

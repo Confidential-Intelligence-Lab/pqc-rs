@@ -20,13 +20,14 @@ The crate currently defines:
 - validated transport-independent session lifecycle states;
 - a protocol-session metadata container with validated transitions;
 - typestate session wrappers and bounded phase markers for compile-time lifecycle progression;
+- fixed, independently versioned wire-header primitives and framing constants;
+- zero-copy complete-frame composition, encoding, and payload slicing;
 - protocol-layer error types.
 
-It deliberately does not yet define a concrete wire format, message
-framing, concrete session implementations, or networking. The codec
-contracts define buffer and
-consumption semantics only; concrete byte assignments will be introduced
-after the binary wire format is specified.
+It defines the semantic model, fixed shape, big-endian byte encoding, and
+validation rules of the initial wire header, together with zero-copy
+complete-frame composition and decoding. Transport integration and
+networking remain deferred.
 
 ## Layering
 

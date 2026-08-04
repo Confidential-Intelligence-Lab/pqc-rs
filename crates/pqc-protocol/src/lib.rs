@@ -13,6 +13,7 @@
 mod codec;
 mod envelope;
 mod error;
+mod frame;
 mod identifiers;
 mod message;
 mod message_trait;
@@ -21,10 +22,12 @@ mod role;
 mod session;
 mod state;
 mod typestate;
+mod wire;
 
 pub use codec::{ProtocolDecode, ProtocolEncode};
 pub use envelope::ProtocolEnvelope;
 pub use error::{ProtocolError, ProtocolResult};
+pub use frame::{ProtocolFrame, MAX_FRAME_PAYLOAD_LEN};
 pub use identifiers::{PolicyId, ProtocolVersion, SessionId};
 pub use message::{MessageClass, MessageId};
 pub use message_trait::ProtocolMessage;
@@ -35,4 +38,7 @@ pub use state::SessionState;
 pub use typestate::{
     ClosedState, ClosingState, CreatedState, EstablishedState, EstablishingState, FailedState,
     SessionPhase, TypedProtocolSession,
+};
+pub use wire::{
+    WireFlags, WireHeader, WireVersion, WIRE_HEADER_LEN, WIRE_MAGIC, WIRE_RESERVED_LEN,
 };
