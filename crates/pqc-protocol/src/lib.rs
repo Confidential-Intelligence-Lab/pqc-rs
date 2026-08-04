@@ -4,11 +4,12 @@
 //! Protocol-layer foundations for PQC-rs.
 //!
 //! This crate defines transport-independent protocol roles, identifiers,
-//! versions, and errors. Wire messages, serialization, framing, sessions,
-//! and concrete transports will be introduced in later stages after their
-//! semantics are specified.
+//! messages, sessions, canonical wire framing, and byte-transport
+//! contracts. It separates protocol semantics and framing from concrete
+//! transport implementations.
 //!
-//! The crate intentionally contains no networking code.
+//! The crate intentionally contains no networking, operating-system I/O,
+//! or asynchronous-runtime dependency.
 
 mod codec;
 mod envelope;
@@ -21,6 +22,7 @@ mod metadata;
 mod role;
 mod session;
 mod state;
+mod transport;
 mod typestate;
 mod wire;
 
@@ -35,6 +37,7 @@ pub use metadata::{CapabilityId, ProtocolDirection, ProtocolId};
 pub use role::ProtocolRole;
 pub use session::ProtocolSession;
 pub use state::SessionState;
+pub use transport::{TransportError, TransportReceive, TransportResult, TransportTransmit};
 pub use typestate::{
     ClosedState, ClosingState, CreatedState, EstablishedState, EstablishingState, FailedState,
     SessionPhase, TypedProtocolSession,

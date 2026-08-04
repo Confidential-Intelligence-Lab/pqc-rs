@@ -129,6 +129,19 @@ implementation of `ProtocolDecode`, because the generic decoding trait
 cannot express a result that borrows from its input. Transport integration
 and network I/O remain outside the framing layer.
 
+### Transport contracts
+
+`TransportTransmit` and `TransportReceive` define allocation-free byte
+movement below the framing layer. They permit partial progress and require
+retryable no-progress conditions to be reported explicitly rather than as
+successful zero-byte operations on nonempty buffers.
+
+`TransportError` classifies pending, closed, interrupted, invalid, and
+implementation-specific transport failures independently from
+`ProtocolError`. This keeps malformed protocol data separate from failures
+to move otherwise valid bytes. The contracts do not depend on `std::io`,
+an async runtime, operating-system handles, or any concrete transport.
+
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or
