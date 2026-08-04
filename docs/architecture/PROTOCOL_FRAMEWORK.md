@@ -87,6 +87,15 @@ transition returns an error and preserves the prior state. The container
 does not own cryptographic context, transport state, message queues, or
 protocol-specific handshake data.
 
+`TypedProtocolSession<State>` wraps the runtime session with zero-sized
+lifecycle markers bounded by the `SessionPhase` trait. The bound prevents
+unrelated types from being used as lifecycle parameters. Legal transitions
+consume one typed session and return
+the next typed state, so skipped transitions and transitions out of
+terminal states are unavailable through the typed API. The runtime session
+remains available for dynamic dispatch, storage, and interoperability with
+code that cannot represent lifecycle state statically.
+
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or

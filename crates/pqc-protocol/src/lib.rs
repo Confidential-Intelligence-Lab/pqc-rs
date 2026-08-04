@@ -20,6 +20,7 @@ mod metadata;
 mod role;
 mod session;
 mod state;
+mod typestate;
 
 pub use codec::{ProtocolDecode, ProtocolEncode};
 pub use envelope::ProtocolEnvelope;
@@ -31,3 +32,7 @@ pub use metadata::{CapabilityId, ProtocolDirection, ProtocolId};
 pub use role::ProtocolRole;
 pub use session::ProtocolSession;
 pub use state::SessionState;
+pub use typestate::{
+    ClosedState, ClosingState, CreatedState, EstablishedState, EstablishingState, FailedState,
+    SessionPhase, TypedProtocolSession,
+};
