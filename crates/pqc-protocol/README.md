@@ -23,12 +23,14 @@ The crate currently defines:
 - fixed, independently versioned wire-header primitives and framing constants;
 - zero-copy complete-frame composition, encoding, and payload slicing;
 - transport-independent byte transmit and receive contracts;
+- a fixed-capacity, allocation-free in-memory reference transport;
 - protocol-layer error types.
 
 It defines the semantic model, fixed shape, big-endian byte encoding, and
 validation rules of the initial wire header, together with zero-copy
 complete-frame composition and decoding. Portable byte-transport contracts
-are defined without selecting a concrete networking or I/O implementation.
+and an allocation-free in-memory reference implementation are provided
+without selecting a concrete networking or operating-system I/O backend.
 
 ## Layering
 

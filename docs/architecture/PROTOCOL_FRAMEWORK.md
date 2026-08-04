@@ -142,6 +142,16 @@ implementation-specific transport failures independently from
 to move otherwise valid bytes. The contracts do not depend on `std::io`,
 an async runtime, operating-system handles, or any concrete transport.
 
+`MemoryTransport<N>` is the allocation-free reference implementation. It
+uses fixed caller-selected capacity, a deterministic transfer limit, and
+a linear queue with compaction. Transmitted bytes loop back to the receive
+side, making the type suitable for framing tests without introducing
+networking or platform dependencies.
+
+An open empty receive or full transmit reports `Pending`. Closing rejects
+new transmission while preserving buffered bytes for draining; receives
+report `Closed` only after the queue becomes empty.
+
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or
