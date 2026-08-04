@@ -17,10 +17,12 @@ The crate currently defines:
 - protocol-version identifiers;
 - cryptographic-policy identifiers;
 - opaque session identifiers;
+- validated transport-independent session lifecycle states;
 - protocol-layer error types.
 
 It deliberately does not yet define a concrete wire format, message
-framing, sessions, or networking. The codec contracts define buffer and
+framing, concrete session implementations, or networking. The codec
+contracts define buffer and
 consumption semantics only; concrete byte assignments will be introduced
 after the binary wire format is specified.
 

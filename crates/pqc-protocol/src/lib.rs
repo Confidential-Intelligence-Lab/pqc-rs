@@ -18,6 +18,7 @@ mod message;
 mod message_trait;
 mod metadata;
 mod role;
+mod state;
 
 pub use codec::{ProtocolDecode, ProtocolEncode};
 pub use envelope::ProtocolEnvelope;
@@ -27,3 +28,4 @@ pub use message::{MessageClass, MessageId};
 pub use message_trait::ProtocolMessage;
 pub use metadata::{CapabilityId, ProtocolDirection, ProtocolId};
 pub use role::ProtocolRole;
+pub use state::SessionState;

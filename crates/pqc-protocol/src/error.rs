@@ -27,6 +27,8 @@ pub enum ProtocolError {
     InvalidEncoding,
     /// The participant role is invalid for the requested operation.
     InvalidRole,
+    /// The requested session-state transition is not permitted.
+    InvalidStateTransition,
     /// A protocol invariant was violated.
     ProtocolInvariantFailed,
 }
@@ -42,6 +44,7 @@ impl core::fmt::Display for ProtocolError {
             Self::TrailingData => "trailing data after protocol value",
             Self::InvalidEncoding => "invalid protocol encoding",
             Self::InvalidRole => "invalid protocol role",
+            Self::InvalidStateTransition => "invalid protocol session-state transition",
             Self::ProtocolInvariantFailed => "protocol invariant failed",
         };
 

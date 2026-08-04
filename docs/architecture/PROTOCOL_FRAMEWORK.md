@@ -72,6 +72,14 @@ The protocol codec contracts complement rather than replace
 for standalone canonical cryptographic objects; protocol framing requires
 non-allocating writes and explicit input-consumption semantics.
 
+### Session lifecycle
+
+`SessionState` defines a transport-independent lifecycle consisting of
+created, establishing, established, closing, closed, and failed states.
+The common lifecycle validates broad state progression while leaving
+protocol-specific handshake events and typestate wrappers to later stages.
+Closed and failed sessions are terminal and reject further transitions.
+
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or
