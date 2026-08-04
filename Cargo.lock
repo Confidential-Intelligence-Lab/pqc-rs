@@ -777,6 +777,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "pqc-rs-protocol"
+version = "0.4.0"
+dependencies = [
+ "pqc-rs-core",
+]
+
+[[package]]
 name = "pqc-rs-slh-dsa"
 version = "0.4.0"
 dependencies = [

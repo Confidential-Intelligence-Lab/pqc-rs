@@ -1,0 +1,23 @@
+[package]
+name = "pqc-rs-protocol"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Protocol-layer types and wire-format foundations for PQC-rs."
+readme = "README.md"
+categories = ["cryptography", "network-programming"]
+keywords = ["post-quantum", "cryptography", "protocol", "pqc", "rust"]
+publish = false
+
+[features]
+default = ["std"]
+std = ["pqc-core/std"]
+alloc = ["pqc-core/alloc"]
+
+[dependencies]
+pqc-core = { workspace = true }
+
+[lib]
+name = "pqc_protocol"
