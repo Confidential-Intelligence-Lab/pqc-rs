@@ -13,6 +13,7 @@
 mod codec;
 mod envelope;
 mod error;
+mod frame;
 mod identifiers;
 mod message;
 mod message_trait;
@@ -26,6 +27,7 @@ mod wire;
 pub use codec::{ProtocolDecode, ProtocolEncode};
 pub use envelope::ProtocolEnvelope;
 pub use error::{ProtocolError, ProtocolResult};
+pub use frame::{ProtocolFrame, MAX_FRAME_PAYLOAD_LEN};
 pub use identifiers::{PolicyId, ProtocolVersion, SessionId};
 pub use message::{MessageClass, MessageId};
 pub use message_trait::ProtocolMessage;

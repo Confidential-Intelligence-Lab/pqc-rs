@@ -21,11 +21,13 @@ The crate currently defines:
 - a protocol-session metadata container with validated transitions;
 - typestate session wrappers and bounded phase markers for compile-time lifecycle progression;
 - fixed, independently versioned wire-header primitives and framing constants;
+- zero-copy complete-frame composition, encoding, and payload slicing;
 - protocol-layer error types.
 
 It defines the semantic model, fixed shape, big-endian byte encoding, and
-validation rules of the initial wire header. Complete message framing,
-payload slicing, transport integration, and networking remain deferred.
+validation rules of the initial wire header, together with zero-copy
+complete-frame composition and decoding. Transport integration and
+networking remain deferred.
 
 ## Layering
 

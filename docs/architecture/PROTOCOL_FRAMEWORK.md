@@ -115,7 +115,19 @@ The concrete representation uses fixed offsets and big-endian integers.
 `ProtocolDecode` supports both prefix and exact decoding. Decoding rejects
 invalid magic, unsupported wire versions or flags, incorrect header
 lengths, unknown enum discriminants, truncated input, and nonzero reserved
-bytes. Payload slicing and complete-frame validation remain separate.
+bytes.
+
+`ProtocolFrame<'a>` composes a validated `WireHeader` with a borrowed
+payload. Construction requires the declared and actual payload lengths to
+agree. Prefix decoding borrows exactly the declared payload bytes and
+reports the complete frame length, while exact decoding rejects trailing
+input. Encoding concatenates the canonical header and payload into
+caller-provided storage without allocation.
+
+The frame decoder is an inherent lifetime-aware API rather than an
+implementation of `ProtocolDecode`, because the generic decoding trait
+cannot express a result that borrows from its input. Transport integration
+and network I/O remain outside the framing layer.
 
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,

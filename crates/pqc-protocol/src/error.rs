@@ -56,6 +56,20 @@ pub enum ProtocolError {
     },
     /// Reserved wire-header bytes are nonzero.
     NonzeroReservedBytes,
+    /// The payload cannot be represented by the current frame format.
+    PayloadTooLarge {
+        /// Payload length supplied by the caller.
+        length: usize,
+        /// Maximum payload length supported on this target.
+        maximum: usize,
+    },
+    /// The payload length does not match the wire-header declaration.
+    PayloadLengthMismatch {
+        /// Payload length declared by the header.
+        declared: u32,
+        /// Payload length actually supplied.
+        actual: usize,
+    },
     /// The participant role is invalid for the requested operation.
     InvalidRole,
     /// The requested session-state transition is not permitted.
@@ -81,6 +95,10 @@ impl core::fmt::Display for ProtocolError {
             Self::InvalidMessageClass { .. } => "invalid protocol message-class encoding",
             Self::InvalidProtocolDirection { .. } => "invalid protocol-direction encoding",
             Self::NonzeroReservedBytes => "nonzero reserved protocol wire-header bytes",
+            Self::PayloadTooLarge { .. } => "protocol frame payload is too large",
+            Self::PayloadLengthMismatch { .. } => {
+                "protocol frame payload length does not match the header"
+            }
             Self::InvalidRole => "invalid protocol role",
             Self::InvalidStateTransition => "invalid protocol session-state transition",
             Self::ProtocolInvariantFailed => "protocol invariant failed",
