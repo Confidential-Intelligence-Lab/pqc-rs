@@ -96,6 +96,24 @@ terminal states are unavailable through the typed API. The runtime session
 remains available for dynamic dispatch, storage, and interoperability with
 code that cannot represent lifecycle state statically.
 
+### Wire-format primitives
+
+The initial wire-format model uses a fixed 32-byte header. The header
+identifies the binary wire version, protocol version, protocol and message
+identifiers, flags, message class, logical direction, and payload length.
+Magic bytes, encoded header length, and eight reserved bytes are framing
+constants rather than mutable semantic fields.
+
+`WireVersion` is independent from `ProtocolVersion`, allowing binary
+representation and protocol semantics to evolve separately. `WireFlags`
+preserves the raw 16-bit field while initially accepting only the empty
+flag set. `WireHeader` describes payload extent without owning payload
+storage and does not require sessions, transports, or allocation.
+
+Concrete byte offsets, big-endian encoding, reserved-field validation, and
+`ProtocolEncode` and `ProtocolDecode` implementations are deferred to the
+next wire-format stage.
+
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or
