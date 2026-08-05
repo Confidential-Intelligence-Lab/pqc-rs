@@ -129,6 +129,43 @@ implementation of `ProtocolDecode`, because the generic decoding trait
 cannot express a result that borrows from its input. Transport integration
 and network I/O remain outside the framing layer.
 
+### Transport contracts
+
+`TransportTransmit` and `TransportReceive` define allocation-free byte
+movement below the framing layer. They permit partial progress and require
+retryable no-progress conditions to be reported explicitly rather than as
+successful zero-byte operations on nonempty buffers.
+
+`TransportError` classifies pending, closed, interrupted, invalid, and
+implementation-specific transport failures independently from
+`ProtocolError`. This keeps malformed protocol data separate from failures
+to move otherwise valid bytes. The contracts do not depend on `std::io`,
+an async runtime, operating-system handles, or any concrete transport.
+
+`MemoryTransport<N>` is the allocation-free reference implementation. It
+uses fixed caller-selected capacity, a deterministic transfer limit, and
+a linear queue with compaction. Transmitted bytes loop back to the receive
+side, making the type suitable for framing tests without introducing
+networking or platform dependencies.
+
+An open empty receive or full transmit reports `Pending`. Closing rejects
+new transmission while preserving buffered bytes for draining; receives
+report `Closed` only after the queue becomes empty.
+
+### Framed transport integration
+
+`FrameTransmitter` encodes one `ProtocolFrame` into caller-provided scratch
+storage and preserves its byte offset across partial transport progress.
+`FrameReceiver` receives exactly the fixed header first, validates it,
+derives the complete frame length, and then receives exactly the declared
+payload. It therefore does not consume bytes belonging to a subsequent
+frame on stream-oriented transports.
+
+`FrameTransferError` preserves the distinction between protocol-format
+failures and transport failures. Both state machines are allocation-free,
+resumable after `Pending` or partial progress, and independent of concrete
+networking and asynchronous-runtime APIs.
+
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or
