@@ -15,6 +15,7 @@ mod codec;
 mod envelope;
 mod error;
 mod frame;
+mod frame_transport;
 mod identifiers;
 mod memory_transport;
 mod message;
@@ -31,6 +32,9 @@ pub use codec::{ProtocolDecode, ProtocolEncode};
 pub use envelope::ProtocolEnvelope;
 pub use error::{ProtocolError, ProtocolResult};
 pub use frame::{ProtocolFrame, MAX_FRAME_PAYLOAD_LEN};
+pub use frame_transport::{
+    FrameReceiver, FrameTransferError, FrameTransferResult, FrameTransmitter,
+};
 pub use identifiers::{PolicyId, ProtocolVersion, SessionId};
 pub use memory_transport::MemoryTransport;
 pub use message::{MessageClass, MessageId};

@@ -152,6 +152,20 @@ An open empty receive or full transmit reports `Pending`. Closing rejects
 new transmission while preserving buffered bytes for draining; receives
 report `Closed` only after the queue becomes empty.
 
+### Framed transport integration
+
+`FrameTransmitter` encodes one `ProtocolFrame` into caller-provided scratch
+storage and preserves its byte offset across partial transport progress.
+`FrameReceiver` receives exactly the fixed header first, validates it,
+derives the complete frame length, and then receives exactly the declared
+payload. It therefore does not consume bytes belonging to a subsequent
+frame on stream-oriented transports.
+
+`FrameTransferError` preserves the distinction between protocol-format
+failures and transport failures. Both state machines are allocation-free,
+resumable after `Pending` or partial progress, and independent of concrete
+networking and asynchronous-runtime APIs.
+
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or

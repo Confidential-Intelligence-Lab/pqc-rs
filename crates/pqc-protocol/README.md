@@ -24,13 +24,15 @@ The crate currently defines:
 - zero-copy complete-frame composition, encoding, and payload slicing;
 - transport-independent byte transmit and receive contracts;
 - a fixed-capacity, allocation-free in-memory reference transport;
+- resumable framed transmit and receive state machines;
 - protocol-layer error types.
 
 It defines the semantic model, fixed shape, big-endian byte encoding, and
 validation rules of the initial wire header, together with zero-copy
 complete-frame composition and decoding. Portable byte-transport contracts
-and an allocation-free in-memory reference implementation are provided
-without selecting a concrete networking or operating-system I/O backend.
+and an allocation-free in-memory reference implementation are provided.
+Resumable frame-transfer state machines connect canonical framing to byte
+transports without selecting a networking or operating-system I/O backend.
 
 ## Layering
 
