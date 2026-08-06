@@ -62,7 +62,7 @@ impl<T> ProtocolDriver<T> {
         &mut self,
         handler: &mut H,
         frame: &crate::ProtocolFrame<'_>,
-    ) -> Result<crate::HandlerAction, H::Error>
+    ) -> Result<crate::HandlerOutcome, H::Error>
     where
         H: crate::ProtocolHandler + ?Sized,
     {
@@ -215,14 +215,14 @@ mod tests {
         fn handle_frame(
             &mut self,
             frame: &crate::ProtocolFrame<'_>,
-        ) -> Result<crate::HandlerAction, Self::Error> {
+        ) -> Result<crate::HandlerOutcome, Self::Error> {
             if self.reject {
                 return Err(TestHandlerError::Rejected);
             }
 
             self.handled += 1;
             self.observed_payload_len = frame.payload().len();
-            Ok(self.action)
+            Ok(crate::HandlerOutcome::new(self.action))
         }
     }
 
@@ -251,7 +251,10 @@ mod tests {
         ] {
             let mut handler = TestHandler::new(action);
 
-            assert_eq!(driver.handle_frame(&mut handler, &frame), Ok(action));
+            assert_eq!(
+                driver.handle_frame(&mut handler, &frame),
+                Ok(crate::HandlerOutcome::new(action))
+            );
         }
     }
 
@@ -310,7 +313,40 @@ mod tests {
 
         assert_eq!(
             driver.handle_frame(handler, &test_frame(&[0xaa_u8])),
-            Ok(crate::HandlerAction::Close)
+            Ok(crate::HandlerOutcome::new(crate::HandlerAction::Close))
         );
+    }
+
+    struct TransitionRequestHandler;
+
+    impl crate::ProtocolHandler for TransitionRequestHandler {
+        type Error = TestHandlerError;
+
+        fn handle_frame(
+            &mut self,
+            _frame: &crate::ProtocolFrame<'_>,
+        ) -> Result<crate::HandlerOutcome, Self::Error> {
+            Ok(crate::HandlerOutcome::with_transition(
+                crate::HandlerAction::Continue,
+                crate::SessionState::Establishing,
+            ))
+        }
+    }
+
+    #[test]
+    fn driver_propagates_transition_request_without_applying_it() {
+        let transport = MemoryTransport::<8>::new(2).unwrap();
+        let mut driver = ProtocolDriver::new(transport, session());
+        let mut handler = TransitionRequestHandler;
+
+        let outcome = driver
+            .handle_frame(&mut handler, &test_frame(&[1_u8]))
+            .unwrap();
+
+        assert_eq!(
+            outcome.requested_transition(),
+            Some(crate::SessionState::Establishing)
+        );
+        assert_eq!(driver.session().state(), crate::SessionState::Created);
     }
 }

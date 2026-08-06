@@ -38,7 +38,7 @@ pub use frame::{ProtocolFrame, MAX_FRAME_PAYLOAD_LEN};
 pub use frame_transport::{
     FrameReceiver, FrameTransferError, FrameTransferResult, FrameTransmitter,
 };
-pub use handler::{HandlerAction, ProtocolHandler};
+pub use handler::{HandlerAction, HandlerOutcome, ProtocolHandler};
 pub use identifiers::{PolicyId, ProtocolVersion, SessionId};
 pub use memory_transport::MemoryTransport;
 pub use message::{MessageClass, MessageId};

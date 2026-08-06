@@ -190,14 +190,19 @@ automatic transition orchestration remain later increments.
 
 `ProtocolHandler` is the protocol-specific decision boundary. It receives
 a validated borrowed `ProtocolFrame`, may update handler-owned state, and
-returns a semantic `HandlerAction`. The initial actions distinguish
-continuation, a requested outbound response, and orderly closure.
+returns a `HandlerOutcome`. Each outcome contains a semantic
+`HandlerAction` and may request a runtime-session transition.
 
 Handlers do not own transports, perform I/O, allocate frame storage, or
 construct outbound frames. The action model intentionally carries no
 payload or buffer lifetime, leaving response construction and transfer to
 later orchestration layers. Handler errors remain protocol-specific through
 an associated error type.
+
+A requested transition is declarative only. The handler receives no mutable
+session reference and cannot apply or validate lifecycle changes. During
+this increment, `ProtocolDriver::handle_frame` propagates the complete
+outcome unchanged while leaving the owned `ProtocolSession` untouched.
 
 `ProtocolDriver::handle_frame` forms the initial orchestration seam between
 the transport-owning execution context and an externally supplied handler.

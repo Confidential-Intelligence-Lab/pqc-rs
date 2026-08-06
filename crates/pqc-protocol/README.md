@@ -39,8 +39,9 @@ transports without selecting a networking or operating-system I/O backend.
 execution context and may invoke externally supplied handlers over
 validated inbound frames.
 `ProtocolHandler` separates protocol-specific decisions from transport and
-framing, while `HandlerAction` reports semantic continuation, response, or
-orderly-closure intent without prescribing payload storage.
+framing. `HandlerOutcome` carries a semantic `HandlerAction` and an optional
+requested session transition without granting handlers mutable session
+access or prescribing payload storage.
 
 ## Layering
 
