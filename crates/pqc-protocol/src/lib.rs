@@ -12,6 +12,7 @@
 //! or asynchronous-runtime dependency.
 
 mod codec;
+mod driver;
 mod envelope;
 mod error;
 mod frame;
@@ -29,6 +30,7 @@ mod typestate;
 mod wire;
 
 pub use codec::{ProtocolDecode, ProtocolEncode};
+pub use driver::ProtocolDriver;
 pub use envelope::ProtocolEnvelope;
 pub use error::{ProtocolError, ProtocolResult};
 pub use frame::{ProtocolFrame, MAX_FRAME_PAYLOAD_LEN};

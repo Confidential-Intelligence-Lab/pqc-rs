@@ -166,6 +166,18 @@ failures and transport failures. Both state machines are allocation-free,
 resumable after `Pending` or partial progress, and independent of concrete
 networking and asynchronous-runtime APIs.
 
+### Protocol execution context
+
+`ProtocolDriver<T>` owns the transport associated with one protocol
+execution context. It exposes controlled immutable, mutable, and consuming
+transport access while remaining generic over the transport type.
+
+The driver deliberately performs no message interpretation, state-machine
+transition, cryptographic operation, frame-storage allocation, or retry
+policy. Those responsibilities belong to future protocol handlers and
+orchestration layers. Keeping the initial driver minimal prevents protocol
+semantics from becoming coupled to byte movement or concrete transports.
+
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or
