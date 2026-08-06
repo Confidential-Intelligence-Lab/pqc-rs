@@ -166,6 +166,38 @@ failures and transport failures. Both state machines are allocation-free,
 resumable after `Pending` or partial progress, and independent of concrete
 networking and asynchronous-runtime APIs.
 
+### Protocol execution context
+
+`ProtocolDriver<T>` owns the transport associated with one protocol
+execution context. It exposes controlled immutable, mutable, and consuming
+transport access while remaining generic over the transport type.
+
+The driver deliberately performs no message interpretation, state-machine
+transition, cryptographic operation, frame-storage allocation, or retry
+policy. Those responsibilities belong to future protocol handlers and
+orchestration layers. Keeping the initial driver minimal prevents protocol
+semantics from becoming coupled to byte movement or concrete transports.
+
+### Protocol handler contracts
+
+`ProtocolHandler` is the protocol-specific decision boundary. It receives
+a validated borrowed `ProtocolFrame`, may update handler-owned state, and
+returns a semantic `HandlerAction`. The initial actions distinguish
+continuation, a requested outbound response, and orderly closure.
+
+Handlers do not own transports, perform I/O, allocate frame storage, or
+construct outbound frames. The action model intentionally carries no
+payload or buffer lifetime, leaving response construction and transfer to
+later orchestration layers. Handler errors remain protocol-specific through
+an associated error type.
+
+`ProtocolDriver::handle_frame` forms the initial orchestration seam between
+the transport-owning execution context and an externally supplied handler.
+It forwards one validated frame, returns the handler action unchanged, and
+preserves the handler's associated error type. The operation performs no
+transport I/O, response construction, session mutation, or cryptographic
+processing.
+
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or
