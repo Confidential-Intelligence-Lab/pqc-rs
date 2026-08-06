@@ -31,7 +31,7 @@ mod typestate;
 mod wire;
 
 pub use codec::{ProtocolDecode, ProtocolEncode};
-pub use driver::ProtocolDriver;
+pub use driver::{DriverError, DriverResult, ProtocolDriver};
 pub use envelope::ProtocolEnvelope;
 pub use error::{ProtocolError, ProtocolResult};
 pub use frame::{ProtocolFrame, MAX_FRAME_PAYLOAD_LEN};

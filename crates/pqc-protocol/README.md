@@ -36,8 +36,9 @@ and an allocation-free in-memory reference implementation are provided.
 Resumable frame-transfer state machines connect canonical framing to byte
 transports without selecting a networking or operating-system I/O backend.
 `ProtocolDriver<T>` owns the transport and runtime `ProtocolSession` for one
-execution context and may invoke externally supplied handlers over
-validated inbound frames.
+execution context. It invokes externally supplied handlers over validated
+inbound frames and applies requested lifecycle changes exclusively through
+`ProtocolSession::transition_to`.
 `ProtocolHandler` separates protocol-specific decisions from transport and
 framing. `HandlerOutcome` carries a semantic `HandlerAction` and an optional
 requested session transition without granting handlers mutable session

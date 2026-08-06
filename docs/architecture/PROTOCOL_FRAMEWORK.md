@@ -199,10 +199,11 @@ payload or buffer lifetime, leaving response construction and transfer to
 later orchestration layers. Handler errors remain protocol-specific through
 an associated error type.
 
-A requested transition is declarative only. The handler receives no mutable
-session reference and cannot apply or validate lifecycle changes. During
-this increment, `ProtocolDriver::handle_frame` propagates the complete
-outcome unchanged while leaving the owned `ProtocolSession` untouched.
+A requested transition is declarative only from the handler's perspective.
+The handler receives no mutable session reference and cannot apply or
+validate lifecycle changes. `ProtocolDriver::handle_frame` applies the
+request exclusively through `ProtocolSession::transition_to`; rejected
+requests preserve the previous session state.
 
 `ProtocolDriver::handle_frame` forms the initial orchestration seam between
 the transport-owning execution context and an externally supplied handler.
@@ -210,6 +211,11 @@ It forwards one validated frame, returns the handler action unchanged, and
 preserves the handler's associated error type. The operation performs no
 transport I/O, response construction, session mutation, or cryptographic
 processing.
+
+`DriverError<E>` preserves error provenance by distinguishing handler
+failures from protocol-layer lifecycle-validation failures. The driver
+performs no compensating transition after rejection because
+`ProtocolSession::transition_to` is atomic with respect to session state.
 
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,

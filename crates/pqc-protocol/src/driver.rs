@@ -1,5 +1,38 @@
 //! Transport-independent protocol execution context.
 
+/// Error produced while orchestrating a protocol handler.
+///
+/// Handler failures remain distinct from protocol-layer validation failures.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DriverError<E> {
+    /// The protocol-specific handler rejected frame processing.
+    Handler(E),
+    /// Protocol-layer validation or lifecycle transition failed.
+    Protocol(crate::ProtocolError),
+}
+
+/// Result type used by protocol-driver orchestration.
+pub type DriverResult<T, E> = core::result::Result<T, DriverError<E>>;
+
+impl<E> core::fmt::Display for DriverError<E>
+where
+    E: core::fmt::Display,
+{
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Handler(error) => {
+                write!(formatter, "protocol handler failed: {error}")
+            }
+            Self::Protocol(error) => {
+                write!(formatter, "protocol orchestration failed: {error}")
+            }
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl<E> std::error::Error for DriverError<E> where E: std::error::Error + 'static {}
+
 /// Transport-independent execution context for driving protocol progress.
 ///
 /// `ProtocolDriver` owns the transport and runtime session associated with
@@ -55,18 +88,28 @@ impl<T> ProtocolDriver<T> {
 
     /// Invoke `handler` for one validated inbound frame.
     ///
-    /// This method performs no transport I/O and does not alter the
-    /// returned semantic action. Handler-owned state and errors remain
-    /// independent from the driver and its transport.
+    /// A requested lifecycle transition is validated and applied through the
+    /// owned [`crate::ProtocolSession`]. If validation fails, the previous
+    /// session state is preserved.
+    ///
+    /// This method performs no transport I/O or outbound-frame construction.
     pub fn handle_frame<H>(
         &mut self,
         handler: &mut H,
         frame: &crate::ProtocolFrame<'_>,
-    ) -> Result<crate::HandlerOutcome, H::Error>
+    ) -> DriverResult<crate::HandlerOutcome, H::Error>
     where
         H: crate::ProtocolHandler + ?Sized,
     {
-        handler.handle_frame(frame)
+        let outcome = handler.handle_frame(frame).map_err(DriverError::Handler)?;
+
+        if let Some(next) = outcome.requested_transition() {
+            self.session
+                .transition_to(next)
+                .map_err(DriverError::Protocol)?;
+        }
+
+        Ok(outcome)
     }
 }
 
@@ -284,7 +327,7 @@ mod tests {
 
         assert_eq!(
             driver.handle_frame(&mut handler, &test_frame(&[])),
-            Err(TestHandlerError::Rejected)
+            Err(DriverError::Handler(TestHandlerError::Rejected))
         );
         assert_eq!(handler.handled, 0);
     }
@@ -334,7 +377,7 @@ mod tests {
     }
 
     #[test]
-    fn driver_propagates_transition_request_without_applying_it() {
+    fn driver_applies_valid_requested_transition() {
         let transport = MemoryTransport::<8>::new(2).unwrap();
         let mut driver = ProtocolDriver::new(transport, session());
         let mut handler = TransitionRequestHandler;
@@ -346,6 +389,82 @@ mod tests {
         assert_eq!(
             outcome.requested_transition(),
             Some(crate::SessionState::Establishing)
+        );
+        assert_eq!(driver.session().state(), crate::SessionState::Establishing);
+    }
+
+    struct InvalidTransitionHandler;
+
+    impl crate::ProtocolHandler for InvalidTransitionHandler {
+        type Error = TestHandlerError;
+
+        fn handle_frame(
+            &mut self,
+            _frame: &crate::ProtocolFrame<'_>,
+        ) -> Result<crate::HandlerOutcome, Self::Error> {
+            Ok(crate::HandlerOutcome::with_transition(
+                crate::HandlerAction::Continue,
+                crate::SessionState::Established,
+            ))
+        }
+    }
+
+    #[test]
+    fn invalid_requested_transition_returns_protocol_error() {
+        let transport = MemoryTransport::<8>::new(2).unwrap();
+        let mut driver = ProtocolDriver::new(transport, session());
+        let mut handler = InvalidTransitionHandler;
+
+        assert_eq!(
+            driver.handle_frame(&mut handler, &test_frame(&[1_u8])),
+            Err(DriverError::Protocol(
+                crate::ProtocolError::InvalidStateTransition
+            ))
+        );
+    }
+
+    #[test]
+    fn rejected_transition_preserves_previous_session_state() {
+        let transport = MemoryTransport::<8>::new(2).unwrap();
+        let mut driver = ProtocolDriver::new(transport, session());
+        let mut handler = InvalidTransitionHandler;
+
+        let previous = driver.session().state();
+        let result = driver.handle_frame(&mut handler, &test_frame(&[1_u8]));
+
+        assert_eq!(
+            result,
+            Err(DriverError::Protocol(
+                crate::ProtocolError::InvalidStateTransition
+            ))
+        );
+        assert_eq!(driver.session().state(), previous);
+    }
+
+    #[test]
+    fn outcome_without_transition_leaves_session_unchanged() {
+        let transport = MemoryTransport::<8>::new(2).unwrap();
+        let mut driver = ProtocolDriver::new(transport, session());
+        let mut handler = TestHandler::new(crate::HandlerAction::Respond);
+
+        let outcome = driver
+            .handle_frame(&mut handler, &test_frame(&[1_u8]))
+            .unwrap();
+
+        assert_eq!(outcome.requested_transition(), None);
+        assert_eq!(driver.session().state(), crate::SessionState::Created);
+    }
+
+    #[test]
+    fn handler_error_leaves_session_unchanged() {
+        let transport = MemoryTransport::<8>::new(2).unwrap();
+        let mut driver = ProtocolDriver::new(transport, session());
+        let mut handler = TestHandler::new(crate::HandlerAction::Continue);
+        handler.reject = true;
+
+        assert_eq!(
+            driver.handle_frame(&mut handler, &test_frame(&[])),
+            Err(DriverError::Handler(TestHandlerError::Rejected))
         );
         assert_eq!(driver.session().state(), crate::SessionState::Created);
     }
