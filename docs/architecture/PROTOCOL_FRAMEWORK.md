@@ -168,15 +168,23 @@ networking and asynchronous-runtime APIs.
 
 ### Protocol execution context
 
-`ProtocolDriver<T>` owns the transport associated with one protocol
-execution context. It exposes controlled immutable, mutable, and consuming
-transport access while remaining generic over the transport type.
+`ProtocolDriver<T>` owns the transport and runtime `ProtocolSession`
+associated with one protocol execution context. It exposes controlled
+immutable and mutable access to both components and returns their ownership
+together through `into_parts`, while remaining generic over the transport
+type.
 
 The driver deliberately performs no message interpretation, state-machine
 transition, cryptographic operation, frame-storage allocation, or retry
 policy. Those responsibilities belong to future protocol handlers and
 orchestration layers. Keeping the initial driver minimal prevents protocol
 semantics from becoming coupled to byte movement or concrete transports.
+
+The driver does not define an independent lifecycle representation.
+`ProtocolSession` remains the single runtime source of truth, and mutable
+session access continues to enforce transitions through
+`ProtocolSession::transition_to`. Session-aware handler outcomes and
+automatic transition orchestration remain later increments.
 
 ### Protocol handler contracts
 

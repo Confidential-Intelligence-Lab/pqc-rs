@@ -35,8 +35,9 @@ complete-frame composition and decoding. Portable byte-transport contracts
 and an allocation-free in-memory reference implementation are provided.
 Resumable frame-transfer state machines connect canonical framing to byte
 transports without selecting a networking or operating-system I/O backend.
-`ProtocolDriver<T>` provides the transport-owning execution context and may
-invoke externally supplied handlers over validated inbound frames.
+`ProtocolDriver<T>` owns the transport and runtime `ProtocolSession` for one
+execution context and may invoke externally supplied handlers over
+validated inbound frames.
 `ProtocolHandler` separates protocol-specific decisions from transport and
 framing, while `HandlerAction` reports semantic continuation, response, or
 orderly-closure intent without prescribing payload storage.
