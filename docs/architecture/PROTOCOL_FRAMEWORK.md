@@ -191,6 +191,13 @@ payload or buffer lifetime, leaving response construction and transfer to
 later orchestration layers. Handler errors remain protocol-specific through
 an associated error type.
 
+`ProtocolDriver::handle_frame` forms the initial orchestration seam between
+the transport-owning execution context and an externally supplied handler.
+It forwards one validated frame, returns the handler action unchanged, and
+preserves the handler's associated error type. The operation performs no
+transport I/O, response construction, session mutation, or cryptographic
+processing.
+
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or
