@@ -178,6 +178,19 @@ policy. Those responsibilities belong to future protocol handlers and
 orchestration layers. Keeping the initial driver minimal prevents protocol
 semantics from becoming coupled to byte movement or concrete transports.
 
+### Protocol handler contracts
+
+`ProtocolHandler` is the protocol-specific decision boundary. It receives
+a validated borrowed `ProtocolFrame`, may update handler-owned state, and
+returns a semantic `HandlerAction`. The initial actions distinguish
+continuation, a requested outbound response, and orderly closure.
+
+Handlers do not own transports, perform I/O, allocate frame storage, or
+construct outbound frames. The action model intentionally carries no
+payload or buffer lifetime, leaving response construction and transfer to
+later orchestration layers. Handler errors remain protocol-specific through
+an associated error type.
+
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or

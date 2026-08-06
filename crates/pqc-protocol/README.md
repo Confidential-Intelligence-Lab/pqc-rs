@@ -26,6 +26,7 @@ The crate currently defines:
 - a fixed-capacity, allocation-free in-memory reference transport;
 - resumable framed transmit and receive state machines;
 - a transport-independent protocol execution context;
+- protocol-specific frame-handler and semantic-action contracts;
 - protocol-layer error types.
 
 It defines the semantic model, fixed shape, big-endian byte encoding, and
@@ -34,8 +35,10 @@ complete-frame composition and decoding. Portable byte-transport contracts
 and an allocation-free in-memory reference implementation are provided.
 Resumable frame-transfer state machines connect canonical framing to byte
 transports without selecting a networking or operating-system I/O backend.
-`ProtocolDriver<T>` provides the initial transport-owning execution context
-for future protocol handlers and session orchestration.
+`ProtocolDriver<T>` provides the initial transport-owning execution context.
+`ProtocolHandler` separates protocol-specific decisions from transport and
+framing, while `HandlerAction` reports semantic continuation, response, or
+orderly-closure intent without prescribing payload storage.
 
 ## Layering
 
