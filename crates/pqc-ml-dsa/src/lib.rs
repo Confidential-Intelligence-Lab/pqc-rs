@@ -37,89 +37,107 @@ pub use params::{MlDsaParameterSet, MlDsaParameters};
 #[doc(hidden)]
 pub mod audit;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod audit;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod challenge;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod challenge;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod constants;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod constants;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod encoding;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod encoding;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod expand_a;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod expand_a;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod hash_mldsa;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod hash_mldsa;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod hint;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod hint;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod keygen;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod keygen;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod ntt;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod ntt;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod poly;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod poly;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod reduce;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod reduce;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod rounding;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod rounding;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod sample;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod sample;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod signature;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod signature;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod signing;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod signing;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod signing_core;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod signing_core;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod verification;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod verification;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod xof;
 #[cfg(not(feature = "internal-api"))]
+#[allow(dead_code)]
 mod xof;

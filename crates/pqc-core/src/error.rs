@@ -23,6 +23,15 @@ pub enum PqcError {
     DecapsulationFailed,
     /// Randomness generation failed.
     RandomnessFailure,
+
+    /// A cryptographic object belongs to a different parameter set.
+    ParameterSetMismatch,
+
+    /// Input violates a constraint of the selected cryptographic operation.
+    InvalidInput,
+
+    /// An internal cryptographic invariant failed.
+    InternalError,
     /// A protocol-level invariant failed.
     ProtocolInvariantFailed,
 }

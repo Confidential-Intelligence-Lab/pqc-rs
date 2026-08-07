@@ -6,7 +6,10 @@
 
 use core::fmt;
 
-use pqc_core::secret::{SecretBytes, SecretVec};
+use pqc_core::{
+    secret::{SecretBytes, SecretVec},
+    PqcError, PqcResult, SignatureScheme,
+};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::hash_mldsa::{hash_sign, hash_verify, PreHashAlgorithm};
@@ -520,4 +523,76 @@ where
     rng.try_fill_bytes(output.as_mut_bytes())
         .map_err(|_| MlDsaError::RandomnessFailure)?;
     Ok(output)
+}
+
+impl SignatureScheme for MlDsa {
+    type PublicKey = MlDsaPublicKey;
+    type SecretKey = MlDsaPrivateKey;
+    type Signature = MlDsaSignature;
+
+    fn keygen<R>(&self, rng: &mut R) -> PqcResult<(Self::PublicKey, Self::SecretKey)>
+    where
+        R: CryptoRng + RngCore,
+    {
+        let key_pair = MlDsa::keygen(self, rng).map_err(map_mldsa_error)?;
+        Ok(key_pair.into_parts())
+    }
+
+    fn sign<R>(
+        &self,
+        secret_key: &Self::SecretKey,
+        message: &[u8],
+        context: &[u8],
+        rng: &mut R,
+    ) -> PqcResult<Self::Signature>
+    where
+        R: CryptoRng + RngCore,
+    {
+        if context.len() > MAX_CONTEXT_BYTES {
+            return Err(PqcError::InvalidLength {
+                expected: MAX_CONTEXT_BYTES,
+                actual: context.len(),
+            });
+        }
+
+        MlDsa::sign_hedged(self, secret_key, message, context, rng).map_err(map_mldsa_error)
+    }
+
+    fn verify(
+        &self,
+        public_key: &Self::PublicKey,
+        message: &[u8],
+        context: &[u8],
+        signature: &Self::Signature,
+    ) -> PqcResult<()> {
+        if context.len() > MAX_CONTEXT_BYTES {
+            return Err(PqcError::InvalidLength {
+                expected: MAX_CONTEXT_BYTES,
+                actual: context.len(),
+            });
+        }
+
+        match MlDsa::verify(self, public_key, message, context, signature)
+            .map_err(map_mldsa_error)?
+        {
+            true => Ok(()),
+            false => Err(PqcError::VerificationFailed),
+        }
+    }
+}
+
+fn map_mldsa_error(error: MlDsaError) -> PqcError {
+    match error {
+        MlDsaError::InvalidPublicKey
+        | MlDsaError::InvalidPrivateKey
+        | MlDsaError::InvalidSignature => PqcError::MalformedEncoding,
+
+        MlDsaError::ParameterSetMismatch => PqcError::ParameterSetMismatch,
+
+        MlDsaError::ContextTooLong => PqcError::InvalidInput,
+
+        MlDsaError::RandomnessFailure => PqcError::RandomnessFailure,
+
+        MlDsaError::RejectionLimitExceeded | MlDsaError::InternalError => PqcError::InternalError,
+    }
 }

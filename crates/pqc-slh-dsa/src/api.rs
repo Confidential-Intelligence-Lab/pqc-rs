@@ -2,7 +2,7 @@
 
 use core::fmt;
 
-use pqc_core::secret::SecretVec;
+use pqc_core::{secret::SecretVec, PqcError, PqcResult, SignatureScheme};
 use rand_core::{CryptoRng, RngCore};
 
 use crate::{
@@ -748,6 +748,79 @@ impl SlhDsa {
             public_key: SlhDsaPublicKey::from_bytes(self.parameter_set, &public_key_bytes)?,
             private_key: SlhDsaPrivateKey::from_bytes(self.parameter_set, &private_key_bytes)?,
         })
+    }
+}
+
+impl SignatureScheme for SlhDsa {
+    type PublicKey = SlhDsaPublicKey;
+    type SecretKey = SlhDsaPrivateKey;
+    type Signature = SlhDsaSignature;
+
+    fn keygen<R>(&self, rng: &mut R) -> PqcResult<(Self::PublicKey, Self::SecretKey)>
+    where
+        R: CryptoRng + RngCore,
+    {
+        let key_pair = SlhDsa::keygen(self, rng).map_err(map_slhdsa_error)?;
+        Ok(key_pair.into_parts())
+    }
+
+    fn sign<R>(
+        &self,
+        secret_key: &Self::SecretKey,
+        message: &[u8],
+        context: &[u8],
+        rng: &mut R,
+    ) -> PqcResult<Self::Signature>
+    where
+        R: CryptoRng + RngCore,
+    {
+        if context.len() > 255 {
+            return Err(PqcError::InvalidLength {
+                expected: 255,
+                actual: context.len(),
+            });
+        }
+
+        SlhDsa::sign_hedged(self, secret_key, message, context, rng).map_err(map_slhdsa_error)
+    }
+
+    fn verify(
+        &self,
+        public_key: &Self::PublicKey,
+        message: &[u8],
+        context: &[u8],
+        signature: &Self::Signature,
+    ) -> PqcResult<()> {
+        if context.len() > 255 {
+            return Err(PqcError::InvalidLength {
+                expected: 255,
+                actual: context.len(),
+            });
+        }
+
+        match SlhDsa::verify(self, public_key, message, context, signature)
+            .map_err(map_slhdsa_error)?
+        {
+            true => Ok(()),
+            false => Err(PqcError::VerificationFailed),
+        }
+    }
+}
+
+fn map_slhdsa_error(error: SlhDsaError) -> PqcError {
+    match error {
+        SlhDsaError::InvalidPublicKey
+        | SlhDsaError::InvalidPrivateKey
+        | SlhDsaError::InvalidSignature
+        | SlhDsaError::InvalidKeyGenSeed => PqcError::MalformedEncoding,
+
+        SlhDsaError::ParameterSetMismatch => PqcError::ParameterSetMismatch,
+
+        SlhDsaError::ContextTooLong => PqcError::InvalidInput,
+
+        SlhDsaError::RandomnessFailure => PqcError::RandomnessFailure,
+
+        SlhDsaError::NotImplemented | SlhDsaError::InternalError => PqcError::InternalError,
     }
 }
 
