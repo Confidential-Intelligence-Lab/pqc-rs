@@ -28,6 +28,53 @@ impl HandlerAction {
     }
 }
 
+/// Semantic result produced after processing one inbound protocol frame.
+///
+/// The outcome separates immediate protocol intent from an optional requested
+/// runtime-session transition. A handler may request a transition, but it does
+/// not validate or apply that transition.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct HandlerOutcome {
+    action: HandlerAction,
+    requested_transition: Option<crate::SessionState>,
+}
+
+impl HandlerOutcome {
+    /// Construct an outcome without a requested session transition.
+    pub const fn new(action: HandlerAction) -> Self {
+        Self {
+            action,
+            requested_transition: None,
+        }
+    }
+
+    /// Construct an outcome with a requested session transition.
+    pub const fn with_transition(
+        action: HandlerAction,
+        requested_transition: crate::SessionState,
+    ) -> Self {
+        Self {
+            action,
+            requested_transition: Some(requested_transition),
+        }
+    }
+
+    /// Return the semantic handler action.
+    pub const fn action(self) -> HandlerAction {
+        self.action
+    }
+
+    /// Return the requested session transition, if any.
+    pub const fn requested_transition(self) -> Option<crate::SessionState> {
+        self.requested_transition
+    }
+
+    /// Return whether the outcome requests a session transition.
+    pub const fn requests_transition(self) -> bool {
+        self.requested_transition.is_some()
+    }
+}
+
 /// Protocol-specific decision contract for validated inbound frames.
 ///
 /// A handler may inspect the frame and update its own protocol-specific state.
@@ -40,8 +87,8 @@ pub trait ProtocolHandler {
     /// Error produced by protocol-specific frame processing.
     type Error;
 
-    /// Process one validated inbound frame and return the requested next action.
-    fn handle_frame(&mut self, frame: &ProtocolFrame<'_>) -> Result<HandlerAction, Self::Error>;
+    /// Process one validated inbound frame and return the requested outcome.
+    fn handle_frame(&mut self, frame: &ProtocolFrame<'_>) -> Result<HandlerOutcome, Self::Error>;
 }
 
 #[cfg(test)]
@@ -79,7 +126,7 @@ mod tests {
         fn handle_frame(
             &mut self,
             frame: &ProtocolFrame<'_>,
-        ) -> Result<HandlerAction, Self::Error> {
+        ) -> Result<HandlerOutcome, Self::Error> {
             if self.reject {
                 return Err(TestError::Rejected);
             }
@@ -87,7 +134,7 @@ mod tests {
             self.handled += 1;
             self.observed_payload_length = frame.payload().len();
 
-            Ok(self.action)
+            Ok(HandlerOutcome::new(self.action))
         }
     }
 
@@ -121,7 +168,10 @@ mod tests {
         let frame = frame(&payload);
         let mut handler = TestHandler::new(HandlerAction::Continue);
 
-        assert_eq!(handler.handle_frame(&frame), Ok(HandlerAction::Continue));
+        assert_eq!(
+            handler.handle_frame(&frame),
+            Ok(HandlerOutcome::new(HandlerAction::Continue))
+        );
         assert_eq!(handler.handled, 1);
         assert_eq!(handler.observed_payload_length, payload.len());
         assert_eq!(frame.payload().as_ptr(), payload.as_ptr());
@@ -137,7 +187,10 @@ mod tests {
             HandlerAction::Close,
         ] {
             let mut handler = TestHandler::new(action);
-            assert_eq!(handler.handle_frame(&frame), Ok(action));
+            assert_eq!(
+                handler.handle_frame(&frame),
+                Ok(HandlerOutcome::new(action))
+            );
         }
     }
 
@@ -170,6 +223,46 @@ mod tests {
         let mut concrete = TestHandler::new(HandlerAction::Close);
         let handler: &mut dyn ProtocolHandler<Error = TestError> = &mut concrete;
 
-        assert_eq!(handler.handle_frame(&frame), Ok(HandlerAction::Close));
+        assert_eq!(
+            handler.handle_frame(&frame),
+            Ok(HandlerOutcome::new(HandlerAction::Close))
+        );
+    }
+
+    #[test]
+    fn handler_outcome_without_transition_preserves_action() {
+        let outcome = HandlerOutcome::new(HandlerAction::Respond);
+
+        assert_eq!(outcome.action(), HandlerAction::Respond);
+        assert_eq!(outcome.requested_transition(), None);
+        assert!(!outcome.requests_transition());
+    }
+
+    #[test]
+    fn handler_outcome_preserves_requested_transition() {
+        let outcome = HandlerOutcome::with_transition(
+            HandlerAction::Continue,
+            crate::SessionState::Establishing,
+        );
+
+        assert_eq!(outcome.action(), HandlerAction::Continue);
+        assert_eq!(
+            outcome.requested_transition(),
+            Some(crate::SessionState::Establishing)
+        );
+        assert!(outcome.requests_transition());
+    }
+
+    #[test]
+    fn action_and_transition_intent_are_independent() {
+        let outcome =
+            HandlerOutcome::with_transition(HandlerAction::Respond, crate::SessionState::Closing);
+
+        assert!(outcome.action().requires_response());
+        assert!(!outcome.action().requests_close());
+        assert_eq!(
+            outcome.requested_transition(),
+            Some(crate::SessionState::Closing)
+        );
     }
 }

@@ -168,9 +168,11 @@ networking and asynchronous-runtime APIs.
 
 ### Protocol execution context
 
-`ProtocolDriver<T>` owns the transport associated with one protocol
-execution context. It exposes controlled immutable, mutable, and consuming
-transport access while remaining generic over the transport type.
+`ProtocolDriver<T>` owns the transport and runtime `ProtocolSession`
+associated with one protocol execution context. It exposes controlled
+immutable and mutable access to both components and returns their ownership
+together through `into_parts`, while remaining generic over the transport
+type.
 
 The driver deliberately performs no message interpretation, state-machine
 transition, cryptographic operation, frame-storage allocation, or retry
@@ -178,12 +180,18 @@ policy. Those responsibilities belong to future protocol handlers and
 orchestration layers. Keeping the initial driver minimal prevents protocol
 semantics from becoming coupled to byte movement or concrete transports.
 
+The driver does not define an independent lifecycle representation.
+`ProtocolSession` remains the single runtime source of truth, and mutable
+session access continues to enforce transitions through
+`ProtocolSession::transition_to`. Session-aware handler outcomes and
+automatic transition orchestration remain later increments.
+
 ### Protocol handler contracts
 
 `ProtocolHandler` is the protocol-specific decision boundary. It receives
 a validated borrowed `ProtocolFrame`, may update handler-owned state, and
-returns a semantic `HandlerAction`. The initial actions distinguish
-continuation, a requested outbound response, and orderly closure.
+returns a `HandlerOutcome`. Each outcome contains a semantic
+`HandlerAction` and may request a runtime-session transition.
 
 Handlers do not own transports, perform I/O, allocate frame storage, or
 construct outbound frames. The action model intentionally carries no
@@ -191,12 +199,23 @@ payload or buffer lifetime, leaving response construction and transfer to
 later orchestration layers. Handler errors remain protocol-specific through
 an associated error type.
 
+A requested transition is declarative only from the handler's perspective.
+The handler receives no mutable session reference and cannot apply or
+validate lifecycle changes. `ProtocolDriver::handle_frame` applies the
+request exclusively through `ProtocolSession::transition_to`; rejected
+requests preserve the previous session state.
+
 `ProtocolDriver::handle_frame` forms the initial orchestration seam between
 the transport-owning execution context and an externally supplied handler.
 It forwards one validated frame, returns the handler action unchanged, and
 preserves the handler's associated error type. The operation performs no
 transport I/O, response construction, session mutation, or cryptographic
 processing.
+
+`DriverError<E>` preserves error provenance by distinguishing handler
+failures from protocol-layer lifecycle-validation failures. The driver
+performs no compensating transition after rejection because
+`ProtocolSession::transition_to` is atomic with respect to session state.
 
 `ProtocolEnvelope<P>` associates the semantic message metadata with an
 unconstrained payload type. The generic parameter permits borrowed,
