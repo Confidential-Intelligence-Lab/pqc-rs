@@ -43,6 +43,24 @@ inbound frames and applies requested lifecycle changes exclusively through
 framing. `HandlerOutcome` carries a semantic `HandlerAction` and an optional
 requested session transition without granting handlers mutable session
 access or prescribing payload storage.
+`ProtocolResponder` provides allocation-free outbound payload construction
+into caller-owned storage. `OutboundResponse` borrows that payload while
+carrying only protocol-specific message identity and class; session-bound
+wire metadata remains framework-owned.
+
+`ProtocolDriver::frame_response` converts an `OutboundResponse` into a
+`ProtocolFrame` using authoritative runtime-session metadata. Protocol ID
+and protocol version come from the bound `ProtocolSession`, while outbound
+direction is derived from the local `ProtocolRole`. Wire version, flags,
+and payload length remain framing-derived. Frame construction performs no
+transport I/O and does not mutate session state.
+
+`ProtocolDriver::build_response` completes allocation-free outbound response
+orchestration. It invokes a `ProtocolResponder` with caller-owned payload
+storage, preserves responder failures separately through `ResponseError`,
+and converts the returned `OutboundResponse` into a session-bound
+`ProtocolFrame`. Response construction performs no transport I/O and does
+not mutate transport or session state.
 
 ## Layering
 

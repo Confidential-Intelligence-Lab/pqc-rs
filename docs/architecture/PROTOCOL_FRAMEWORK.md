@@ -205,12 +205,24 @@ validate lifecycle changes. `ProtocolDriver::handle_frame` applies the
 request exclusively through `ProtocolSession::transition_to`; rejected
 requests preserve the previous session state.
 
-`ProtocolDriver::handle_frame` forms the initial orchestration seam between
+### Outbound response contracts
+
+`ProtocolResponder` separates protocol-specific payload construction from
+wire framing and transport. A responder writes bytes into caller-owned
+storage and returns an `OutboundResponse` borrowing the initialized payload.
+
+`OutboundResponse` contains only the protocol-scoped `MessageId`, semantic
+`MessageClass`, and borrowed payload. It deliberately excludes protocol ID,
+protocol version, logical direction, wire version, wire flags, and encoded
+payload length. Those values remain framework-derived from authoritative
+session and framing state.
+
+`ProtocolDriver::handle_frame` forms the inbound orchestration seam between
 the transport-owning execution context and an externally supplied handler.
-It forwards one validated frame, returns the handler action unchanged, and
-preserves the handler's associated error type. The operation performs no
-transport I/O, response construction, session mutation, or cryptographic
-processing.
+It forwards one validated frame, preserves handler error provenance, and
+applies any requested lifecycle transition exclusively through
+`ProtocolSession::transition_to`. The operation performs no transport I/O,
+response construction, or cryptographic processing.
 
 `DriverError<E>` preserves error provenance by distinguishing handler
 failures from protocol-layer lifecycle-validation failures. The driver
@@ -221,6 +233,25 @@ performs no compensating transition after rejection because
 unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or
 serialization part of the protocol-message abstraction.
+
+`ProtocolDriver::frame_response` realizes this boundary. Given an
+`OutboundResponse`, the driver derives protocol ID and protocol version
+from its bound `ProtocolSession` and derives logical direction from the
+local role: clients emit `ClientToServer` frames and servers emit
+`ServerToClient` frames. `ProtocolFrame::current` supplies the current wire
+version, empty wire flags, and payload length derived from the borrowed
+payload. This construction step performs no transport I/O and leaves both
+transport and session state unchanged.
+
+`ProtocolDriver::build_response` composes the responder and framing
+boundaries without introducing transport behavior. The driver supplies
+caller-owned storage to `ProtocolResponder::write_response`, receives a
+borrowed `OutboundResponse`, and passes it through `frame_response` to
+produce the canonical session-bound `ProtocolFrame`. `ResponseError<E>`
+keeps responder failures distinct from protocol-layer framing failures.
+The operation performs no transport I/O and leaves both transport and
+session state unchanged. Actual frame transmission remains a separate
+orchestration concern.
 
 ### Protocol implementations
 
