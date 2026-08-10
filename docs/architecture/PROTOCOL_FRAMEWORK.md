@@ -272,6 +272,18 @@ payload-storage lifetime. `TransmitPreparationError<E>` keeps responder
 failures distinct from protocol framing or encoding failures, while actual
 transport failures remain represented later by `FrameTransferError`.
 
+The resumable outbound-transfer boundary is validated against adversarial
+transport behavior. Successful partial writes advance the committed offset by
+exactly the accepted byte count. `Pending` and `Interrupted` outcomes leave
+that offset unchanged and permit subsequent resumption from the same encoded
+position. Terminal transport failure preserves previously committed progress
+without rollback. Invalid zero or oversized progress reports are rejected
+without advancing transmitter state. Maximal one-byte fragmentation produces
+the exact canonical encoded frame without duplication or omission, while
+advancing an already completed transmitter is idempotent and performs no
+additional transport I/O. None of these transfer outcomes mutate the bound
+`ProtocolSession`.
+
 ### Protocol implementations
 
 `pqc-rs-hpke` and future protocol crates own standards-defined cryptographic

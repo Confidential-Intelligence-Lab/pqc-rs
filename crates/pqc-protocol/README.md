@@ -76,6 +76,14 @@ the returned transmitter borrows only encoded frame storage. Preparation
 performs no transport I/O and introduces no hidden allocation or transfer
 state.
 
+Outbound transfer semantics are exercised under adversarial transport behavior.
+Maximally fragmented writes preserve canonical encoded bytes without omission
+or duplication; retryable `Pending` and `Interrupted` failures preserve the
+committed transmission offset and permit exact resumption; terminal closure
+preserves already committed progress; invalid progress reports are rejected
+without advancing state; and advancing an already completed transmitter is
+idempotent and performs no further transport I/O.
+
 ## Layering
 
 ```text
