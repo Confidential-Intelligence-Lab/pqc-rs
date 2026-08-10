@@ -262,6 +262,16 @@ advance operation, preserving partial progress and propagating existing
 `FrameTransferError` semantics. No additional transfer state, hidden buffering,
 allocation, or protocol-session mutation is introduced by the driver.
 
+`ProtocolDriver::prepare_response_transmit` composes the outbound response and
+resumable-transfer boundaries without performing transport I/O. The responder
+writes protocol-specific bytes into caller-owned payload storage; the driver
+derives canonical session-bound framing and `FrameTransmitter::new` immediately
+encodes that frame into caller-owned frame storage. The returned transmitter
+therefore retains only the encoded frame-storage lifetime, not the response
+payload-storage lifetime. `TransmitPreparationError<E>` keeps responder
+failures distinct from protocol framing or encoding failures, while actual
+transport failures remain represented later by `FrameTransferError`.
+
 ### Protocol implementations
 
 `pqc-rs-hpke` and future protocol crates own standards-defined cryptographic

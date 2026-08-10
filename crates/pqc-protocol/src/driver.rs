@@ -66,6 +66,44 @@ where
 #[cfg(feature = "std")]
 impl<E> std::error::Error for ResponseError<E> where E: std::error::Error + 'static {}
 
+/// Error produced while preparing an outbound response for transmission.
+///
+/// Preparation combines protocol-specific response construction, canonical
+/// session-bound framing, and encoding into caller-owned frame storage. It
+/// performs no transport I/O.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TransmitPreparationError<E> {
+    /// The protocol-specific responder failed to construct its payload.
+    Responder(E),
+    /// Protocol framing, validation, or frame encoding failed.
+    Protocol(crate::ProtocolError),
+}
+
+/// Result type used while preparing resumable outbound transmission.
+pub type TransmitPreparationResult<T, E> = core::result::Result<T, TransmitPreparationError<E>>;
+
+impl<E> core::fmt::Display for TransmitPreparationError<E>
+where
+    E: core::fmt::Display,
+{
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Responder(error) => {
+                write!(
+                    formatter,
+                    "protocol transmit preparation responder failed: {error}"
+                )
+            }
+            Self::Protocol(error) => {
+                write!(formatter, "protocol transmit preparation failed: {error}")
+            }
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl<E> std::error::Error for TransmitPreparationError<E> where E: std::error::Error + 'static {}
+
 /// Transport-independent execution context for driving protocol progress.
 ///
 /// `ProtocolDriver` owns the transport and runtime session associated with
@@ -189,6 +227,37 @@ impl<T> ProtocolDriver<T> {
 
         self.frame_response(response)
             .map_err(ResponseError::Protocol)
+    }
+
+    /// Prepare one protocol response for resumable transmission.
+    ///
+    /// `responder` writes protocol-specific bytes into caller-owned
+    /// `payload_storage`. The resulting response is framed using authoritative
+    /// session metadata and encoded into caller-owned `frame_storage`.
+    ///
+    /// The returned [`crate::FrameTransmitter`] borrows only `frame_storage`;
+    /// response payload storage is not retained after preparation.
+    ///
+    /// This method performs no transport I/O and does not mutate session state.
+    pub fn prepare_response_transmit<'frame, R>(
+        &self,
+        responder: &mut R,
+        payload_storage: &mut [u8],
+        frame_storage: &'frame mut [u8],
+    ) -> TransmitPreparationResult<crate::FrameTransmitter<'frame>, R::Error>
+    where
+        R: crate::ProtocolResponder + ?Sized,
+    {
+        let response = responder
+            .write_response(payload_storage)
+            .map_err(TransmitPreparationError::Responder)?;
+
+        let frame = self
+            .frame_response(response)
+            .map_err(TransmitPreparationError::Protocol)?;
+
+        crate::FrameTransmitter::new(&frame, frame_storage)
+            .map_err(TransmitPreparationError::Protocol)
     }
 
     /// Invoke `handler` for one validated inbound frame.
@@ -1017,5 +1086,239 @@ mod tests {
 
         assert_eq!(received_len, expected_len);
         assert_eq!(&received[..received_len], &expected[..expected_len]);
+    }
+
+    #[test]
+    fn prepare_response_transmit_returns_initialized_transmitter() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+
+        let mut responder = TestResponder::new(
+            &[0xaa, 0xbb, 0xcc],
+            crate::MessageId::new(0x0400),
+            crate::MessageClass::Application,
+        );
+
+        let mut payload_storage = [0_u8; 8];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN + 8];
+
+        let transmitter = driver
+            .prepare_response_transmit(&mut responder, &mut payload_storage, &mut frame_storage)
+            .unwrap();
+
+        assert_eq!(transmitter.encoded_len(), crate::WIRE_HEADER_LEN + 3);
+        assert_eq!(transmitter.transmitted_len(), 0);
+        assert_eq!(transmitter.remaining_len(), transmitter.encoded_len());
+        assert!(!transmitter.is_complete());
+    }
+
+    #[test]
+    fn prepare_response_transmit_uses_canonical_frame_encoding() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+
+        let mut responder = TestResponder::new(
+            &[1, 2, 3, 4],
+            crate::MessageId::new(0x1234),
+            crate::MessageClass::Handshake,
+        );
+
+        let mut payload_storage = [0_u8; 8];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN + 8];
+
+        let transmitter = driver
+            .prepare_response_transmit(&mut responder, &mut payload_storage, &mut frame_storage)
+            .unwrap();
+
+        assert_eq!(transmitter.encoded_len(), crate::WIRE_HEADER_LEN + 4);
+    }
+
+    #[test]
+    fn prepare_response_transmit_preserves_responder_error() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+
+        let mut responder = TestResponder::new(
+            &[1, 2, 3, 4],
+            crate::MessageId::new(1),
+            crate::MessageClass::Application,
+        );
+
+        let mut payload_storage = [0_u8; 3];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN + 8];
+
+        assert!(matches!(
+            driver.prepare_response_transmit(
+                &mut responder,
+                &mut payload_storage,
+                &mut frame_storage,
+            ),
+            Err(TransmitPreparationError::Responder(
+                TestResponderError::BufferTooSmall
+            ))
+        ));
+    }
+
+    #[test]
+    fn prepare_response_transmit_rejects_short_frame_storage() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+
+        let mut responder = TestResponder::new(
+            &[1, 2, 3, 4],
+            crate::MessageId::new(1),
+            crate::MessageClass::Application,
+        );
+
+        let mut payload_storage = [0_u8; 8];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN];
+
+        assert!(matches!(
+            driver.prepare_response_transmit(
+                &mut responder,
+                &mut payload_storage,
+                &mut frame_storage,
+            ),
+            Err(TransmitPreparationError::Protocol(
+                crate::ProtocolError::BufferTooSmall {
+                    required,
+                    available,
+                }
+            )) if required == crate::WIRE_HEADER_LEN + 4
+                && available == crate::WIRE_HEADER_LEN
+        ));
+    }
+
+    #[test]
+    fn prepare_response_transmit_performs_no_transport_io() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+
+        let mut responder = TestResponder::new(
+            &[0x42],
+            crate::MessageId::new(1),
+            crate::MessageClass::Control,
+        );
+
+        let mut payload_storage = [0_u8; 4];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN + 4];
+
+        let _transmitter = driver
+            .prepare_response_transmit(&mut responder, &mut payload_storage, &mut frame_storage)
+            .unwrap();
+
+        assert_eq!(driver.transport().buffered_len(), 0);
+        assert_eq!(driver.transport().remaining_capacity(), 64);
+    }
+
+    #[test]
+    fn prepare_response_transmit_does_not_mutate_session() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+        let previous = *driver.session();
+
+        let mut responder = TestResponder::new(
+            &[0x42],
+            crate::MessageId::new(1),
+            crate::MessageClass::Control,
+        );
+
+        let mut payload_storage = [0_u8; 4];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN + 4];
+
+        let _transmitter = driver
+            .prepare_response_transmit(&mut responder, &mut payload_storage, &mut frame_storage)
+            .unwrap();
+
+        assert_eq!(*driver.session(), previous);
+    }
+
+    #[test]
+    fn prepared_response_can_be_advanced_through_driver() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let mut driver = ProtocolDriver::new(transport, session());
+
+        let mut responder = TestResponder::new(
+            &[0xde, 0xad, 0xbe, 0xef],
+            crate::MessageId::new(0x0200),
+            crate::MessageClass::Application,
+        );
+
+        let mut payload_storage = [0_u8; 8];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN + 8];
+
+        let mut transmitter = driver
+            .prepare_response_transmit(&mut responder, &mut payload_storage, &mut frame_storage)
+            .unwrap();
+
+        assert_eq!(driver.advance_transmit(&mut transmitter), Ok(true));
+        assert!(transmitter.is_complete());
+        assert_eq!(
+            driver.transport().buffered_len(),
+            crate::WIRE_HEADER_LEN + 4
+        );
+    }
+
+    #[test]
+    fn prepared_transmitter_does_not_borrow_payload_storage() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let mut driver = ProtocolDriver::new(transport, session());
+
+        let mut responder = TestResponder::new(
+            &[0x10, 0x20, 0x30],
+            crate::MessageId::new(0x0200),
+            crate::MessageClass::Application,
+        );
+
+        let mut payload_storage = [0_u8; 8];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN + 8];
+
+        let mut transmitter = driver
+            .prepare_response_transmit(&mut responder, &mut payload_storage, &mut frame_storage)
+            .unwrap();
+
+        // This mutation is intentionally performed while `transmitter`
+        // remains alive. Successful compilation proves the transmitter does
+        // not retain a borrow of response payload storage.
+        payload_storage.fill(0xff);
+
+        while !driver.advance_transmit(&mut transmitter).unwrap() {}
+
+        let mut received = [0_u8; crate::WIRE_HEADER_LEN + 3];
+        let mut offset = 0;
+
+        while offset < received.len() {
+            let progress = driver
+                .transport_mut()
+                .receive(&mut received[offset..])
+                .unwrap();
+            offset += progress;
+        }
+
+        assert_eq!(&received[crate::WIRE_HEADER_LEN..], &[0x10, 0x20, 0x30]);
+    }
+
+    #[test]
+    fn prepare_response_transmit_supports_dynamic_responder_dispatch() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+
+        let mut concrete = TestResponder::new(
+            &[0x77],
+            crate::MessageId::new(7),
+            crate::MessageClass::Control,
+        );
+
+        let responder: &mut dyn crate::ProtocolResponder<Error = TestResponderError> =
+            &mut concrete;
+
+        let mut payload_storage = [0_u8; 4];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN + 4];
+
+        let transmitter = driver
+            .prepare_response_transmit(responder, &mut payload_storage, &mut frame_storage)
+            .unwrap();
+
+        assert_eq!(transmitter.encoded_len(), crate::WIRE_HEADER_LEN + 1);
     }
 }

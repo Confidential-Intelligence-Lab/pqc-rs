@@ -69,6 +69,13 @@ progress, retryable transport conditions, and completion remain explicit
 without hidden allocation or driver-internal buffering. Transmission does not
 mutate protocol-session state.
 
+`ProtocolDriver::prepare_response_transmit` composes response construction,
+session-derived framing, and canonical frame encoding into a caller-owned
+`FrameTransmitter`. Response payload storage is needed only during preparation;
+the returned transmitter borrows only encoded frame storage. Preparation
+performs no transport I/O and introduces no hidden allocation or transfer
+state.
+
 ## Layering
 
 ```text
