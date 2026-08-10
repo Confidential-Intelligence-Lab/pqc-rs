@@ -253,6 +253,15 @@ The operation performs no transport I/O and leaves both transport and
 session state unchanged. Actual frame transmission remains a separate
 orchestration concern.
 
+`ProtocolDriver::advance_transmit` connects the transport-owning execution
+context to the existing resumable `FrameTransmitter`. The caller retains
+ownership of the transmitter, its encoded-frame scratch storage, and its
+progress state; the driver contributes only mutable access to its owned
+`TransportTransmit` implementation. Each call performs exactly one transmitter
+advance operation, preserving partial progress and propagating existing
+`FrameTransferError` semantics. No additional transfer state, hidden buffering,
+allocation, or protocol-session mutation is introduced by the driver.
+
 ### Protocol implementations
 
 `pqc-rs-hpke` and future protocol crates own standards-defined cryptographic
