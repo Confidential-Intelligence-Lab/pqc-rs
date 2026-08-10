@@ -33,6 +33,39 @@ where
 #[cfg(feature = "std")]
 impl<E> std::error::Error for DriverError<E> where E: std::error::Error + 'static {}
 
+/// Error produced while constructing an outbound protocol response.
+///
+/// Responder failures remain distinct from protocol-layer framing failures.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ResponseError<E> {
+    /// The protocol-specific responder failed to construct its payload.
+    Responder(E),
+    /// Protocol-layer validation or frame construction failed.
+    Protocol(crate::ProtocolError),
+}
+
+/// Result type used by outbound response orchestration.
+pub type ResponseResult<T, E> = core::result::Result<T, ResponseError<E>>;
+
+impl<E> core::fmt::Display for ResponseError<E>
+where
+    E: core::fmt::Display,
+{
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Responder(error) => {
+                write!(formatter, "protocol responder failed: {error}")
+            }
+            Self::Protocol(error) => {
+                write!(formatter, "protocol response framing failed: {error}")
+            }
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl<E> std::error::Error for ResponseError<E> where E: std::error::Error + 'static {}
+
 /// Transport-independent execution context for driving protocol progress.
 ///
 /// `ProtocolDriver` owns the transport and runtime session associated with
@@ -110,6 +143,29 @@ impl<T> ProtocolDriver<T> {
             direction,
             response.payload(),
         )
+    }
+
+    /// Construct one outbound protocol frame through `responder`.
+    ///
+    /// The responder writes protocol-specific payload bytes into caller-owned
+    /// `output` storage. The returned response is then framed using authoritative
+    /// metadata from the bound runtime session.
+    ///
+    /// This method performs no transport I/O and does not mutate session state.
+    pub fn build_response<'a, R>(
+        &self,
+        responder: &mut R,
+        output: &'a mut [u8],
+    ) -> ResponseResult<crate::ProtocolFrame<'a>, R::Error>
+    where
+        R: crate::ProtocolResponder + ?Sized,
+    {
+        let response = responder
+            .write_response(output)
+            .map_err(ResponseError::Responder)?;
+
+        self.frame_response(response)
+            .map_err(ResponseError::Protocol)
     }
 
     /// Invoke `handler` for one validated inbound frame.
@@ -628,5 +684,186 @@ mod tests {
         assert_eq!(driver.transport().buffered_len(), 0);
         assert_eq!(driver.transport().remaining_capacity(), 8);
         assert!(!driver.transport().is_closed());
+    }
+
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    enum TestResponderError {
+        BufferTooSmall,
+    }
+
+    struct TestResponder {
+        payload: &'static [u8],
+        message_id: crate::MessageId,
+        message_class: crate::MessageClass,
+    }
+
+    impl TestResponder {
+        const fn new(
+            payload: &'static [u8],
+            message_id: crate::MessageId,
+            message_class: crate::MessageClass,
+        ) -> Self {
+            Self {
+                payload,
+                message_id,
+                message_class,
+            }
+        }
+    }
+
+    impl crate::ProtocolResponder for TestResponder {
+        type Error = TestResponderError;
+
+        fn write_response<'a>(
+            &mut self,
+            output: &'a mut [u8],
+        ) -> Result<crate::OutboundResponse<'a>, Self::Error> {
+            if output.len() < self.payload.len() {
+                return Err(TestResponderError::BufferTooSmall);
+            }
+
+            output[..self.payload.len()].copy_from_slice(self.payload);
+
+            Ok(crate::OutboundResponse::new(
+                self.message_id,
+                self.message_class,
+                &output[..self.payload.len()],
+            ))
+        }
+    }
+
+    #[test]
+    fn build_response_constructs_session_bound_frame() {
+        let transport = MemoryTransport::<8>::new(2).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+        let mut responder = TestResponder::new(
+            &[0xaa, 0xbb, 0xcc],
+            crate::MessageId::new(0x0400),
+            crate::MessageClass::Application,
+        );
+        let mut storage = [0_u8; 8];
+
+        let frame = driver.build_response(&mut responder, &mut storage).unwrap();
+
+        assert_eq!(frame.header().protocol_id(), crate::ProtocolId::new(0x0100));
+        assert_eq!(
+            frame.header().protocol_version(),
+            crate::ProtocolVersion::new(1, 0)
+        );
+        assert_eq!(frame.header().message_id(), crate::MessageId::new(0x0400));
+        assert_eq!(
+            frame.header().message_class(),
+            crate::MessageClass::Application
+        );
+        assert_eq!(
+            frame.header().direction(),
+            crate::ProtocolDirection::ClientToServer
+        );
+        assert_eq!(frame.payload(), &[0xaa, 0xbb, 0xcc]);
+    }
+
+    #[test]
+    fn build_response_borrows_caller_owned_storage() {
+        let transport = MemoryTransport::<8>::new(2).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+        let mut responder = TestResponder::new(
+            &[1, 2, 3, 4],
+            crate::MessageId::new(1),
+            crate::MessageClass::Control,
+        );
+        let mut storage = [0_u8; 8];
+
+        let storage_ptr = storage.as_ptr();
+
+        let frame = driver.build_response(&mut responder, &mut storage).unwrap();
+
+        assert_eq!(frame.payload().as_ptr(), storage_ptr);
+        assert_eq!(frame.payload(), &[1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn build_response_preserves_responder_error() {
+        let transport = MemoryTransport::<8>::new(2).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+        let mut responder = TestResponder::new(
+            &[1, 2, 3, 4],
+            crate::MessageId::new(1),
+            crate::MessageClass::Application,
+        );
+        let mut storage = [0_u8; 3];
+
+        assert_eq!(
+            driver.build_response(&mut responder, &mut storage),
+            Err(ResponseError::Responder(TestResponderError::BufferTooSmall))
+        );
+    }
+
+    #[test]
+    fn build_response_does_not_mutate_transport_or_session() {
+        let transport = MemoryTransport::<8>::new(2).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+        let previous_session = *driver.session();
+
+        let mut responder = TestResponder::new(
+            &[0x42],
+            crate::MessageId::new(1),
+            crate::MessageClass::Handshake,
+        );
+        let mut storage = [0_u8; 4];
+
+        driver.build_response(&mut responder, &mut storage).unwrap();
+
+        assert_eq!(*driver.session(), previous_session);
+        assert_eq!(driver.transport().buffered_len(), 0);
+        assert_eq!(driver.transport().remaining_capacity(), 8);
+        assert!(!driver.transport().is_closed());
+    }
+
+    #[test]
+    fn build_response_supports_dynamic_responder_dispatch() {
+        let transport = MemoryTransport::<8>::new(2).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+
+        let mut concrete = TestResponder::new(
+            &[0x55],
+            crate::MessageId::new(7),
+            crate::MessageClass::Control,
+        );
+
+        let responder: &mut dyn crate::ProtocolResponder<Error = TestResponderError> =
+            &mut concrete;
+
+        let mut storage = [0_u8; 4];
+
+        let frame = driver.build_response(responder, &mut storage).unwrap();
+
+        assert_eq!(frame.payload(), &[0x55]);
+        assert_eq!(frame.header().message_id(), crate::MessageId::new(7));
+    }
+
+    #[test]
+    fn build_response_derives_server_outbound_direction() {
+        let transport = MemoryTransport::<8>::new(2).unwrap();
+        let server_session = crate::ProtocolSession::new(
+            crate::SessionId::from_bytes([0x5a; 16]),
+            crate::ProtocolId::new(0x0100),
+            crate::ProtocolVersion::new(1, 0),
+            crate::ProtocolRole::Server,
+        );
+        let driver = ProtocolDriver::new(transport, server_session);
+
+        let mut responder = TestResponder::new(
+            &[0x99],
+            crate::MessageId::new(8),
+            crate::MessageClass::Handshake,
+        );
+        let mut storage = [0_u8; 4];
+
+        let frame = driver.build_response(&mut responder, &mut storage).unwrap();
+
+        assert_eq!(
+            frame.header().direction(),
+            crate::ProtocolDirection::ServerToClient
+        );
     }
 }

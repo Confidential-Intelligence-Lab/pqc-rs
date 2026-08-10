@@ -217,12 +217,12 @@ protocol version, logical direction, wire version, wire flags, and encoded
 payload length. Those values remain framework-derived from authoritative
 session and framing state.
 
-`ProtocolDriver::handle_frame` forms the initial orchestration seam between
+`ProtocolDriver::handle_frame` forms the inbound orchestration seam between
 the transport-owning execution context and an externally supplied handler.
-It forwards one validated frame, returns the handler action unchanged, and
-preserves the handler's associated error type. The operation performs no
-transport I/O, response construction, session mutation, or cryptographic
-processing.
+It forwards one validated frame, preserves handler error provenance, and
+applies any requested lifecycle transition exclusively through
+`ProtocolSession::transition_to`. The operation performs no transport I/O,
+response construction, or cryptographic processing.
 
 `DriverError<E>` preserves error provenance by distinguishing handler
 failures from protocol-layer lifecycle-validation failures. The driver
@@ -242,6 +242,16 @@ local role: clients emit `ClientToServer` frames and servers emit
 version, empty wire flags, and payload length derived from the borrowed
 payload. This construction step performs no transport I/O and leaves both
 transport and session state unchanged.
+
+`ProtocolDriver::build_response` composes the responder and framing
+boundaries without introducing transport behavior. The driver supplies
+caller-owned storage to `ProtocolResponder::write_response`, receives a
+borrowed `OutboundResponse`, and passes it through `frame_response` to
+produce the canonical session-bound `ProtocolFrame`. `ResponseError<E>`
+keeps responder failures distinct from protocol-layer framing failures.
+The operation performs no transport I/O and leaves both transport and
+session state unchanged. Actual frame transmission remains a separate
+orchestration concern.
 
 ### Protocol implementations
 

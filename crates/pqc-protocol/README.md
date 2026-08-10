@@ -55,6 +55,13 @@ direction is derived from the local `ProtocolRole`. Wire version, flags,
 and payload length remain framing-derived. Frame construction performs no
 transport I/O and does not mutate session state.
 
+`ProtocolDriver::build_response` completes allocation-free outbound response
+orchestration. It invokes a `ProtocolResponder` with caller-owned payload
+storage, preserves responder failures separately through `ResponseError`,
+and converts the returned `OutboundResponse` into a session-bound
+`ProtocolFrame`. Response construction performs no transport I/O and does
+not mutate transport or session state.
+
 ## Layering
 
 ```text
