@@ -43,6 +43,10 @@ inbound frames and applies requested lifecycle changes exclusively through
 framing. `HandlerOutcome` carries a semantic `HandlerAction` and an optional
 requested session transition without granting handlers mutable session
 access or prescribing payload storage.
+`ProtocolResponder` provides allocation-free outbound payload construction
+into caller-owned storage. `OutboundResponse` borrows that payload while
+carrying only protocol-specific message identity and class; session-bound
+wire metadata remains framework-owned.
 
 ## Layering
 

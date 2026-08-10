@@ -205,6 +205,18 @@ validate lifecycle changes. `ProtocolDriver::handle_frame` applies the
 request exclusively through `ProtocolSession::transition_to`; rejected
 requests preserve the previous session state.
 
+### Outbound response contracts
+
+`ProtocolResponder` separates protocol-specific payload construction from
+wire framing and transport. A responder writes bytes into caller-owned
+storage and returns an `OutboundResponse` borrowing the initialized payload.
+
+`OutboundResponse` contains only the protocol-scoped `MessageId`, semantic
+`MessageClass`, and borrowed payload. It deliberately excludes protocol ID,
+protocol version, logical direction, wire version, wire flags, and encoded
+payload length. Those values remain framework-derived from authoritative
+session and framing state.
+
 `ProtocolDriver::handle_frame` forms the initial orchestration seam between
 the transport-owning execution context and an externally supplied handler.
 It forwards one validated frame, returns the handler action unchanged, and
