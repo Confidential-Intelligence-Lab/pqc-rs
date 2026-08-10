@@ -66,6 +66,44 @@ where
 #[cfg(feature = "std")]
 impl<E> std::error::Error for ResponseError<E> where E: std::error::Error + 'static {}
 
+/// Error produced while preparing an outbound response for transmission.
+///
+/// Preparation combines protocol-specific response construction, canonical
+/// session-bound framing, and encoding into caller-owned frame storage. It
+/// performs no transport I/O.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum TransmitPreparationError<E> {
+    /// The protocol-specific responder failed to construct its payload.
+    Responder(E),
+    /// Protocol framing, validation, or frame encoding failed.
+    Protocol(crate::ProtocolError),
+}
+
+/// Result type used while preparing resumable outbound transmission.
+pub type TransmitPreparationResult<T, E> = core::result::Result<T, TransmitPreparationError<E>>;
+
+impl<E> core::fmt::Display for TransmitPreparationError<E>
+where
+    E: core::fmt::Display,
+{
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::Responder(error) => {
+                write!(
+                    formatter,
+                    "protocol transmit preparation responder failed: {error}"
+                )
+            }
+            Self::Protocol(error) => {
+                write!(formatter, "protocol transmit preparation failed: {error}")
+            }
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl<E> std::error::Error for TransmitPreparationError<E> where E: std::error::Error + 'static {}
+
 /// Transport-independent execution context for driving protocol progress.
 ///
 /// `ProtocolDriver` owns the transport and runtime session associated with
@@ -83,6 +121,29 @@ impl<E> std::error::Error for ResponseError<E> where E: std::error::Error + 'sta
 pub struct ProtocolDriver<T> {
     transport: T,
     session: crate::ProtocolSession,
+}
+
+impl<T> ProtocolDriver<T>
+where
+    T: crate::TransportTransmit,
+{
+    /// Advance one outbound framed transfer over the owned transport.
+    ///
+    /// The caller retains ownership of the [`crate::FrameTransmitter`],
+    /// including encoded-frame scratch storage and resumable transmission
+    /// state.
+    ///
+    /// Returns `Ok(true)` once the complete frame has been transmitted and
+    /// `Ok(false)` after valid partial progress. Framing and transport errors
+    /// are preserved through [`crate::FrameTransferError`].
+    ///
+    /// This operation does not mutate protocol-session state.
+    pub fn advance_transmit(
+        &mut self,
+        transmitter: &mut crate::FrameTransmitter<'_>,
+    ) -> crate::FrameTransferResult<bool> {
+        transmitter.advance(&mut self.transport)
+    }
 }
 
 impl<T> ProtocolDriver<T> {
@@ -166,6 +227,37 @@ impl<T> ProtocolDriver<T> {
 
         self.frame_response(response)
             .map_err(ResponseError::Protocol)
+    }
+
+    /// Prepare one protocol response for resumable transmission.
+    ///
+    /// `responder` writes protocol-specific bytes into caller-owned
+    /// `payload_storage`. The resulting response is framed using authoritative
+    /// session metadata and encoded into caller-owned `frame_storage`.
+    ///
+    /// The returned [`crate::FrameTransmitter`] borrows only `frame_storage`;
+    /// response payload storage is not retained after preparation.
+    ///
+    /// This method performs no transport I/O and does not mutate session state.
+    pub fn prepare_response_transmit<'frame, R>(
+        &self,
+        responder: &mut R,
+        payload_storage: &mut [u8],
+        frame_storage: &'frame mut [u8],
+    ) -> TransmitPreparationResult<crate::FrameTransmitter<'frame>, R::Error>
+    where
+        R: crate::ProtocolResponder + ?Sized,
+    {
+        let response = responder
+            .write_response(payload_storage)
+            .map_err(TransmitPreparationError::Responder)?;
+
+        let frame = self
+            .frame_response(response)
+            .map_err(TransmitPreparationError::Protocol)?;
+
+        crate::FrameTransmitter::new(&frame, frame_storage)
+            .map_err(TransmitPreparationError::Protocol)
     }
 
     /// Invoke `handler` for one validated inbound frame.
@@ -865,5 +957,735 @@ mod tests {
             frame.header().direction(),
             crate::ProtocolDirection::ServerToClient
         );
+    }
+
+    #[test]
+    fn advance_transmit_completes_when_transport_accepts_full_frame() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let mut driver = ProtocolDriver::new(transport, session());
+        let frame = test_frame(&[1_u8, 2, 3]);
+
+        let mut scratch = [0_u8; crate::WIRE_HEADER_LEN + 3];
+        let mut transmitter = crate::FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        assert_eq!(driver.advance_transmit(&mut transmitter), Ok(true));
+        assert!(transmitter.is_complete());
+        assert_eq!(transmitter.transmitted_len(), transmitter.encoded_len());
+    }
+
+    #[test]
+    fn advance_transmit_preserves_partial_progress() {
+        let transport = MemoryTransport::<64>::new(3).unwrap();
+        let mut driver = ProtocolDriver::new(transport, session());
+        let frame = test_frame(&[1_u8, 2, 3, 4]);
+
+        let mut scratch = [0_u8; crate::WIRE_HEADER_LEN + 4];
+        let mut transmitter = crate::FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        assert_eq!(driver.advance_transmit(&mut transmitter), Ok(false));
+        assert_eq!(transmitter.transmitted_len(), 3);
+        assert_eq!(transmitter.remaining_len(), transmitter.encoded_len() - 3);
+    }
+
+    #[test]
+    fn repeated_advance_transmit_eventually_completes() {
+        let transport = MemoryTransport::<64>::new(2).unwrap();
+        let mut driver = ProtocolDriver::new(transport, session());
+        let frame = test_frame(&[0xaa_u8, 0xbb, 0xcc]);
+
+        let mut scratch = [0_u8; crate::WIRE_HEADER_LEN + 3];
+        let mut transmitter = crate::FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        while !driver.advance_transmit(&mut transmitter).unwrap() {}
+
+        assert!(transmitter.is_complete());
+        assert_eq!(transmitter.transmitted_len(), transmitter.encoded_len());
+    }
+
+    #[test]
+    fn advance_transmit_propagates_pending_without_losing_progress() {
+        let transport = MemoryTransport::<4>::new(4).unwrap();
+        let mut driver = ProtocolDriver::new(transport, session());
+        let frame = test_frame(&[1_u8, 2, 3, 4]);
+
+        let mut scratch = [0_u8; crate::WIRE_HEADER_LEN + 4];
+        let mut transmitter = crate::FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        assert_eq!(driver.advance_transmit(&mut transmitter), Ok(false));
+        let before = transmitter.transmitted_len();
+
+        assert_eq!(
+            driver.advance_transmit(&mut transmitter),
+            Err(crate::FrameTransferError::Transport(
+                crate::TransportError::Pending
+            ))
+        );
+        assert_eq!(transmitter.transmitted_len(), before);
+    }
+
+    #[test]
+    fn advance_transmit_propagates_closed_transport() {
+        let mut transport = MemoryTransport::<64>::new(64).unwrap();
+        transport.close();
+
+        let mut driver = ProtocolDriver::new(transport, session());
+        let frame = test_frame(&[0x42_u8]);
+
+        let mut scratch = [0_u8; crate::WIRE_HEADER_LEN + 1];
+        let mut transmitter = crate::FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        assert_eq!(
+            driver.advance_transmit(&mut transmitter),
+            Err(crate::FrameTransferError::Transport(
+                crate::TransportError::Closed
+            ))
+        );
+        assert_eq!(transmitter.transmitted_len(), 0);
+    }
+
+    #[test]
+    fn advance_transmit_does_not_mutate_session() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let mut driver = ProtocolDriver::new(transport, session());
+        let previous = *driver.session();
+
+        let frame = test_frame(&[0x42_u8]);
+        let mut scratch = [0_u8; crate::WIRE_HEADER_LEN + 1];
+        let mut transmitter = crate::FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        driver.advance_transmit(&mut transmitter).unwrap();
+
+        assert_eq!(*driver.session(), previous);
+    }
+
+    #[test]
+    fn advance_transmit_emits_exact_encoded_frame_bytes() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let mut driver = ProtocolDriver::new(transport, session());
+        let frame = test_frame(&[0xde_u8, 0xad, 0xbe, 0xef]);
+
+        let mut expected = [0_u8; crate::WIRE_HEADER_LEN + 4];
+        let expected_len = crate::ProtocolEncode::encode_into(&frame, &mut expected).unwrap();
+
+        let mut scratch = [0_u8; crate::WIRE_HEADER_LEN + 4];
+        let mut transmitter = crate::FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        assert_eq!(driver.advance_transmit(&mut transmitter), Ok(true));
+
+        let mut received = [0_u8; crate::WIRE_HEADER_LEN + 4];
+        let mut received_len = 0;
+
+        while received_len < expected_len {
+            let progress = driver
+                .transport_mut()
+                .receive(&mut received[received_len..expected_len])
+                .unwrap();
+
+            received_len += progress;
+        }
+
+        assert_eq!(received_len, expected_len);
+        assert_eq!(&received[..received_len], &expected[..expected_len]);
+    }
+
+    #[test]
+    fn prepare_response_transmit_returns_initialized_transmitter() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+
+        let mut responder = TestResponder::new(
+            &[0xaa, 0xbb, 0xcc],
+            crate::MessageId::new(0x0400),
+            crate::MessageClass::Application,
+        );
+
+        let mut payload_storage = [0_u8; 8];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN + 8];
+
+        let transmitter = driver
+            .prepare_response_transmit(&mut responder, &mut payload_storage, &mut frame_storage)
+            .unwrap();
+
+        assert_eq!(transmitter.encoded_len(), crate::WIRE_HEADER_LEN + 3);
+        assert_eq!(transmitter.transmitted_len(), 0);
+        assert_eq!(transmitter.remaining_len(), transmitter.encoded_len());
+        assert!(!transmitter.is_complete());
+    }
+
+    #[test]
+    fn prepare_response_transmit_uses_canonical_frame_encoding() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+
+        let mut responder = TestResponder::new(
+            &[1, 2, 3, 4],
+            crate::MessageId::new(0x1234),
+            crate::MessageClass::Handshake,
+        );
+
+        let mut payload_storage = [0_u8; 8];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN + 8];
+
+        let transmitter = driver
+            .prepare_response_transmit(&mut responder, &mut payload_storage, &mut frame_storage)
+            .unwrap();
+
+        assert_eq!(transmitter.encoded_len(), crate::WIRE_HEADER_LEN + 4);
+    }
+
+    #[test]
+    fn prepare_response_transmit_preserves_responder_error() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+
+        let mut responder = TestResponder::new(
+            &[1, 2, 3, 4],
+            crate::MessageId::new(1),
+            crate::MessageClass::Application,
+        );
+
+        let mut payload_storage = [0_u8; 3];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN + 8];
+
+        assert!(matches!(
+            driver.prepare_response_transmit(
+                &mut responder,
+                &mut payload_storage,
+                &mut frame_storage,
+            ),
+            Err(TransmitPreparationError::Responder(
+                TestResponderError::BufferTooSmall
+            ))
+        ));
+    }
+
+    #[test]
+    fn prepare_response_transmit_rejects_short_frame_storage() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+
+        let mut responder = TestResponder::new(
+            &[1, 2, 3, 4],
+            crate::MessageId::new(1),
+            crate::MessageClass::Application,
+        );
+
+        let mut payload_storage = [0_u8; 8];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN];
+
+        assert!(matches!(
+            driver.prepare_response_transmit(
+                &mut responder,
+                &mut payload_storage,
+                &mut frame_storage,
+            ),
+            Err(TransmitPreparationError::Protocol(
+                crate::ProtocolError::BufferTooSmall {
+                    required,
+                    available,
+                }
+            )) if required == crate::WIRE_HEADER_LEN + 4
+                && available == crate::WIRE_HEADER_LEN
+        ));
+    }
+
+    #[test]
+    fn prepare_response_transmit_performs_no_transport_io() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+
+        let mut responder = TestResponder::new(
+            &[0x42],
+            crate::MessageId::new(1),
+            crate::MessageClass::Control,
+        );
+
+        let mut payload_storage = [0_u8; 4];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN + 4];
+
+        let _transmitter = driver
+            .prepare_response_transmit(&mut responder, &mut payload_storage, &mut frame_storage)
+            .unwrap();
+
+        assert_eq!(driver.transport().buffered_len(), 0);
+        assert_eq!(driver.transport().remaining_capacity(), 64);
+    }
+
+    #[test]
+    fn prepare_response_transmit_does_not_mutate_session() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+        let previous = *driver.session();
+
+        let mut responder = TestResponder::new(
+            &[0x42],
+            crate::MessageId::new(1),
+            crate::MessageClass::Control,
+        );
+
+        let mut payload_storage = [0_u8; 4];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN + 4];
+
+        let _transmitter = driver
+            .prepare_response_transmit(&mut responder, &mut payload_storage, &mut frame_storage)
+            .unwrap();
+
+        assert_eq!(*driver.session(), previous);
+    }
+
+    #[test]
+    fn prepared_response_can_be_advanced_through_driver() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let mut driver = ProtocolDriver::new(transport, session());
+
+        let mut responder = TestResponder::new(
+            &[0xde, 0xad, 0xbe, 0xef],
+            crate::MessageId::new(0x0200),
+            crate::MessageClass::Application,
+        );
+
+        let mut payload_storage = [0_u8; 8];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN + 8];
+
+        let mut transmitter = driver
+            .prepare_response_transmit(&mut responder, &mut payload_storage, &mut frame_storage)
+            .unwrap();
+
+        assert_eq!(driver.advance_transmit(&mut transmitter), Ok(true));
+        assert!(transmitter.is_complete());
+        assert_eq!(
+            driver.transport().buffered_len(),
+            crate::WIRE_HEADER_LEN + 4
+        );
+    }
+
+    #[test]
+    fn prepared_transmitter_does_not_borrow_payload_storage() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let mut driver = ProtocolDriver::new(transport, session());
+
+        let mut responder = TestResponder::new(
+            &[0x10, 0x20, 0x30],
+            crate::MessageId::new(0x0200),
+            crate::MessageClass::Application,
+        );
+
+        let mut payload_storage = [0_u8; 8];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN + 8];
+
+        let mut transmitter = driver
+            .prepare_response_transmit(&mut responder, &mut payload_storage, &mut frame_storage)
+            .unwrap();
+
+        // This mutation is intentionally performed while `transmitter`
+        // remains alive. Successful compilation proves the transmitter does
+        // not retain a borrow of response payload storage.
+        payload_storage.fill(0xff);
+
+        while !driver.advance_transmit(&mut transmitter).unwrap() {}
+
+        let mut received = [0_u8; crate::WIRE_HEADER_LEN + 3];
+        let mut offset = 0;
+
+        while offset < received.len() {
+            let progress = driver
+                .transport_mut()
+                .receive(&mut received[offset..])
+                .unwrap();
+            offset += progress;
+        }
+
+        assert_eq!(&received[crate::WIRE_HEADER_LEN..], &[0x10, 0x20, 0x30]);
+    }
+
+    #[test]
+    fn prepare_response_transmit_supports_dynamic_responder_dispatch() {
+        let transport = MemoryTransport::<64>::new(64).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+
+        let mut concrete = TestResponder::new(
+            &[0x77],
+            crate::MessageId::new(7),
+            crate::MessageClass::Control,
+        );
+
+        let responder: &mut dyn crate::ProtocolResponder<Error = TestResponderError> =
+            &mut concrete;
+
+        let mut payload_storage = [0_u8; 4];
+        let mut frame_storage = [0_u8; crate::WIRE_HEADER_LEN + 4];
+
+        let transmitter = driver
+            .prepare_response_transmit(responder, &mut payload_storage, &mut frame_storage)
+            .unwrap();
+
+        assert_eq!(transmitter.encoded_len(), crate::WIRE_HEADER_LEN + 1);
+    }
+
+    #[derive(Clone, Copy, Debug)]
+    enum ScriptedTransmitStep {
+        Accept(usize),
+        Error(crate::TransportError),
+        Zero,
+        Oversized,
+    }
+
+    #[derive(Debug)]
+    struct ScriptedTransmit<const N: usize, const S: usize> {
+        output: [u8; N],
+        output_len: usize,
+        steps: [ScriptedTransmitStep; S],
+        next_step: usize,
+        calls: usize,
+    }
+
+    impl<const N: usize, const S: usize> ScriptedTransmit<N, S> {
+        const fn new(steps: [ScriptedTransmitStep; S]) -> Self {
+            Self {
+                output: [0_u8; N],
+                output_len: 0,
+                steps,
+                next_step: 0,
+                calls: 0,
+            }
+        }
+
+        fn output(&self) -> &[u8] {
+            &self.output[..self.output_len]
+        }
+
+        const fn calls(&self) -> usize {
+            self.calls
+        }
+    }
+
+    impl<const N: usize, const S: usize> crate::TransportTransmit for ScriptedTransmit<N, S> {
+        fn transmit(&mut self, input: &[u8]) -> crate::TransportResult<usize> {
+            self.calls += 1;
+
+            let step = if self.next_step < S {
+                let step = self.steps[self.next_step];
+                self.next_step += 1;
+                step
+            } else {
+                ScriptedTransmitStep::Accept(input.len())
+            };
+
+            match step {
+                ScriptedTransmitStep::Accept(limit) => {
+                    let progress = core::cmp::min(limit, input.len());
+
+                    if progress == 0 {
+                        return Ok(0);
+                    }
+
+                    if self.output_len + progress > N {
+                        return Err(crate::TransportError::Other);
+                    }
+
+                    self.output[self.output_len..self.output_len + progress]
+                        .copy_from_slice(&input[..progress]);
+                    self.output_len += progress;
+
+                    Ok(progress)
+                }
+                ScriptedTransmitStep::Error(error) => Err(error),
+                ScriptedTransmitStep::Zero => Ok(0),
+                ScriptedTransmitStep::Oversized => Ok(input.len() + 1),
+            }
+        }
+    }
+
+    #[test]
+    fn advance_transmit_one_byte_fragmentation_is_exact() {
+        let transport = ScriptedTransmit::<128, 0>::new([]);
+        let driver = ProtocolDriver::new(transport, session());
+        let frame = test_frame(&[0xde_u8, 0xad, 0xbe, 0xef]);
+
+        let mut expected = [0_u8; crate::WIRE_HEADER_LEN + 4];
+        let expected_len = crate::ProtocolEncode::encode_into(&frame, &mut expected).unwrap();
+
+        let mut scratch = [0_u8; crate::WIRE_HEADER_LEN + 4];
+        let mut transmitter = crate::FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        // Force maximal fragmentation by supplying one-byte acceptance steps
+        // for every call through a separate recording transport.
+        let mut fragmented =
+            ScriptedTransmit::<128, 128>::new([ScriptedTransmitStep::Accept(1); 128]);
+        let mut fragmented_driver = ProtocolDriver::new(fragmented, session());
+
+        while !fragmented_driver
+            .advance_transmit(&mut transmitter)
+            .unwrap()
+        {}
+
+        fragmented = fragmented_driver.into_parts().0;
+
+        assert_eq!(transmitter.transmitted_len(), transmitter.encoded_len());
+        assert_eq!(fragmented.output(), &expected[..expected_len]);
+
+        // Keep the otherwise-unused first driver construction meaningful:
+        // creating a separate driver must not alter the reference frame.
+        assert_eq!(driver.transport().output_len, 0);
+    }
+
+    #[test]
+    fn advance_transmit_pending_resumes_without_duplication() {
+        let steps = [
+            ScriptedTransmitStep::Accept(3),
+            ScriptedTransmitStep::Error(crate::TransportError::Pending),
+            ScriptedTransmitStep::Accept(2),
+        ];
+
+        let transport = ScriptedTransmit::<128, 3>::new(steps);
+        let mut driver = ProtocolDriver::new(transport, session());
+        let frame = test_frame(&[1_u8, 2, 3, 4]);
+
+        let mut expected = [0_u8; crate::WIRE_HEADER_LEN + 4];
+        let expected_len = crate::ProtocolEncode::encode_into(&frame, &mut expected).unwrap();
+
+        let mut scratch = [0_u8; crate::WIRE_HEADER_LEN + 4];
+        let mut transmitter = crate::FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        assert_eq!(driver.advance_transmit(&mut transmitter), Ok(false));
+        assert_eq!(transmitter.transmitted_len(), 3);
+
+        let before = transmitter.transmitted_len();
+        assert_eq!(
+            driver.advance_transmit(&mut transmitter),
+            Err(crate::FrameTransferError::Transport(
+                crate::TransportError::Pending
+            ))
+        );
+        assert_eq!(transmitter.transmitted_len(), before);
+
+        while !driver.advance_transmit(&mut transmitter).unwrap() {}
+
+        let transport = driver.into_parts().0;
+
+        assert_eq!(transport.output(), &expected[..expected_len]);
+        assert_eq!(transmitter.transmitted_len(), expected_len);
+    }
+
+    #[test]
+    fn advance_transmit_interrupted_preserves_progress() {
+        let steps = [
+            ScriptedTransmitStep::Accept(5),
+            ScriptedTransmitStep::Error(crate::TransportError::Interrupted),
+        ];
+
+        let transport = ScriptedTransmit::<128, 2>::new(steps);
+        let mut driver = ProtocolDriver::new(transport, session());
+        let frame = test_frame(&[0xaa_u8, 0xbb]);
+
+        let mut scratch = [0_u8; crate::WIRE_HEADER_LEN + 2];
+        let mut transmitter = crate::FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        assert_eq!(driver.advance_transmit(&mut transmitter), Ok(false));
+        assert_eq!(transmitter.transmitted_len(), 5);
+
+        let remaining = transmitter.remaining_len();
+
+        assert_eq!(
+            driver.advance_transmit(&mut transmitter),
+            Err(crate::FrameTransferError::Transport(
+                crate::TransportError::Interrupted
+            ))
+        );
+
+        assert_eq!(transmitter.transmitted_len(), 5);
+        assert_eq!(transmitter.remaining_len(), remaining);
+    }
+
+    #[test]
+    fn advance_transmit_resumes_after_interrupted() {
+        let steps = [
+            ScriptedTransmitStep::Accept(4),
+            ScriptedTransmitStep::Error(crate::TransportError::Interrupted),
+            ScriptedTransmitStep::Accept(3),
+        ];
+
+        let transport = ScriptedTransmit::<128, 3>::new(steps);
+        let mut driver = ProtocolDriver::new(transport, session());
+        let frame = test_frame(&[9_u8, 8, 7]);
+
+        let mut expected = [0_u8; crate::WIRE_HEADER_LEN + 3];
+        let expected_len = crate::ProtocolEncode::encode_into(&frame, &mut expected).unwrap();
+
+        let mut scratch = [0_u8; crate::WIRE_HEADER_LEN + 3];
+        let mut transmitter = crate::FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        assert_eq!(driver.advance_transmit(&mut transmitter), Ok(false));
+
+        let before = transmitter.transmitted_len();
+
+        assert_eq!(
+            driver.advance_transmit(&mut transmitter),
+            Err(crate::FrameTransferError::Transport(
+                crate::TransportError::Interrupted
+            ))
+        );
+
+        assert_eq!(transmitter.transmitted_len(), before);
+
+        while !driver.advance_transmit(&mut transmitter).unwrap() {}
+
+        let transport = driver.into_parts().0;
+
+        assert_eq!(transport.output(), &expected[..expected_len]);
+        assert_eq!(transmitter.transmitted_len(), expected_len);
+    }
+
+    #[test]
+    fn advance_transmit_midstream_closed_preserves_committed_progress() {
+        let steps = [
+            ScriptedTransmitStep::Accept(6),
+            ScriptedTransmitStep::Error(crate::TransportError::Closed),
+        ];
+
+        let transport = ScriptedTransmit::<128, 2>::new(steps);
+        let mut driver = ProtocolDriver::new(transport, session());
+        let frame = test_frame(&[1_u8, 2, 3]);
+
+        let mut scratch = [0_u8; crate::WIRE_HEADER_LEN + 3];
+        let mut transmitter = crate::FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        assert_eq!(driver.advance_transmit(&mut transmitter), Ok(false));
+        assert_eq!(transmitter.transmitted_len(), 6);
+
+        let remaining = transmitter.remaining_len();
+
+        assert_eq!(
+            driver.advance_transmit(&mut transmitter),
+            Err(crate::FrameTransferError::Transport(
+                crate::TransportError::Closed
+            ))
+        );
+
+        assert_eq!(transmitter.transmitted_len(), 6);
+        assert_eq!(transmitter.remaining_len(), remaining);
+        assert_eq!(driver.transport().output_len, 6);
+    }
+
+    #[test]
+    fn advance_transmit_completed_is_idempotent() {
+        let transport = ScriptedTransmit::<128, 0>::new([]);
+        let mut driver = ProtocolDriver::new(transport, session());
+        let frame = test_frame(&[0x42_u8]);
+
+        let mut scratch = [0_u8; crate::WIRE_HEADER_LEN + 1];
+        let mut transmitter = crate::FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        assert_eq!(driver.advance_transmit(&mut transmitter), Ok(true));
+
+        let transmitted = transmitter.transmitted_len();
+        let output_len = driver.transport().output_len;
+
+        assert_eq!(driver.advance_transmit(&mut transmitter), Ok(true));
+        assert_eq!(transmitter.transmitted_len(), transmitted);
+        assert_eq!(driver.transport().output_len, output_len);
+    }
+
+    #[test]
+    fn advance_transmit_completed_performs_no_transport_io() {
+        let transport = ScriptedTransmit::<128, 0>::new([]);
+        let mut driver = ProtocolDriver::new(transport, session());
+        let frame = test_frame(&[0x42_u8]);
+
+        let mut scratch = [0_u8; crate::WIRE_HEADER_LEN + 1];
+        let mut transmitter = crate::FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        assert_eq!(driver.advance_transmit(&mut transmitter), Ok(true));
+
+        let calls = driver.transport().calls();
+
+        assert_eq!(driver.advance_transmit(&mut transmitter), Ok(true));
+        assert_eq!(driver.transport().calls(), calls);
+    }
+
+    #[test]
+    fn advance_transmit_zero_progress_preserves_offset() {
+        let transport = ScriptedTransmit::<128, 1>::new([ScriptedTransmitStep::Zero]);
+        let mut driver = ProtocolDriver::new(transport, session());
+        let frame = test_frame(&[0x11_u8]);
+
+        let mut scratch = [0_u8; crate::WIRE_HEADER_LEN + 1];
+        let mut transmitter = crate::FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        assert_eq!(
+            driver.advance_transmit(&mut transmitter),
+            Err(crate::FrameTransferError::Transport(
+                crate::TransportError::InvalidOperation
+            ))
+        );
+
+        assert_eq!(transmitter.transmitted_len(), 0);
+        assert_eq!(transmitter.remaining_len(), transmitter.encoded_len());
+        assert_eq!(driver.transport().output_len, 0);
+    }
+
+    #[test]
+    fn advance_transmit_oversized_progress_preserves_offset() {
+        let transport = ScriptedTransmit::<128, 1>::new([ScriptedTransmitStep::Oversized]);
+        let mut driver = ProtocolDriver::new(transport, session());
+        let frame = test_frame(&[0x22_u8]);
+
+        let mut scratch = [0_u8; crate::WIRE_HEADER_LEN + 1];
+        let mut transmitter = crate::FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        assert_eq!(
+            driver.advance_transmit(&mut transmitter),
+            Err(crate::FrameTransferError::Transport(
+                crate::TransportError::InvalidOperation
+            ))
+        );
+
+        assert_eq!(transmitter.transmitted_len(), 0);
+        assert_eq!(transmitter.remaining_len(), transmitter.encoded_len());
+        assert_eq!(driver.transport().output_len, 0);
+    }
+
+    #[test]
+    fn adverse_transmit_outcomes_do_not_mutate_session() {
+        let steps = [
+            ScriptedTransmitStep::Accept(2),
+            ScriptedTransmitStep::Error(crate::TransportError::Pending),
+            ScriptedTransmitStep::Error(crate::TransportError::Interrupted),
+            ScriptedTransmitStep::Error(crate::TransportError::Closed),
+        ];
+
+        let transport = ScriptedTransmit::<128, 4>::new(steps);
+        let mut driver = ProtocolDriver::new(transport, session());
+        let previous = *driver.session();
+
+        let frame = test_frame(&[1_u8, 2, 3]);
+        let mut scratch = [0_u8; crate::WIRE_HEADER_LEN + 3];
+        let mut transmitter = crate::FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        assert_eq!(driver.advance_transmit(&mut transmitter), Ok(false));
+
+        assert_eq!(
+            driver.advance_transmit(&mut transmitter),
+            Err(crate::FrameTransferError::Transport(
+                crate::TransportError::Pending
+            ))
+        );
+
+        assert_eq!(
+            driver.advance_transmit(&mut transmitter),
+            Err(crate::FrameTransferError::Transport(
+                crate::TransportError::Interrupted
+            ))
+        );
+
+        assert_eq!(
+            driver.advance_transmit(&mut transmitter),
+            Err(crate::FrameTransferError::Transport(
+                crate::TransportError::Closed
+            ))
+        );
+
+        assert_eq!(*driver.session(), previous);
+        assert_eq!(transmitter.transmitted_len(), 2);
     }
 }

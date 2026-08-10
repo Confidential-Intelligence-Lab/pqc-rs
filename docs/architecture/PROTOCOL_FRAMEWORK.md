@@ -253,6 +253,37 @@ The operation performs no transport I/O and leaves both transport and
 session state unchanged. Actual frame transmission remains a separate
 orchestration concern.
 
+`ProtocolDriver::advance_transmit` connects the transport-owning execution
+context to the existing resumable `FrameTransmitter`. The caller retains
+ownership of the transmitter, its encoded-frame scratch storage, and its
+progress state; the driver contributes only mutable access to its owned
+`TransportTransmit` implementation. Each call performs exactly one transmitter
+advance operation, preserving partial progress and propagating existing
+`FrameTransferError` semantics. No additional transfer state, hidden buffering,
+allocation, or protocol-session mutation is introduced by the driver.
+
+`ProtocolDriver::prepare_response_transmit` composes the outbound response and
+resumable-transfer boundaries without performing transport I/O. The responder
+writes protocol-specific bytes into caller-owned payload storage; the driver
+derives canonical session-bound framing and `FrameTransmitter::new` immediately
+encodes that frame into caller-owned frame storage. The returned transmitter
+therefore retains only the encoded frame-storage lifetime, not the response
+payload-storage lifetime. `TransmitPreparationError<E>` keeps responder
+failures distinct from protocol framing or encoding failures, while actual
+transport failures remain represented later by `FrameTransferError`.
+
+The resumable outbound-transfer boundary is validated against adversarial
+transport behavior. Successful partial writes advance the committed offset by
+exactly the accepted byte count. `Pending` and `Interrupted` outcomes leave
+that offset unchanged and permit subsequent resumption from the same encoded
+position. Terminal transport failure preserves previously committed progress
+without rollback. Invalid zero or oversized progress reports are rejected
+without advancing transmitter state. Maximal one-byte fragmentation produces
+the exact canonical encoded frame without duplication or omission, while
+advancing an already completed transmitter is idempotent and performs no
+additional transport I/O. None of these transfer outcomes mutate the bound
+`ProtocolSession`.
+
 ### Protocol implementations
 
 `pqc-rs-hpke` and future protocol crates own standards-defined cryptographic

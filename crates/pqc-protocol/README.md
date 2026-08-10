@@ -62,6 +62,28 @@ and converts the returned `OutboundResponse` into a session-bound
 `ProtocolFrame`. Response construction performs no transport I/O and does
 not mutate transport or session state.
 
+`ProtocolDriver::advance_transmit` advances an externally owned
+`FrameTransmitter` over the driver's owned transport. Encoded-frame scratch
+storage and resumable transmission state remain caller-owned, so partial
+progress, retryable transport conditions, and completion remain explicit
+without hidden allocation or driver-internal buffering. Transmission does not
+mutate protocol-session state.
+
+`ProtocolDriver::prepare_response_transmit` composes response construction,
+session-derived framing, and canonical frame encoding into a caller-owned
+`FrameTransmitter`. Response payload storage is needed only during preparation;
+the returned transmitter borrows only encoded frame storage. Preparation
+performs no transport I/O and introduces no hidden allocation or transfer
+state.
+
+Outbound transfer semantics are exercised under adversarial transport behavior.
+Maximally fragmented writes preserve canonical encoded bytes without omission
+or duplication; retryable `Pending` and `Interrupted` failures preserve the
+committed transmission offset and permit exact resumption; terminal closure
+preserves already committed progress; invalid progress reports are rejected
+without advancing state; and advancing an already completed transmitter is
+idempotent and performs no further transport I/O.
+
 ## Layering
 
 ```text
