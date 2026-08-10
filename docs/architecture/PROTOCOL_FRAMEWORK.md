@@ -234,6 +234,15 @@ unconstrained payload type. The generic parameter permits borrowed,
 fixed-size, allocated, or typed payloads without making allocation or
 serialization part of the protocol-message abstraction.
 
+`ProtocolDriver::frame_response` realizes this boundary. Given an
+`OutboundResponse`, the driver derives protocol ID and protocol version
+from its bound `ProtocolSession` and derives logical direction from the
+local role: clients emit `ClientToServer` frames and servers emit
+`ServerToClient` frames. `ProtocolFrame::current` supplies the current wire
+version, empty wire flags, and payload length derived from the borrowed
+payload. This construction step performs no transport I/O and leaves both
+transport and session state unchanged.
+
 ### Protocol implementations
 
 `pqc-rs-hpke` and future protocol crates own standards-defined cryptographic

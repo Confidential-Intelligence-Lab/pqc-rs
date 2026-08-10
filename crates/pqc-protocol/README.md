@@ -48,6 +48,13 @@ into caller-owned storage. `OutboundResponse` borrows that payload while
 carrying only protocol-specific message identity and class; session-bound
 wire metadata remains framework-owned.
 
+`ProtocolDriver::frame_response` converts an `OutboundResponse` into a
+`ProtocolFrame` using authoritative runtime-session metadata. Protocol ID
+and protocol version come from the bound `ProtocolSession`, while outbound
+direction is derived from the local `ProtocolRole`. Wire version, flags,
+and payload length remain framing-derived. Frame construction performs no
+transport I/O and does not mutate session state.
+
 ## Layering
 
 ```text

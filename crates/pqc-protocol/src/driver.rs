@@ -86,6 +86,32 @@ impl<T> ProtocolDriver<T> {
         (self.transport, self.session)
     }
 
+    /// Construct an outbound frame from a protocol response.
+    ///
+    /// Protocol family and version are derived from the bound runtime session.
+    /// Logical direction is derived from the local participant role. Message
+    /// identity, class, and payload are supplied by `response`.
+    ///
+    /// This method performs no transport I/O and does not mutate the session.
+    pub fn frame_response<'a>(
+        &self,
+        response: crate::OutboundResponse<'a>,
+    ) -> crate::ProtocolResult<crate::ProtocolFrame<'a>> {
+        let direction = match self.session.role() {
+            crate::ProtocolRole::Client => crate::ProtocolDirection::ClientToServer,
+            crate::ProtocolRole::Server => crate::ProtocolDirection::ServerToClient,
+        };
+
+        crate::ProtocolFrame::current(
+            self.session.protocol_version(),
+            self.session.protocol_id(),
+            response.message_id(),
+            response.message_class(),
+            direction,
+            response.payload(),
+        )
+    }
+
     /// Invoke `handler` for one validated inbound frame.
     ///
     /// A requested lifecycle transition is validated and applied through the
@@ -467,5 +493,140 @@ mod tests {
             Err(DriverError::Handler(TestHandlerError::Rejected))
         );
         assert_eq!(driver.session().state(), crate::SessionState::Created);
+    }
+
+    #[test]
+    fn frame_response_derives_client_session_metadata() {
+        let transport = MemoryTransport::<8>::new(2).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+        let payload = [0xaa_u8, 0xbb, 0xcc];
+
+        let response = crate::OutboundResponse::new(
+            crate::MessageId::new(0x0200),
+            crate::MessageClass::Application,
+            &payload,
+        );
+
+        let frame = driver.frame_response(response).unwrap();
+
+        assert_eq!(
+            frame.header().protocol_version(),
+            crate::ProtocolVersion::new(1, 0)
+        );
+        assert_eq!(frame.header().protocol_id(), crate::ProtocolId::new(0x0100));
+        assert_eq!(frame.header().message_id(), crate::MessageId::new(0x0200));
+        assert_eq!(
+            frame.header().message_class(),
+            crate::MessageClass::Application
+        );
+        assert_eq!(
+            frame.header().direction(),
+            crate::ProtocolDirection::ClientToServer
+        );
+        assert_eq!(frame.payload(), &payload);
+    }
+
+    #[test]
+    fn frame_response_derives_server_direction() {
+        let transport = MemoryTransport::<8>::new(2).unwrap();
+        let server_session = crate::ProtocolSession::new(
+            crate::SessionId::from_bytes([0x5a; 16]),
+            crate::ProtocolId::new(0x0100),
+            crate::ProtocolVersion::new(1, 0),
+            crate::ProtocolRole::Server,
+        );
+        let driver = ProtocolDriver::new(transport, server_session);
+        let payload = [0x42_u8];
+
+        let response = crate::OutboundResponse::new(
+            crate::MessageId::new(0x0300),
+            crate::MessageClass::Handshake,
+            &payload,
+        );
+
+        let frame = driver.frame_response(response).unwrap();
+
+        assert_eq!(
+            frame.header().direction(),
+            crate::ProtocolDirection::ServerToClient
+        );
+        assert_eq!(frame.header().protocol_id(), crate::ProtocolId::new(0x0100));
+        assert_eq!(
+            frame.header().protocol_version(),
+            crate::ProtocolVersion::new(1, 0)
+        );
+    }
+
+    #[test]
+    fn frame_response_borrows_payload_without_copying() {
+        let transport = MemoryTransport::<8>::new(2).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+        let payload = [1_u8, 2, 3, 4];
+
+        let response = crate::OutboundResponse::new(
+            crate::MessageId::new(1),
+            crate::MessageClass::Control,
+            &payload,
+        );
+
+        let frame = driver.frame_response(response).unwrap();
+
+        assert_eq!(frame.payload(), &payload);
+        assert_eq!(frame.payload().as_ptr(), payload.as_ptr());
+    }
+
+    #[test]
+    fn frame_response_derives_payload_length() {
+        let transport = MemoryTransport::<8>::new(2).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+        let payload = [1_u8, 2, 3, 4, 5];
+
+        let response = crate::OutboundResponse::new(
+            crate::MessageId::new(1),
+            crate::MessageClass::Application,
+            &payload,
+        );
+
+        let frame = driver.frame_response(response).unwrap();
+
+        assert_eq!(frame.header().payload_length(), payload.len() as u32);
+    }
+
+    #[test]
+    fn frame_response_uses_current_wire_defaults() {
+        let transport = MemoryTransport::<8>::new(2).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+
+        let response = crate::OutboundResponse::new(
+            crate::MessageId::new(1),
+            crate::MessageClass::Control,
+            &[],
+        );
+
+        let frame = driver.frame_response(response).unwrap();
+
+        assert_eq!(frame.header().wire_version(), crate::WireVersion::V1);
+        assert_eq!(frame.header().flags(), crate::WireFlags::NONE);
+    }
+
+    #[test]
+    fn frame_response_does_not_mutate_transport_or_session() {
+        let transport = MemoryTransport::<8>::new(2).unwrap();
+        let driver = ProtocolDriver::new(transport, session());
+
+        let previous_session = *driver.session();
+
+        let response = crate::OutboundResponse::new(
+            crate::MessageId::new(1),
+            crate::MessageClass::Control,
+            &[],
+        );
+
+        driver.frame_response(response).unwrap();
+
+        assert_eq!(*driver.session(), previous_session);
+        assert_eq!(driver.transport().buffered_len(), 0);
+        assert_eq!(driver.transport().remaining_capacity(), 8);
+        assert!(!driver.transport().is_closed());
     }
 }
