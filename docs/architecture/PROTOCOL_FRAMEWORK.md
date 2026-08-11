@@ -363,6 +363,21 @@ resolved local policy. Policy filtering cannot reorder the remaining local
 candidates. An empty allow-list or the absence of a capability satisfying all
 three constraints produces no selection.
 
+`NegotiatedCapability` is the validated output of policy-constrained
+capability negotiation. It binds the selected `CapabilityId` to the
+`PolicyId` under which that selection was permitted. Construction remains
+internal to the negotiation operation rather than being exposed as an
+unrestricted public constructor, so the value represents successful
+negotiation rather than an arbitrary capability-policy pair.
+
+The negotiated value remains caller-owned metadata. It is not stored in
+`ProtocolSession`, `TypedProtocolSession`, `ProtocolDriver`, or
+`HandlerOutcome`. Producing it performs no transport I/O, session mutation,
+provider selection, cryptographic execution, or lifecycle transition.
+In particular, successful capability negotiation does not itself transition
+a session to `Established`. Establishment binding remains a separate
+architectural boundary.
+
 This boundary keeps policy definition and provider resolution outside the
 protocol-negotiation mechanism. The protocol layer does not infer cryptographic
 semantics from `PolicyId`, map capabilities to concrete algorithms, perform

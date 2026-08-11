@@ -781,3 +781,161 @@ mod policy_tests {
         }
     }
 }
+
+/// Capability and policy selected by successful capability negotiation.
+///
+/// This value records the capability selected from the local and peer offers
+/// together with the policy under which that selection was permitted. It is
+/// produced by [`negotiate_policy_permitted_common`] rather than by an
+/// unrestricted public constructor so that callers cannot construct a
+/// negotiated result without performing the corresponding selection.
+///
+/// The result contains only negotiation metadata. It does not mutate or own a
+/// protocol session, transport, cryptographic context, or provider state.
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct NegotiatedCapability {
+    policy_id: crate::PolicyId,
+    capability: CapabilityId,
+}
+
+impl NegotiatedCapability {
+    /// Return the policy under which the capability was selected.
+    pub const fn policy_id(self) -> crate::PolicyId {
+        self.policy_id
+    }
+
+    /// Return the selected capability.
+    pub const fn capability(self) -> CapabilityId {
+        self.capability
+    }
+}
+
+/// Select and bind the preferred mutually supported capability permitted by
+/// `policy`.
+///
+/// Selection preserves the semantics of
+/// [`select_policy_permitted_common`]: local offer order determines
+/// preference, the selected capability must also occur in the peer offer, and
+/// the policy must permit it.
+///
+/// On success, the selected capability is bound to the policy identifier in a
+/// [`NegotiatedCapability`]. If no capability satisfies all three conditions,
+/// this function returns `None`.
+///
+/// This operation performs no transport I/O and does not mutate protocol
+/// session state.
+pub fn negotiate_policy_permitted_common(
+    local: CapabilityOffer<'_>,
+    peer: CapabilityOffer<'_>,
+    policy: CapabilityPolicy<'_>,
+) -> Option<NegotiatedCapability> {
+    let policy_id = policy.policy_id();
+    let capability = select_policy_permitted_common(local, peer, policy)?;
+
+    Some(NegotiatedCapability {
+        policy_id,
+        capability,
+    })
+}
+
+#[cfg(test)]
+mod negotiated_capability_tests {
+    use super::*;
+    use crate::PolicyId;
+
+    #[test]
+    fn negotiation_binds_selected_capability_and_policy() {
+        let local_ids = [
+            CapabilityId::new(10),
+            CapabilityId::new(20),
+            CapabilityId::new(30),
+        ];
+        let peer_ids = [CapabilityId::new(30), CapabilityId::new(20)];
+        let allowed = [CapabilityId::new(20), CapabilityId::new(30)];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(7), &allowed).unwrap();
+
+        let negotiated = negotiate_policy_permitted_common(local, peer, policy).unwrap();
+
+        assert_eq!(negotiated.policy_id(), PolicyId::new(7));
+        assert_eq!(negotiated.capability(), CapabilityId::new(20));
+    }
+
+    #[test]
+    fn negotiation_preserves_local_preference() {
+        let local_ids = [
+            CapabilityId::new(3),
+            CapabilityId::new(2),
+            CapabilityId::new(1),
+        ];
+        let peer_ids = [
+            CapabilityId::new(1),
+            CapabilityId::new(2),
+            CapabilityId::new(3),
+        ];
+        let allowed = [
+            CapabilityId::new(1),
+            CapabilityId::new(2),
+            CapabilityId::new(3),
+        ];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(8), &allowed).unwrap();
+
+        let negotiated = negotiate_policy_permitted_common(local, peer, policy).unwrap();
+
+        assert_eq!(negotiated.capability(), CapabilityId::new(3));
+    }
+
+    #[test]
+    fn negotiation_rejects_common_capability_forbidden_by_policy() {
+        let local_ids = [CapabilityId::new(1), CapabilityId::new(2)];
+        let peer_ids = [CapabilityId::new(1), CapabilityId::new(2)];
+        let allowed = [CapabilityId::new(9)];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(9), &allowed).unwrap();
+
+        assert_eq!(negotiate_policy_permitted_common(local, peer, policy), None);
+    }
+
+    #[test]
+    fn negotiation_rejects_when_offers_have_no_common_capability() {
+        let local_ids = [CapabilityId::new(1), CapabilityId::new(2)];
+        let peer_ids = [CapabilityId::new(3), CapabilityId::new(4)];
+        let allowed = [
+            CapabilityId::new(1),
+            CapabilityId::new(2),
+            CapabilityId::new(3),
+            CapabilityId::new(4),
+        ];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(10), &allowed).unwrap();
+
+        assert_eq!(negotiate_policy_permitted_common(local, peer, policy), None);
+    }
+
+    #[test]
+    fn negotiation_result_is_copyable_value_metadata() {
+        let local_ids = [CapabilityId::new(42)];
+        let peer_ids = [CapabilityId::new(42)];
+        let allowed = [CapabilityId::new(42)];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(11), &allowed).unwrap();
+
+        let negotiated = negotiate_policy_permitted_common(local, peer, policy).unwrap();
+        let copied = negotiated;
+
+        assert_eq!(copied, negotiated);
+        assert_eq!(copied.policy_id(), PolicyId::new(11));
+        assert_eq!(copied.capability(), CapabilityId::new(42));
+    }
+}

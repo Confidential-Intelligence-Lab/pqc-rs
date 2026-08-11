@@ -105,6 +105,13 @@ defines which capabilities are permitted but does not define preference.
 requiring the selected capability to be present in both offers and permitted
 by local policy.
 
+`NegotiatedCapability` records the capability selected by policy-constrained
+negotiation together with the `PolicyId` under which it was permitted.
+`negotiate_policy_permitted_common` produces this caller-owned evidence only
+after successful common-capability and policy filtering. The negotiated value
+is metadata rather than session state: negotiation performs no transport I/O,
+does not mutate `ProtocolSession`, and does not itself establish a session.
+
 ## Layering
 
 ```text

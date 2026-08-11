@@ -50,8 +50,9 @@ pub use message::{MessageClass, MessageId};
 pub use message_trait::ProtocolMessage;
 pub use metadata::{CapabilityId, ProtocolDirection, ProtocolId};
 pub use negotiation::{
-    select_policy_permitted_common, select_preferred_common, CapabilityOffer, CapabilityOfferError,
-    CapabilityOfferResult, CapabilityPolicy, CapabilityPolicyError, CapabilityPolicyResult,
+    negotiate_policy_permitted_common, select_policy_permitted_common, select_preferred_common,
+    CapabilityOffer, CapabilityOfferError, CapabilityOfferResult, CapabilityPolicy,
+    CapabilityPolicyError, CapabilityPolicyResult, NegotiatedCapability,
 };
 pub use response::{OutboundResponse, ProtocolResponder};
 pub use role::ProtocolRole;
