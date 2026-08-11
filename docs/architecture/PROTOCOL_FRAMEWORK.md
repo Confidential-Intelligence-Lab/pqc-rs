@@ -338,6 +338,18 @@ initial negotiation vocabulary. Capability intersection, deterministic
 selection, policy resolution, establishment binding, and downgrade-resistance
 rules remain later Stage 12A.12 increments.
 
+`select_preferred_common` adds deterministic capability intersection without
+introducing negotiation state. Local offer ordering defines preference
+precedence: the resolver walks local capabilities from strongest to weakest
+and returns the first identifier also present in the validated peer offer.
+No common capability yields `None`.
+
+The resolver cannot select a capability absent from either offer. This
+intersection invariant forms the initial foundation for later downgrade-
+resistance rules. The operation is pure with respect to both offers and
+performs no policy interpretation, session transition, transport I/O,
+cryptographic algorithm resolution, or wire processing.
+
 ## Cryptographic agility
 
 Applications should ultimately select security behavior through validated

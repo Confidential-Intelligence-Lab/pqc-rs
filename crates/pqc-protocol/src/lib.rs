@@ -49,7 +49,9 @@ pub use memory_transport::MemoryTransport;
 pub use message::{MessageClass, MessageId};
 pub use message_trait::ProtocolMessage;
 pub use metadata::{CapabilityId, ProtocolDirection, ProtocolId};
-pub use negotiation::{CapabilityOffer, CapabilityOfferError, CapabilityOfferResult};
+pub use negotiation::{
+    select_preferred_common, CapabilityOffer, CapabilityOfferError, CapabilityOfferResult,
+};
 pub use response::{OutboundResponse, ProtocolResponder};
 pub use role::ProtocolRole;
 pub use session::ProtocolSession;

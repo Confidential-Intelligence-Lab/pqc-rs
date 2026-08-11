@@ -213,3 +213,216 @@ mod tests {
         assert_eq!(second_offer.preference(CapabilityId::new(1)), Some(2));
     }
 }
+
+/// Select the locally preferred capability also supported by `peer`.
+///
+/// Local offer ordering defines preference precedence. The first capability
+/// present in both validated offers is selected. If the offers have no common
+/// capability, this function returns `None`.
+///
+/// This operation performs no allocation, transport I/O, policy evaluation,
+/// session mutation, cryptographic resolution, or wire processing.
+pub fn select_preferred_common(
+    local: CapabilityOffer<'_>,
+    peer: CapabilityOffer<'_>,
+) -> Option<CapabilityId> {
+    let capabilities = local.capabilities();
+    let mut index = 0;
+
+    while index < capabilities.len() {
+        let capability = capabilities[index];
+
+        if peer.contains(capability) {
+            return Some(capability);
+        }
+
+        index += 1;
+    }
+
+    None
+}
+
+#[cfg(test)]
+mod selection_tests {
+    use super::*;
+
+    #[test]
+    fn same_order_overlap_selects_first_common_capability() {
+        let local_ids = [
+            CapabilityId::new(1),
+            CapabilityId::new(2),
+            CapabilityId::new(3),
+        ];
+        let peer_ids = [
+            CapabilityId::new(1),
+            CapabilityId::new(2),
+            CapabilityId::new(3),
+        ];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+
+        assert_eq!(
+            select_preferred_common(local, peer),
+            Some(CapabilityId::new(1))
+        );
+    }
+
+    #[test]
+    fn local_preference_order_controls_selection() {
+        let local_ids = [
+            CapabilityId::new(10),
+            CapabilityId::new(20),
+            CapabilityId::new(30),
+        ];
+        let peer_ids = [
+            CapabilityId::new(30),
+            CapabilityId::new(20),
+            CapabilityId::new(10),
+        ];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+
+        assert_eq!(
+            select_preferred_common(local, peer),
+            Some(CapabilityId::new(10))
+        );
+    }
+
+    #[test]
+    fn peer_only_capabilities_are_ignored() {
+        let local_ids = [CapabilityId::new(2), CapabilityId::new(3)];
+        let peer_ids = [
+            CapabilityId::new(1),
+            CapabilityId::new(2),
+            CapabilityId::new(3),
+        ];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+
+        assert_eq!(
+            select_preferred_common(local, peer),
+            Some(CapabilityId::new(2))
+        );
+    }
+
+    #[test]
+    fn single_overlap_is_selected() {
+        let local_ids = [
+            CapabilityId::new(4),
+            CapabilityId::new(5),
+            CapabilityId::new(6),
+        ];
+        let peer_ids = [
+            CapabilityId::new(8),
+            CapabilityId::new(6),
+            CapabilityId::new(9),
+        ];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+
+        assert_eq!(
+            select_preferred_common(local, peer),
+            Some(CapabilityId::new(6))
+        );
+    }
+
+    #[test]
+    fn no_overlap_returns_none() {
+        let local_ids = [CapabilityId::new(1), CapabilityId::new(2)];
+        let peer_ids = [CapabilityId::new(3), CapabilityId::new(4)];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+
+        assert_eq!(select_preferred_common(local, peer), None);
+    }
+
+    #[test]
+    fn empty_local_offer_returns_none() {
+        let peer_ids = [CapabilityId::new(1), CapabilityId::new(2)];
+
+        let local = CapabilityOffer::new(&[]).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+
+        assert_eq!(select_preferred_common(local, peer), None);
+    }
+
+    #[test]
+    fn empty_peer_offer_returns_none() {
+        let local_ids = [CapabilityId::new(1), CapabilityId::new(2)];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&[]).unwrap();
+
+        assert_eq!(select_preferred_common(local, peer), None);
+    }
+
+    #[test]
+    fn selection_is_deterministic() {
+        let local_ids = [
+            CapabilityId::new(7),
+            CapabilityId::new(3),
+            CapabilityId::new(11),
+        ];
+        let peer_ids = [CapabilityId::new(11), CapabilityId::new(3)];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+
+        let expected = Some(CapabilityId::new(3));
+
+        for _ in 0..16 {
+            assert_eq!(select_preferred_common(local, peer), expected);
+        }
+    }
+
+    #[test]
+    fn selected_capability_is_present_in_both_offers() {
+        let local_ids = [
+            CapabilityId::new(100),
+            CapabilityId::new(200),
+            CapabilityId::new(300),
+        ];
+        let peer_ids = [
+            CapabilityId::new(900),
+            CapabilityId::new(300),
+            CapabilityId::new(200),
+        ];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+
+        let selected = select_preferred_common(local, peer).unwrap();
+
+        assert!(local.contains(selected));
+        assert!(peer.contains(selected));
+    }
+
+    #[test]
+    fn selection_does_not_change_offer_semantics() {
+        let local_ids = [
+            CapabilityId::new(1),
+            CapabilityId::new(2),
+            CapabilityId::new(3),
+        ];
+        let peer_ids = [CapabilityId::new(3), CapabilityId::new(2)];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+
+        let local_before = local;
+        let peer_before = peer;
+
+        assert_eq!(
+            select_preferred_common(local, peer),
+            Some(CapabilityId::new(2))
+        );
+
+        assert_eq!(local, local_before);
+        assert_eq!(peer, peer_before);
+    }
+}

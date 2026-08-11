@@ -91,6 +91,13 @@ duplicate capability identifiers are rejected. Offer construction performs no
 allocation, transport I/O, policy evaluation, session mutation, cryptographic
 selection, or wire encoding.
 
+`select_preferred_common` performs deterministic capability intersection using
+local offer ordering as preference precedence. It selects the first locally
+preferred capability also present in the peer offer, or returns `None` when
+there is no overlap. Selection can therefore return only a capability
+explicitly present in both validated offers and performs no policy evaluation,
+session mutation, transport I/O, cryptographic resolution, or wire processing.
+
 ## Layering
 
 ```text
