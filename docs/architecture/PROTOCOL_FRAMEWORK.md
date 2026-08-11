@@ -378,6 +378,29 @@ In particular, successful capability negotiation does not itself transition
 a session to `Established`. Establishment binding remains a separate
 architectural boundary.
 
+`EstablishedProtocolContext` is the negotiation-aware establishment boundary.
+It owns both a `TypedProtocolSession<EstablishedState>` and the
+`NegotiatedCapability` that justified the negotiated protocol choice.
+Construction occurs through
+`TypedProtocolSession<EstablishingState>::establish_with_negotiation`, so the
+context records both successful lifecycle establishment and retained
+negotiation evidence.
+
+This composition deliberately leaves `ProtocolSession` unchanged. Negotiated
+policy and capability metadata are not inserted into the generic runtime
+session, typestate representation, driver, or handler outcome. The ordinary
+`TypedProtocolSession<EstablishingState>::establish` transition also remains
+available for protocol families whose lifecycle does not use this capability
+negotiation mechanism.
+
+The establishment context preserves session identity, protocol identity,
+protocol version, role, policy identity, and selected capability. It may be
+consumed with `into_parts` to recover the established typed session and
+negotiation evidence without loss. This boundary performs no transport I/O,
+provider resolution, cryptographic execution, or wire processing. Downstream
+lifecycle behavior and concrete cryptographic/provider binding remain separate
+architectural concerns.
+
 This boundary keeps policy definition and provider resolution outside the
 protocol-negotiation mechanism. The protocol layer does not infer cryptographic
 semantics from `PolicyId`, map capabilities to concrete algorithms, perform

@@ -15,6 +15,7 @@ mod codec;
 mod driver;
 mod envelope;
 mod error;
+mod establishment;
 mod frame;
 mod frame_transport;
 mod handler;
@@ -39,6 +40,7 @@ pub use driver::{
 };
 pub use envelope::ProtocolEnvelope;
 pub use error::{ProtocolError, ProtocolResult};
+pub use establishment::EstablishedProtocolContext;
 pub use frame::{ProtocolFrame, MAX_FRAME_PAYLOAD_LEN};
 pub use frame_transport::{
     FrameReceiver, FrameTransferError, FrameTransferResult, FrameTransmitter,

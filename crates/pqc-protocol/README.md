@@ -112,6 +112,14 @@ after successful common-capability and policy filtering. The negotiated value
 is metadata rather than session state: negotiation performs no transport I/O,
 does not mutate `ProtocolSession`, and does not itself establish a session.
 
+`EstablishedProtocolContext` binds an established typed session to its
+`NegotiatedCapability` without adding negotiation fields to `ProtocolSession`.
+`TypedProtocolSession<EstablishingState>::establish_with_negotiation` produces
+this stronger caller-owned context while the existing `establish` transition
+remains available for generic lifecycle establishment. The context retains the
+negotiated policy and capability as evidence and performs no transport I/O,
+provider resolution, or cryptographic execution.
+
 ## Layering
 
 ```text
