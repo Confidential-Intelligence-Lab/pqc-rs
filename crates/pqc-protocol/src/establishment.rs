@@ -150,3 +150,162 @@ mod tests {
         assert_eq!(established.runtime_state(), SessionState::Established);
     }
 }
+
+#[cfg(test)]
+mod downgrade_resistance_tests {
+    use crate::{
+        negotiate_policy_permitted_common, CapabilityId, CapabilityOffer, CapabilityPolicy,
+        PolicyId, ProtocolId, ProtocolRole, ProtocolVersion, SessionId, SessionState,
+        TypedProtocolSession,
+    };
+
+    fn establish(
+        local_ids: &[CapabilityId],
+        peer_ids: &[CapabilityId],
+        allowed: &[CapabilityId],
+        policy_id: PolicyId,
+    ) -> Option<crate::EstablishedProtocolContext> {
+        let local = CapabilityOffer::new(local_ids).unwrap();
+        let peer = CapabilityOffer::new(peer_ids).unwrap();
+        let policy = CapabilityPolicy::new(policy_id, allowed).unwrap();
+
+        let negotiated = negotiate_policy_permitted_common(local, peer, policy)?;
+
+        let establishing = TypedProtocolSession::new(
+            SessionId::from_bytes([0xa5; 16]),
+            ProtocolId::new(0x1200),
+            ProtocolVersion::new(1, 2),
+            ProtocolRole::Client,
+        )
+        .begin_establishment();
+
+        Some(establishing.establish_with_negotiation(negotiated))
+    }
+
+    #[test]
+    fn adversarial_peer_order_cannot_downgrade_local_preference() {
+        let local = [
+            CapabilityId::new(100),
+            CapabilityId::new(200),
+            CapabilityId::new(300),
+        ];
+        let peer = [
+            CapabilityId::new(300),
+            CapabilityId::new(200),
+            CapabilityId::new(100),
+        ];
+        let allowed = local;
+
+        let context = establish(&local, &peer, &allowed, PolicyId::new(10)).unwrap();
+
+        assert_eq!(context.capability(), CapabilityId::new(100));
+    }
+
+    #[test]
+    fn adversarial_peer_order_cannot_bypass_policy_filtering() {
+        let local = [
+            CapabilityId::new(100),
+            CapabilityId::new(200),
+            CapabilityId::new(300),
+        ];
+        let peer = [
+            CapabilityId::new(300),
+            CapabilityId::new(200),
+            CapabilityId::new(100),
+        ];
+        let allowed = [CapabilityId::new(300), CapabilityId::new(200)];
+
+        let context = establish(&local, &peer, &allowed, PolicyId::new(11)).unwrap();
+
+        assert_eq!(context.capability(), CapabilityId::new(200));
+    }
+
+    #[test]
+    fn peer_injected_capability_cannot_be_selected() {
+        let local = [CapabilityId::new(100), CapabilityId::new(200)];
+        let peer = [
+            CapabilityId::new(999),
+            CapabilityId::new(100),
+            CapabilityId::new(200),
+        ];
+        let allowed = [
+            CapabilityId::new(999),
+            CapabilityId::new(100),
+            CapabilityId::new(200),
+        ];
+
+        let context = establish(&local, &peer, &allowed, PolicyId::new(12)).unwrap();
+
+        assert_eq!(context.capability(), CapabilityId::new(100));
+        assert_ne!(context.capability(), CapabilityId::new(999));
+    }
+
+    #[test]
+    fn policy_forces_permitted_choice_over_stronger_common_choice() {
+        let local = [
+            CapabilityId::new(100),
+            CapabilityId::new(200),
+            CapabilityId::new(300),
+        ];
+        let peer = local;
+        let allowed = [CapabilityId::new(300)];
+
+        let context = establish(&local, &peer, &allowed, PolicyId::new(13)).unwrap();
+
+        assert_eq!(context.capability(), CapabilityId::new(300));
+    }
+
+    #[test]
+    fn policy_permission_cannot_create_peer_support() {
+        let local = [CapabilityId::new(100), CapabilityId::new(200)];
+        let peer = [CapabilityId::new(200)];
+        let allowed = [CapabilityId::new(100), CapabilityId::new(200)];
+
+        let context = establish(&local, &peer, &allowed, PolicyId::new(14)).unwrap();
+
+        assert_eq!(context.capability(), CapabilityId::new(200));
+    }
+
+    #[test]
+    fn no_three_way_intersection_prevents_established_context() {
+        let local = [CapabilityId::new(100), CapabilityId::new(200)];
+        let peer = [CapabilityId::new(100), CapabilityId::new(200)];
+        let allowed = [CapabilityId::new(300)];
+
+        assert!(establish(&local, &peer, &allowed, PolicyId::new(15)).is_none());
+    }
+
+    #[test]
+    fn end_to_end_establishment_retains_exact_negotiation_evidence() {
+        let local = [
+            CapabilityId::new(100),
+            CapabilityId::new(200),
+            CapabilityId::new(300),
+        ];
+        let peer = [CapabilityId::new(300), CapabilityId::new(200)];
+        let allowed = [CapabilityId::new(300), CapabilityId::new(200)];
+        let policy_id = PolicyId::new(0x55);
+
+        let context = establish(&local, &peer, &allowed, policy_id).unwrap();
+
+        assert_eq!(context.session().runtime_state(), SessionState::Established);
+        assert_eq!(
+            context.session().session_id(),
+            SessionId::from_bytes([0xa5; 16])
+        );
+        assert_eq!(context.session().protocol_id(), ProtocolId::new(0x1200));
+        assert_eq!(
+            context.session().protocol_version(),
+            ProtocolVersion::new(1, 2)
+        );
+        assert_eq!(context.session().role(), ProtocolRole::Client);
+
+        assert_eq!(context.policy_id(), policy_id);
+        assert_eq!(context.capability(), CapabilityId::new(200));
+
+        let negotiated = context.negotiated();
+
+        assert_eq!(negotiated.policy_id(), policy_id);
+        assert_eq!(negotiated.capability(), CapabilityId::new(200));
+    }
+}

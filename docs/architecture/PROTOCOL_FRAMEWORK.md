@@ -333,10 +333,11 @@ ordering. The representation performs no allocation, transport I/O, policy
 evaluation, session mutation, cryptographic selection, or wire encoding.
 
 `PolicyId` remains distinct from peer-advertised capabilities. It identifies
-local cryptographic policy and is intentionally not interpreted by this
-initial negotiation vocabulary. Capability intersection, deterministic
-selection, policy resolution, establishment binding, and downgrade-resistance
-rules remain later Stage 12A.12 increments.
+local cryptographic policy and is intentionally not interpreted directly by
+the negotiation vocabulary. Stage 12A.12 now provides deterministic capability
+intersection, resolved policy constraints, negotiation evidence, and
+negotiation-aware establishment while keeping concrete policy interpretation
+and provider resolution outside the protocol layer.
 
 `select_preferred_common` adds deterministic capability intersection without
 introducing negotiation state. Local offer ordering defines preference
@@ -405,6 +406,26 @@ This boundary keeps policy definition and provider resolution outside the
 protocol-negotiation mechanism. The protocol layer does not infer cryptographic
 semantics from `PolicyId`, map capabilities to concrete algorithms, perform
 provider selection, mutate session state, or bind the result to establishment.
+
+### Negotiation downgrade-resistance assurance
+
+The complete capability-negotiation path is exercised against adversarial peer
+ordering and capability injection. Peer offer ordering cannot override local
+preference, and a peer cannot cause selection of a capability absent from the
+local offer. Policy permission cannot create peer support or local support, and
+policy filtering remains authoritative when it excludes a more-preferred
+mutually supported capability.
+
+Consequently, every successfully negotiated capability remains inside the
+three-way intersection of local support, peer support, and resolved local
+policy. If that intersection is empty, no `NegotiatedCapability` and therefore
+no negotiation-aware `EstablishedProtocolContext` is produced.
+
+End-to-end assurance also verifies that establishment preserves the exact
+session identifier, protocol identifier, protocol version, participant role,
+policy identifier, and selected capability produced by negotiation. These
+properties are tested without introducing downgrade-specific mutable state or
+a separate downgrade mechanism.
 
 ## Cryptographic agility
 
