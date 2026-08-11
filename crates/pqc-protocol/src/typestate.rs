@@ -99,6 +99,23 @@ impl TypedProtocolSession<EstablishingState> {
         transition(self, SessionState::Established)
     }
 
+    /// Complete establishment while retaining validated negotiation evidence.
+    ///
+    /// The resulting [`crate::EstablishedProtocolContext`] owns both the
+    /// established typed session and the supplied
+    /// [`crate::NegotiatedCapability`].
+    ///
+    /// This transition performs no transport I/O, provider resolution, or
+    /// cryptographic execution.
+    pub fn establish_with_negotiation(
+        self,
+        negotiated: crate::NegotiatedCapability,
+    ) -> crate::EstablishedProtocolContext {
+        let established = self.establish();
+
+        crate::EstablishedProtocolContext::from_parts(established, negotiated)
+    }
+
     /// Terminate establishment because of failure.
     pub fn fail(self) -> TypedProtocolSession<FailedState> {
         transition(self, SessionState::Failed)

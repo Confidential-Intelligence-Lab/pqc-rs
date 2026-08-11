@@ -84,6 +84,42 @@ preserves already committed progress; invalid progress reports are rejected
 without advancing state; and advancing an already completed transmitter is
 idempotent and performs no further transport I/O.
 
+`CapabilityOffer` introduces the first protocol-negotiation vocabulary. It is
+an ordered, borrowed view over caller-owned `CapabilityId` values: lower
+indices represent stronger advertised preference, empty offers are valid, and
+duplicate capability identifiers are rejected. Offer construction performs no
+allocation, transport I/O, policy evaluation, session mutation, cryptographic
+selection, or wire encoding.
+
+`select_preferred_common` performs deterministic capability intersection using
+local offer ordering as preference precedence. It selects the first locally
+preferred capability also present in the peer offer, or returns `None` when
+there is no overlap. Selection can therefore return only a capability
+explicitly present in both validated offers and performs no policy evaluation,
+session mutation, transport I/O, cryptographic resolution, or wire processing.
+
+`CapabilityPolicy` represents already-resolved local policy constraints without
+interpreting `PolicyId` inside the protocol layer. Its borrowed allow-list
+defines which capabilities are permitted but does not define preference.
+`select_policy_permitted_common` preserves local-offer preference while
+requiring the selected capability to be present in both offers and permitted
+by local policy.
+
+`NegotiatedCapability` records the capability selected by policy-constrained
+negotiation together with the `PolicyId` under which it was permitted.
+`negotiate_policy_permitted_common` produces this caller-owned evidence only
+after successful common-capability and policy filtering. The negotiated value
+is metadata rather than session state: negotiation performs no transport I/O,
+does not mutate `ProtocolSession`, and does not itself establish a session.
+
+`EstablishedProtocolContext` binds an established typed session to its
+`NegotiatedCapability` without adding negotiation fields to `ProtocolSession`.
+`TypedProtocolSession<EstablishingState>::establish_with_negotiation` produces
+this stronger caller-owned context while the existing `establish` transition
+remains available for generic lifecycle establishment. The context retains the
+negotiated policy and capability as evidence and performs no transport I/O,
+provider resolution, or cryptographic execution.
+
 ## Layering
 
 ```text

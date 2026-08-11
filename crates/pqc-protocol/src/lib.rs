@@ -15,6 +15,7 @@ mod codec;
 mod driver;
 mod envelope;
 mod error;
+mod establishment;
 mod frame;
 mod frame_transport;
 mod handler;
@@ -23,6 +24,7 @@ mod memory_transport;
 mod message;
 mod message_trait;
 mod metadata;
+mod negotiation;
 mod response;
 mod role;
 mod session;
@@ -38,6 +40,7 @@ pub use driver::{
 };
 pub use envelope::ProtocolEnvelope;
 pub use error::{ProtocolError, ProtocolResult};
+pub use establishment::EstablishedProtocolContext;
 pub use frame::{ProtocolFrame, MAX_FRAME_PAYLOAD_LEN};
 pub use frame_transport::{
     FrameReceiver, FrameTransferError, FrameTransferResult, FrameTransmitter,
@@ -48,6 +51,11 @@ pub use memory_transport::MemoryTransport;
 pub use message::{MessageClass, MessageId};
 pub use message_trait::ProtocolMessage;
 pub use metadata::{CapabilityId, ProtocolDirection, ProtocolId};
+pub use negotiation::{
+    negotiate_policy_permitted_common, select_policy_permitted_common, select_preferred_common,
+    CapabilityOffer, CapabilityOfferError, CapabilityOfferResult, CapabilityPolicy,
+    CapabilityPolicyError, CapabilityPolicyResult, NegotiatedCapability,
+};
 pub use response::{OutboundResponse, ProtocolResponder};
 pub use role::ProtocolRole;
 pub use session::ProtocolSession;
