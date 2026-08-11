@@ -318,6 +318,26 @@ are deliberate: their semantics will be specified before implementation.
 6. Replay, ordering, truncation, corruption, and resource-bound tests.
 7. Policy-driven cryptographic agility and provider interoperability.
 
+### Capability negotiation vocabulary
+
+`CapabilityId` remains the atomic identifier for an optional protocol
+capability. `CapabilityOffer<'a>` adds negotiation semantics without changing
+that identifier: an offer is an ordered, borrowed view over caller-owned
+capability identifiers, where lower indices represent stronger advertised
+preference.
+
+Offers may be empty because structural capability representation is kept
+separate from higher-level negotiation policy. Duplicate identifiers are
+rejected by `CapabilityOffer::new`, preserving an unambiguous preference
+ordering. The representation performs no allocation, transport I/O, policy
+evaluation, session mutation, cryptographic selection, or wire encoding.
+
+`PolicyId` remains distinct from peer-advertised capabilities. It identifies
+local cryptographic policy and is intentionally not interpreted by this
+initial negotiation vocabulary. Capability intersection, deterministic
+selection, policy resolution, establishment binding, and downgrade-resistance
+rules remain later Stage 12A.12 increments.
+
 ## Cryptographic agility
 
 Applications should ultimately select security behavior through validated

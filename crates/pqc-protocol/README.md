@@ -84,6 +84,13 @@ preserves already committed progress; invalid progress reports are rejected
 without advancing state; and advancing an already completed transmitter is
 idempotent and performs no further transport I/O.
 
+`CapabilityOffer` introduces the first protocol-negotiation vocabulary. It is
+an ordered, borrowed view over caller-owned `CapabilityId` values: lower
+indices represent stronger advertised preference, empty offers are valid, and
+duplicate capability identifiers are rejected. Offer construction performs no
+allocation, transport I/O, policy evaluation, session mutation, cryptographic
+selection, or wire encoding.
+
 ## Layering
 
 ```text
