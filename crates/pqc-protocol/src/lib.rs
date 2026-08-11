@@ -19,6 +19,7 @@ mod establishment;
 mod frame;
 mod frame_transport;
 mod handler;
+mod handshake;
 mod identifiers;
 mod memory_transport;
 mod message;
@@ -46,6 +47,11 @@ pub use frame_transport::{
     FrameReceiver, FrameTransferError, FrameTransferResult, FrameTransmitter,
 };
 pub use handler::{HandlerAction, HandlerOutcome, ProtocolHandler};
+pub use handshake::{
+    CapabilityOfferPayload, CapabilityRejectionPayload, CapabilityRejectionReason,
+    CapabilitySelectionPayload, DecodedCapabilityOffer, CAPABILITY_OFFER_MESSAGE_ID,
+    CAPABILITY_REJECTION_MESSAGE_ID, CAPABILITY_SELECTION_MESSAGE_ID,
+};
 pub use identifiers::{PolicyId, ProtocolVersion, SessionId};
 pub use memory_transport::MemoryTransport;
 pub use message::{MessageClass, MessageId};

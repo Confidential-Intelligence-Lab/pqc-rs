@@ -427,6 +427,38 @@ policy identifier, and selected capability produced by negotiation. These
 properties are tested without introducing downgrade-specific mutable state or
 a separate downgrade mechanism.
 
+### Capability handshake wire vocabulary
+
+Capability negotiation is represented on the protocol wire by three
+protocol-scoped handshake message identifiers: capability offer, capability
+selection, and capability rejection. All use `MessageClass::Handshake`; the
+generic wire header continues to carry protocol identity, version, direction,
+and payload length.
+
+A capability offer is encoded as a big-endian 16-bit count followed by that
+many big-endian 16-bit `CapabilityId` values in advertised preference order.
+`CapabilityOfferPayload` encodes an already validated semantic offer.
+`DecodedCapabilityOffer` borrows canonical capability bytes directly from the
+input and decodes identifiers on demand, avoiding allocation, unsafe casts, or
+representation assumptions. Decoding validates the declared count and rejects
+duplicate identifiers.
+
+A capability selection contains exactly one big-endian `CapabilityId`.
+A capability rejection contains exactly one big-endian rejection reason.
+Malformed payloads remain protocol decoding failures rather than being
+implicitly converted into peer-visible negotiation rejections.
+
+`PolicyId` is deliberately absent from the handshake wire. Policy identifiers
+remain endpoint-local metadata: peers must converge on the same selected
+`CapabilityId`, while each endpoint may retain independent local `PolicyId`
+evidence in its own `NegotiatedCapability` and
+`EstablishedProtocolContext`.
+
+This stage defines only canonical handshake vocabulary and payload encoding.
+It does not introduce client/server handshake state machines, transport
+execution, lifecycle commitment, provider resolution, or cryptographic
+execution.
+
 ## Cryptographic agility
 
 Applications should ultimately select security behavior through validated

@@ -120,6 +120,14 @@ remains available for generic lifecycle establishment. The context retains the
 negotiated policy and capability as evidence and performs no transport I/O,
 provider resolution, or cryptographic execution.
 
+The capability handshake now has canonical non-allocating payload codecs.
+`CapabilityOfferPayload` encodes ordered local capability offers, while
+`DecodedCapabilityOffer` validates and borrows canonical wire bytes without
+unsafe representation casts. `CapabilitySelectionPayload` and
+`CapabilityRejectionPayload` encode the server selection or rejection result.
+`PolicyId` remains local metadata and is never carried in these handshake
+payloads.
+
 ## Layering
 
 ```text
