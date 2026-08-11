@@ -426,3 +426,358 @@ mod selection_tests {
         assert_eq!(peer, peer_before);
     }
 }
+
+/// Error produced while validating a resolved capability policy.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum CapabilityPolicyError {
+    /// The resolved policy contains the same capability more than once.
+    DuplicateCapability {
+        /// Capability identifier that was repeated.
+        capability: CapabilityId,
+    },
+}
+
+/// Result type used while validating resolved capability policies.
+pub type CapabilityPolicyResult<T> = core::result::Result<T, CapabilityPolicyError>;
+
+impl core::fmt::Display for CapabilityPolicyError {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            Self::DuplicateCapability { .. } => {
+                formatter.write_str("duplicate protocol capability in resolved policy")
+            }
+        }
+    }
+}
+
+#[cfg(feature = "std")]
+impl std::error::Error for CapabilityPolicyError {}
+
+/// Resolved local policy constraints for protocol capability selection.
+///
+/// [`crate::PolicyId`] identifies the externally defined policy. `allowed`
+/// contains the capabilities that an external policy-resolution layer has
+/// determined are permitted under that policy.
+///
+/// The allowed list is not a peer advertisement and does not define selection
+/// preference. Local [`CapabilityOffer`] ordering remains authoritative for
+/// preference among otherwise eligible capabilities.
+///
+/// This type performs no allocation, policy interpretation, provider
+/// resolution, transport I/O, session mutation, cryptographic execution, or
+/// wire processing.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct CapabilityPolicy<'a> {
+    policy_id: crate::PolicyId,
+    allowed: &'a [CapabilityId],
+}
+
+impl<'a> CapabilityPolicy<'a> {
+    /// Validate and construct resolved local capability constraints.
+    pub fn new(
+        policy_id: crate::PolicyId,
+        allowed: &'a [CapabilityId],
+    ) -> CapabilityPolicyResult<Self> {
+        let mut outer = 0;
+
+        while outer < allowed.len() {
+            let capability = allowed[outer];
+            let mut inner = outer + 1;
+
+            while inner < allowed.len() {
+                if allowed[inner] == capability {
+                    return Err(CapabilityPolicyError::DuplicateCapability { capability });
+                }
+
+                inner += 1;
+            }
+
+            outer += 1;
+        }
+
+        Ok(Self { policy_id, allowed })
+    }
+
+    /// Return the identifier of the externally defined policy.
+    pub const fn policy_id(&self) -> crate::PolicyId {
+        self.policy_id
+    }
+
+    /// Return the capabilities permitted by the resolved policy.
+    pub const fn allowed(&self) -> &'a [CapabilityId] {
+        self.allowed
+    }
+
+    /// Return the number of capabilities permitted by the policy.
+    pub const fn len(&self) -> usize {
+        self.allowed.len()
+    }
+
+    /// Return whether the resolved policy permits no capabilities.
+    pub const fn is_empty(&self) -> bool {
+        self.allowed.is_empty()
+    }
+
+    /// Return whether the resolved policy permits `capability`.
+    pub fn permits(&self, capability: CapabilityId) -> bool {
+        let mut index = 0;
+
+        while index < self.allowed.len() {
+            if self.allowed[index] == capability {
+                return true;
+            }
+
+            index += 1;
+        }
+
+        false
+    }
+}
+
+/// Select the locally preferred capability supported by the peer and policy.
+///
+/// Local offer ordering defines selection preference. The resolver walks the
+/// local offer from strongest to weakest and selects the first capability that
+/// is both present in `peer` and permitted by `policy`.
+///
+/// The order of the policy allow-list does not affect preference. If no
+/// capability satisfies all three constraints, this function returns `None`.
+///
+/// This operation does not interpret [`crate::PolicyId`] or perform provider
+/// resolution, transport I/O, session mutation, cryptographic execution, or
+/// wire processing.
+pub fn select_policy_permitted_common(
+    local: CapabilityOffer<'_>,
+    peer: CapabilityOffer<'_>,
+    policy: CapabilityPolicy<'_>,
+) -> Option<CapabilityId> {
+    let capabilities = local.capabilities();
+    let mut index = 0;
+
+    while index < capabilities.len() {
+        let capability = capabilities[index];
+
+        if peer.contains(capability) && policy.permits(capability) {
+            return Some(capability);
+        }
+
+        index += 1;
+    }
+
+    None
+}
+
+#[cfg(test)]
+mod policy_tests {
+    use super::*;
+    use crate::PolicyId;
+
+    #[test]
+    fn policy_preserves_identifier_and_allowed_capabilities() {
+        let allowed = [
+            CapabilityId::new(10),
+            CapabilityId::new(20),
+            CapabilityId::new(30),
+        ];
+
+        let policy = CapabilityPolicy::new(PolicyId::new(7), &allowed).unwrap();
+
+        assert_eq!(policy.policy_id(), PolicyId::new(7));
+        assert_eq!(policy.allowed(), &allowed);
+        assert_eq!(policy.len(), 3);
+        assert!(!policy.is_empty());
+    }
+
+    #[test]
+    fn empty_policy_is_structurally_valid() {
+        let policy = CapabilityPolicy::new(PolicyId::new(7), &[]).unwrap();
+
+        assert_eq!(policy.policy_id(), PolicyId::new(7));
+        assert!(policy.allowed().is_empty());
+        assert_eq!(policy.len(), 0);
+        assert!(policy.is_empty());
+    }
+
+    #[test]
+    fn duplicate_policy_capability_is_rejected() {
+        let allowed = [
+            CapabilityId::new(10),
+            CapabilityId::new(20),
+            CapabilityId::new(10),
+        ];
+
+        assert_eq!(
+            CapabilityPolicy::new(PolicyId::new(7), &allowed),
+            Err(CapabilityPolicyError::DuplicateCapability {
+                capability: CapabilityId::new(10),
+            })
+        );
+    }
+
+    #[test]
+    fn policy_reports_capability_permission() {
+        let allowed = [CapabilityId::new(10), CapabilityId::new(20)];
+        let policy = CapabilityPolicy::new(PolicyId::new(7), &allowed).unwrap();
+
+        assert!(policy.permits(CapabilityId::new(10)));
+        assert!(policy.permits(CapabilityId::new(20)));
+        assert!(!policy.permits(CapabilityId::new(30)));
+    }
+
+    #[test]
+    fn policy_can_exclude_first_mutually_supported_capability() {
+        let local_ids = [
+            CapabilityId::new(1),
+            CapabilityId::new(2),
+            CapabilityId::new(3),
+        ];
+        let peer_ids = [
+            CapabilityId::new(1),
+            CapabilityId::new(2),
+            CapabilityId::new(3),
+        ];
+        let allowed = [CapabilityId::new(2), CapabilityId::new(3)];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(1), &allowed).unwrap();
+
+        assert_eq!(
+            select_policy_permitted_common(local, peer, policy),
+            Some(CapabilityId::new(2))
+        );
+    }
+
+    #[test]
+    fn local_preference_remains_authoritative_after_policy_filtering() {
+        let local_ids = [
+            CapabilityId::new(1),
+            CapabilityId::new(2),
+            CapabilityId::new(3),
+        ];
+        let peer_ids = [
+            CapabilityId::new(3),
+            CapabilityId::new(2),
+            CapabilityId::new(1),
+        ];
+        let allowed = [CapabilityId::new(3), CapabilityId::new(1)];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(2), &allowed).unwrap();
+
+        assert_eq!(
+            select_policy_permitted_common(local, peer, policy),
+            Some(CapabilityId::new(1))
+        );
+    }
+
+    #[test]
+    fn policy_allow_list_order_does_not_change_selection() {
+        let local_ids = [
+            CapabilityId::new(1),
+            CapabilityId::new(2),
+            CapabilityId::new(3),
+        ];
+        let peer_ids = [
+            CapabilityId::new(1),
+            CapabilityId::new(2),
+            CapabilityId::new(3),
+        ];
+        let allowed_a = [CapabilityId::new(3), CapabilityId::new(2)];
+        let allowed_b = [CapabilityId::new(2), CapabilityId::new(3)];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+        let policy_a = CapabilityPolicy::new(PolicyId::new(3), &allowed_a).unwrap();
+        let policy_b = CapabilityPolicy::new(PolicyId::new(3), &allowed_b).unwrap();
+
+        assert_eq!(
+            select_policy_permitted_common(local, peer, policy_a),
+            Some(CapabilityId::new(2))
+        );
+        assert_eq!(
+            select_policy_permitted_common(local, peer, policy_b),
+            Some(CapabilityId::new(2))
+        );
+    }
+
+    #[test]
+    fn no_policy_permitted_common_capability_returns_none() {
+        let local_ids = [CapabilityId::new(1), CapabilityId::new(2)];
+        let peer_ids = [CapabilityId::new(1), CapabilityId::new(2)];
+        let allowed = [CapabilityId::new(3), CapabilityId::new(4)];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(4), &allowed).unwrap();
+
+        assert_eq!(select_policy_permitted_common(local, peer, policy), None);
+    }
+
+    #[test]
+    fn empty_policy_selects_nothing() {
+        let local_ids = [CapabilityId::new(1), CapabilityId::new(2)];
+        let peer_ids = [CapabilityId::new(1), CapabilityId::new(2)];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(5), &[]).unwrap();
+
+        assert_eq!(select_policy_permitted_common(local, peer, policy), None);
+    }
+
+    #[test]
+    fn selected_capability_satisfies_all_three_constraints() {
+        let local_ids = [
+            CapabilityId::new(10),
+            CapabilityId::new(20),
+            CapabilityId::new(30),
+        ];
+        let peer_ids = [
+            CapabilityId::new(40),
+            CapabilityId::new(30),
+            CapabilityId::new(20),
+        ];
+        let allowed = [CapabilityId::new(50), CapabilityId::new(30)];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(6), &allowed).unwrap();
+
+        let selected = select_policy_permitted_common(local, peer, policy).unwrap();
+
+        assert!(local.contains(selected));
+        assert!(peer.contains(selected));
+        assert!(policy.permits(selected));
+        assert_eq!(selected, CapabilityId::new(30));
+    }
+
+    #[test]
+    fn policy_constrained_selection_is_deterministic() {
+        let local_ids = [
+            CapabilityId::new(7),
+            CapabilityId::new(3),
+            CapabilityId::new(11),
+        ];
+        let peer_ids = [
+            CapabilityId::new(11),
+            CapabilityId::new(3),
+            CapabilityId::new(7),
+        ];
+        let allowed = [CapabilityId::new(11), CapabilityId::new(3)];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let peer = CapabilityOffer::new(&peer_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(8), &allowed).unwrap();
+
+        let expected = Some(CapabilityId::new(3));
+
+        for _ in 0..16 {
+            assert_eq!(
+                select_policy_permitted_common(local, peer, policy),
+                expected
+            );
+        }
+    }
+}

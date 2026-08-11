@@ -350,6 +350,24 @@ resistance rules. The operation is pure with respect to both offers and
 performs no policy interpretation, session transition, transport I/O,
 cryptographic algorithm resolution, or wire processing.
 
+`CapabilityPolicy<'a>` represents the output of policy resolution rather than
+performing policy interpretation itself. `PolicyId` identifies the externally
+defined policy, while the borrowed allow-list records the capabilities that an
+external policy-resolution layer has determined are permitted. Allow-list
+ordering has no preference semantics.
+
+`select_policy_permitted_common` retains local-offer preference precedence
+while adding the policy constraint. A selected capability must therefore be
+present in the local offer, present in the peer offer, and permitted by the
+resolved local policy. Policy filtering cannot reorder the remaining local
+candidates. An empty allow-list or the absence of a capability satisfying all
+three constraints produces no selection.
+
+This boundary keeps policy definition and provider resolution outside the
+protocol-negotiation mechanism. The protocol layer does not infer cryptographic
+semantics from `PolicyId`, map capabilities to concrete algorithms, perform
+provider selection, mutate session state, or bind the result to establishment.
+
 ## Cryptographic agility
 
 Applications should ultimately select security behavior through validated

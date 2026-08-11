@@ -98,6 +98,13 @@ there is no overlap. Selection can therefore return only a capability
 explicitly present in both validated offers and performs no policy evaluation,
 session mutation, transport I/O, cryptographic resolution, or wire processing.
 
+`CapabilityPolicy` represents already-resolved local policy constraints without
+interpreting `PolicyId` inside the protocol layer. Its borrowed allow-list
+defines which capabilities are permitted but does not define preference.
+`select_policy_permitted_common` preserves local-offer preference while
+requiring the selected capability to be present in both offers and permitted
+by local policy.
+
 ## Layering
 
 ```text
