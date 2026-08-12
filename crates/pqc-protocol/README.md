@@ -128,6 +128,22 @@ unsafe representation casts. `CapabilitySelectionPayload` and
 `PolicyId` remains local metadata and is never carried in these handshake
 payloads.
 
+The capability handshake now composes the canonical wire codec with explicit
+client and server orchestration state. The client emits an ordered capability
+offer and later validates an exact server-selected capability against its
+original offer and local policy. The server decodes the offer, applies its own
+local preference and policy, and emits either a canonical selection or
+rejection.
+
+Handshake processing deliberately does not establish the runtime session.
+Successful negotiation produces endpoint-local `NegotiatedCapability` evidence;
+the client and server must agree on the selected `CapabilityId`, while each may
+retain a distinct local `PolicyId`. Establishment remains an explicit later
+commit through `establish_with_negotiation`.
+
+The complete exchange is exercised through resumable `FrameTransmitter`,
+`MemoryTransport`, and `FrameReceiver` paths under deterministic fragmentation.
+
 ## Layering
 
 ```text

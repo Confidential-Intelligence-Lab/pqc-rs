@@ -459,6 +459,54 @@ It does not introduce client/server handshake state machines, transport
 execution, lifecycle commitment, provider resolution, or cryptographic
 execution.
 
+
+### Capability handshake orchestration
+
+Capability-handshake state remains protocol-specific rather than being added to
+`ProtocolSession` or `ProtocolDriver`.
+
+The client begins with an `OfferPending` state. Emitting the canonical
+capability offer moves it to `AwaitingSelection`. A received capability
+selection is treated as an untrusted peer assertion until the exact selected
+`CapabilityId` is validated against the client's original offer and resolved
+local policy. Successful validation yields local `NegotiatedCapability`
+evidence and moves the client to `SelectionValidated`; a canonical rejection
+moves it to `Rejected`.
+
+The server begins in `AwaitingOffer`. A valid decoded client offer is resolved
+against the server's ordered local offer and resolved policy. Successful
+resolution moves the server to `SelectionPending`; failure produces
+`RejectionPending`. Response construction emits the canonical selection or
+rejection payload and advances the corresponding handshake state without
+requesting a runtime-session establishment transition.
+
+The success transcript is therefore:
+
+    Client                                  Server
+      |                                       |
+      | CAPABILITY_OFFER                      |
+      |-------------------------------------->|
+      |                                       | decode + negotiate
+      |                                       | SelectionPending
+      | CAPABILITY_SELECTION                  |
+      |<--------------------------------------|
+      | validate exact selection              | SelectionEmitted
+      | SelectionValidated                    |
+      |                                       |
+      | explicit establishment commitment     |
+      |---------------------------------------|
+      | EstablishedProtocolContext            |
+
+Both endpoints must agree on the selected `CapabilityId`. `PolicyId` remains
+endpoint-local evidence, so the client and server may bind the same capability
+to different local policy identifiers.
+
+End-to-end assurance exercises this transcript through the actual resumable
+frame path using `FrameTransmitter`, deterministically fragmented
+`MemoryTransport`, and `FrameReceiver`. The tests verify that fragmentation
+does not alter negotiation semantics, neither side is implicitly moved to
+`Established`, and the resulting local negotiation evidence can be consumed
+only afterward by the explicit establishment boundary.
 ## Cryptographic agility
 
 Applications should ultimately select security behavior through validated
