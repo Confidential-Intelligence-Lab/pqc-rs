@@ -53,7 +53,10 @@ pub use handshake::{
     CapabilitySelectionPayload, DecodedCapabilityOffer, CAPABILITY_OFFER_MESSAGE_ID,
     CAPABILITY_REJECTION_MESSAGE_ID, CAPABILITY_SELECTION_MESSAGE_ID,
 };
-pub use handshake_state::{ServerCapabilityHandshake, ServerHandshakeError, ServerHandshakeState};
+pub use handshake_state::{
+    ClientCapabilityHandshake, ClientHandshakeError, ClientHandshakeState,
+    ServerCapabilityHandshake, ServerHandshakeError, ServerHandshakeState,
+};
 pub use identifiers::{PolicyId, ProtocolVersion, SessionId};
 pub use memory_transport::MemoryTransport;
 pub use message::{MessageClass, MessageId};
