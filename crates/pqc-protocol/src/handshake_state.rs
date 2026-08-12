@@ -1226,3 +1226,355 @@ mod client_tests {
         assert_eq!(context.capability(), CapabilityId::new(20));
     }
 }
+
+#[cfg(test)]
+mod end_to_end_handshake_tests {
+    use super::*;
+    use crate::{
+        CapabilityId, FrameReceiver, FrameTransmitter, PolicyId, ProtocolFrame, ProtocolId,
+        ProtocolRole, ProtocolSession, ProtocolVersion, SessionId, SessionState, TransportError,
+    };
+
+    const FRAME_STORAGE_LEN: usize = 128;
+    const PAYLOAD_STORAGE_LEN: usize = 64;
+    const TRANSPORT_CAPACITY: usize = 128;
+
+    fn transmit_response_into_transport<const N: usize>(
+        response: OutboundResponse<'_>,
+        direction: ProtocolDirection,
+        transport: &mut crate::MemoryTransport<N>,
+    ) {
+        let frame = ProtocolFrame::current(
+            ProtocolVersion::new(1, 0),
+            ProtocolId::new(0x1300),
+            response.message_id(),
+            response.message_class(),
+            direction,
+            response.payload(),
+        )
+        .unwrap();
+
+        let mut scratch = [0_u8; FRAME_STORAGE_LEN];
+        let mut transmitter = FrameTransmitter::new(&frame, &mut scratch).unwrap();
+
+        while !transmitter.is_complete() {
+            match transmitter.advance(transport) {
+                Ok(_) => {}
+                Err(crate::FrameTransferError::Transport(TransportError::Pending)) => {
+                    panic!("transport capacity unexpectedly exhausted");
+                }
+                Err(error) => panic!("unexpected transmit failure: {error:?}"),
+            }
+        }
+    }
+
+    fn receive_frame_from_transport<const N: usize>(
+        transport: &mut crate::MemoryTransport<N>,
+        storage: &mut [u8],
+    ) -> usize {
+        let mut receiver = FrameReceiver::new(storage).unwrap();
+
+        while !receiver.is_complete() {
+            match receiver.advance(transport) {
+                Ok(_) => {}
+                Err(crate::FrameTransferError::Transport(TransportError::Pending)) => {
+                    panic!("transport became pending before frame completion");
+                }
+                Err(error) => panic!("unexpected receive failure: {error:?}"),
+            }
+        }
+
+        let frame_len = receiver.expected_len().unwrap();
+        assert_eq!(receiver.received_len(), frame_len);
+        assert!(receiver.frame().unwrap().is_some());
+
+        frame_len
+    }
+
+    #[test]
+    fn fragmented_end_to_end_handshake_produces_matching_capability_evidence() {
+        let client_ids = [
+            CapabilityId::new(10),
+            CapabilityId::new(20),
+            CapabilityId::new(30),
+        ];
+        let client_allowed = [CapabilityId::new(20), CapabilityId::new(30)];
+
+        let server_ids = [
+            CapabilityId::new(30),
+            CapabilityId::new(20),
+            CapabilityId::new(40),
+        ];
+        let server_allowed = [
+            CapabilityId::new(20),
+            CapabilityId::new(30),
+            CapabilityId::new(40),
+        ];
+
+        let client_policy_id = PolicyId::new(0x101);
+        let server_policy_id = PolicyId::new(0x202);
+
+        let mut client = ClientCapabilityHandshake::new(
+            CapabilityOffer::new(&client_ids).unwrap(),
+            CapabilityPolicy::new(client_policy_id, &client_allowed).unwrap(),
+        );
+
+        let mut server = ServerCapabilityHandshake::new(
+            CapabilityOffer::new(&server_ids).unwrap(),
+            CapabilityPolicy::new(server_policy_id, &server_allowed).unwrap(),
+        );
+
+        /*
+         * A one-byte transfer limit deliberately fragments both the fixed
+         * frame header and handshake payload. The handshake therefore crosses
+         * the complete resumable frame transport path.
+         */
+        let mut client_to_server = crate::MemoryTransport::<TRANSPORT_CAPACITY>::new(1).unwrap();
+        let mut server_to_client = crate::MemoryTransport::<TRANSPORT_CAPACITY>::new(1).unwrap();
+
+        /*
+         * Client -> server capability offer.
+         */
+        let mut client_payload = [0_u8; PAYLOAD_STORAGE_LEN];
+        let offer_response = client.write_response(&mut client_payload).unwrap();
+
+        assert_eq!(client.state(), ClientHandshakeState::AwaitingSelection);
+
+        transmit_response_into_transport(
+            offer_response,
+            ProtocolDirection::ClientToServer,
+            &mut client_to_server,
+        );
+
+        let mut server_frame_storage = [0_u8; FRAME_STORAGE_LEN];
+        let offer_frame_len =
+            receive_frame_from_transport(&mut client_to_server, &mut server_frame_storage);
+        let offer_frame =
+            ProtocolFrame::decode_exact(&server_frame_storage[..offer_frame_len]).unwrap();
+
+        let server_outcome = server.handle_frame(&offer_frame).unwrap();
+
+        assert_eq!(server_outcome, HandlerOutcome::new(HandlerAction::Respond));
+        assert_eq!(server_outcome.requested_transition(), None);
+
+        let server_evidence = server.pending_negotiated().unwrap();
+
+        /*
+         * Server local ordering is authoritative among common,
+         * policy-permitted capabilities: 30 precedes 20.
+         */
+        assert_eq!(server_evidence.capability(), CapabilityId::new(30));
+        assert_eq!(server_evidence.policy_id(), server_policy_id);
+
+        /*
+         * Server -> client canonical selection.
+         */
+        let mut server_payload = [0_u8; PAYLOAD_STORAGE_LEN];
+        let selection_response = server.write_response(&mut server_payload).unwrap();
+
+        assert_eq!(
+            server.state(),
+            ServerHandshakeState::SelectionEmitted(server_evidence)
+        );
+
+        transmit_response_into_transport(
+            selection_response,
+            ProtocolDirection::ServerToClient,
+            &mut server_to_client,
+        );
+
+        let mut client_frame_storage = [0_u8; FRAME_STORAGE_LEN];
+        let selection_frame_len =
+            receive_frame_from_transport(&mut server_to_client, &mut client_frame_storage);
+        let selection_frame =
+            ProtocolFrame::decode_exact(&client_frame_storage[..selection_frame_len]).unwrap();
+
+        let client_outcome = client.handle_frame(&selection_frame).unwrap();
+
+        assert_eq!(client_outcome, HandlerOutcome::new(HandlerAction::Continue));
+        assert_eq!(client_outcome.requested_transition(), None);
+
+        let client_evidence = client.validated_negotiated().unwrap();
+
+        /*
+         * Both endpoints agree on the capability while independently binding
+         * it to their own resolved local policy.
+         */
+        assert_eq!(client_evidence.capability(), server_evidence.capability());
+        assert_eq!(client_evidence.capability(), CapabilityId::new(30));
+
+        assert_eq!(client_evidence.policy_id(), client_policy_id);
+        assert_eq!(server_evidence.policy_id(), server_policy_id);
+    }
+
+    #[test]
+    fn fragmented_handshake_does_not_implicitly_establish_sessions() {
+        let client_ids = [CapabilityId::new(1), CapabilityId::new(2)];
+        let server_ids = [CapabilityId::new(2), CapabilityId::new(1)];
+        let allowed = [CapabilityId::new(1), CapabilityId::new(2)];
+
+        let mut client = ClientCapabilityHandshake::new(
+            CapabilityOffer::new(&client_ids).unwrap(),
+            CapabilityPolicy::new(PolicyId::new(11), &allowed).unwrap(),
+        );
+
+        let mut server = ServerCapabilityHandshake::new(
+            CapabilityOffer::new(&server_ids).unwrap(),
+            CapabilityPolicy::new(PolicyId::new(22), &allowed).unwrap(),
+        );
+
+        let mut client_session = ProtocolSession::new(
+            SessionId::from_bytes([0x31; 16]),
+            ProtocolId::new(0x1300),
+            ProtocolVersion::new(1, 0),
+            ProtocolRole::Client,
+        );
+        client_session
+            .transition_to(SessionState::Establishing)
+            .unwrap();
+
+        let mut server_session = ProtocolSession::new(
+            SessionId::from_bytes([0x32; 16]),
+            ProtocolId::new(0x1300),
+            ProtocolVersion::new(1, 0),
+            ProtocolRole::Server,
+        );
+        server_session
+            .transition_to(SessionState::Establishing)
+            .unwrap();
+
+        let mut client_to_server = crate::MemoryTransport::<TRANSPORT_CAPACITY>::new(2).unwrap();
+        let mut server_to_client = crate::MemoryTransport::<TRANSPORT_CAPACITY>::new(2).unwrap();
+
+        let mut payload = [0_u8; PAYLOAD_STORAGE_LEN];
+        let offer = client.write_response(&mut payload).unwrap();
+
+        transmit_response_into_transport(
+            offer,
+            ProtocolDirection::ClientToServer,
+            &mut client_to_server,
+        );
+
+        let mut server_storage = [0_u8; FRAME_STORAGE_LEN];
+        let offer_frame_len =
+            receive_frame_from_transport(&mut client_to_server, &mut server_storage);
+        let offer_frame = ProtocolFrame::decode_exact(&server_storage[..offer_frame_len]).unwrap();
+
+        let outcome = server.handle_frame(&offer_frame).unwrap();
+
+        assert_eq!(outcome.requested_transition(), None);
+        assert_eq!(client_session.state(), SessionState::Establishing);
+        assert_eq!(server_session.state(), SessionState::Establishing);
+
+        let server_evidence = server.pending_negotiated().unwrap();
+
+        let selection = server.write_response(&mut payload).unwrap();
+
+        transmit_response_into_transport(
+            selection,
+            ProtocolDirection::ServerToClient,
+            &mut server_to_client,
+        );
+
+        let mut client_storage = [0_u8; FRAME_STORAGE_LEN];
+        let selection_frame_len =
+            receive_frame_from_transport(&mut server_to_client, &mut client_storage);
+        let selection_frame =
+            ProtocolFrame::decode_exact(&client_storage[..selection_frame_len]).unwrap();
+
+        let outcome = client.handle_frame(&selection_frame).unwrap();
+
+        assert_eq!(outcome.requested_transition(), None);
+        assert_eq!(client_session.state(), SessionState::Establishing);
+        assert_eq!(server_session.state(), SessionState::Establishing);
+
+        let client_evidence = client.validated_negotiated().unwrap();
+
+        assert_eq!(client_evidence.capability(), server_evidence.capability());
+    }
+
+    #[test]
+    fn end_to_end_evidence_can_be_committed_only_after_handshake_completion() {
+        let client_ids = [CapabilityId::new(7), CapabilityId::new(8)];
+        let server_ids = [CapabilityId::new(8), CapabilityId::new(7)];
+        let allowed = [CapabilityId::new(7), CapabilityId::new(8)];
+
+        let client_policy_id = PolicyId::new(31);
+        let server_policy_id = PolicyId::new(32);
+
+        let mut client = ClientCapabilityHandshake::new(
+            CapabilityOffer::new(&client_ids).unwrap(),
+            CapabilityPolicy::new(client_policy_id, &allowed).unwrap(),
+        );
+
+        let mut server = ServerCapabilityHandshake::new(
+            CapabilityOffer::new(&server_ids).unwrap(),
+            CapabilityPolicy::new(server_policy_id, &allowed).unwrap(),
+        );
+
+        let mut c2s = crate::MemoryTransport::<TRANSPORT_CAPACITY>::new(1).unwrap();
+        let mut s2c = crate::MemoryTransport::<TRANSPORT_CAPACITY>::new(1).unwrap();
+
+        let mut payload = [0_u8; PAYLOAD_STORAGE_LEN];
+
+        let offer = client.write_response(&mut payload).unwrap();
+        transmit_response_into_transport(offer, ProtocolDirection::ClientToServer, &mut c2s);
+
+        let mut server_storage = [0_u8; FRAME_STORAGE_LEN];
+        let frame_len = receive_frame_from_transport(&mut c2s, &mut server_storage);
+        let frame = ProtocolFrame::decode_exact(&server_storage[..frame_len]).unwrap();
+        server.handle_frame(&frame).unwrap();
+
+        let server_evidence = server.pending_negotiated().unwrap();
+
+        let selection = server.write_response(&mut payload).unwrap();
+        transmit_response_into_transport(selection, ProtocolDirection::ServerToClient, &mut s2c);
+
+        let mut client_storage = [0_u8; FRAME_STORAGE_LEN];
+        let frame_len = receive_frame_from_transport(&mut s2c, &mut client_storage);
+        let frame = ProtocolFrame::decode_exact(&client_storage[..frame_len]).unwrap();
+        client.handle_frame(&frame).unwrap();
+
+        let client_evidence = client.validated_negotiated().unwrap();
+
+        assert_eq!(client_evidence.capability(), server_evidence.capability());
+
+        /*
+         * Only now do both endpoints cross the explicit establishment
+         * boundary using their independently produced local evidence.
+         */
+        let client_established = crate::TypedProtocolSession::new(
+            SessionId::from_bytes([0x41; 16]),
+            ProtocolId::new(0x1300),
+            ProtocolVersion::new(1, 0),
+            ProtocolRole::Client,
+        )
+        .begin_establishment()
+        .establish_with_negotiation(client_evidence);
+
+        let server_established = crate::TypedProtocolSession::new(
+            SessionId::from_bytes([0x42; 16]),
+            ProtocolId::new(0x1300),
+            ProtocolVersion::new(1, 0),
+            ProtocolRole::Server,
+        )
+        .begin_establishment()
+        .establish_with_negotiation(server_evidence);
+
+        assert_eq!(
+            client_established.session().runtime_state(),
+            SessionState::Established
+        );
+        assert_eq!(
+            server_established.session().runtime_state(),
+            SessionState::Established
+        );
+
+        assert_eq!(
+            client_established.capability(),
+            server_established.capability()
+        );
+        assert_eq!(client_established.policy_id(), client_policy_id);
+        assert_eq!(server_established.policy_id(), server_policy_id);
+    }
+}
