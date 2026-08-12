@@ -838,6 +838,68 @@ pub fn negotiate_policy_permitted_common(
     })
 }
 
+/// Negotiate against a validated capability offer decoded from the wire.
+///
+/// Local offer ordering remains authoritative. The first local capability
+/// that is also present in `peer` and permitted by `policy` is selected and
+/// bound to the local policy identifier.
+///
+/// The decoded peer offer is queried directly without allocation or
+/// materialization into a second [`CapabilityOffer`].
+///
+/// This operation performs no transport I/O, session mutation, provider
+/// resolution, or cryptographic execution.
+pub fn negotiate_decoded_policy_permitted_common(
+    local: CapabilityOffer<'_>,
+    peer: crate::DecodedCapabilityOffer<'_>,
+    policy: CapabilityPolicy<'_>,
+) -> Option<NegotiatedCapability> {
+    let capabilities = local.capabilities();
+    let mut index = 0;
+
+    while index < capabilities.len() {
+        let capability = capabilities[index];
+
+        if peer.contains(capability) && policy.permits(capability) {
+            return Some(NegotiatedCapability {
+                policy_id: policy.policy_id(),
+                capability,
+            });
+        }
+
+        index += 1;
+    }
+
+    None
+}
+
+/// Validate an exact capability selected by a peer.
+///
+/// A selection is accepted only when the capability appeared in the original
+/// local offer and remains permitted by the resolved local policy. Successful
+/// validation binds the selected capability to the local policy identifier in
+/// a [`NegotiatedCapability`].
+///
+/// This function validates the peer's exact selection; it does not substitute
+/// a different locally preferred capability.
+///
+/// This operation performs no transport I/O, session mutation, provider
+/// resolution, or cryptographic execution.
+pub fn validate_selected_capability(
+    local: CapabilityOffer<'_>,
+    selected: CapabilityId,
+    policy: CapabilityPolicy<'_>,
+) -> Option<NegotiatedCapability> {
+    if !local.contains(selected) || !policy.permits(selected) {
+        return None;
+    }
+
+    Some(NegotiatedCapability {
+        policy_id: policy.policy_id(),
+        capability: selected,
+    })
+}
+
 #[cfg(test)]
 mod negotiated_capability_tests {
     use super::*;
@@ -937,5 +999,270 @@ mod negotiated_capability_tests {
         assert_eq!(copied, negotiated);
         assert_eq!(copied.policy_id(), PolicyId::new(11));
         assert_eq!(copied.capability(), CapabilityId::new(42));
+    }
+}
+
+#[cfg(test)]
+mod decoded_handshake_negotiation_tests {
+    use super::*;
+    use crate::{DecodedCapabilityOffer, PolicyId};
+
+    fn encode_offer(capabilities: &[CapabilityId], output: &mut [u8]) -> usize {
+        let required = 2 + capabilities.len() * 2;
+
+        assert!(output.len() >= required);
+        assert!(capabilities.len() <= u16::MAX as usize);
+
+        output[..2].copy_from_slice(&(capabilities.len() as u16).to_be_bytes());
+
+        for (index, capability) in capabilities.iter().enumerate() {
+            let offset = 2 + index * 2;
+            output[offset..offset + 2].copy_from_slice(&capability.value().to_be_bytes());
+        }
+
+        required
+    }
+
+    #[test]
+    fn decoded_negotiation_selects_strongest_local_common_permitted_capability() {
+        let local_ids = [
+            CapabilityId::new(10),
+            CapabilityId::new(20),
+            CapabilityId::new(30),
+        ];
+        let peer_ids = [
+            CapabilityId::new(30),
+            CapabilityId::new(20),
+            CapabilityId::new(10),
+        ];
+        let allowed = local_ids;
+        let mut encoded = [0_u8; 8];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(1), &allowed).unwrap();
+        let length = encode_offer(&peer_ids, &mut encoded);
+        let peer = DecodedCapabilityOffer::decode_exact(&encoded[..length]).unwrap();
+
+        let negotiated = negotiate_decoded_policy_permitted_common(local, peer, policy).unwrap();
+
+        assert_eq!(negotiated.capability(), CapabilityId::new(10));
+        assert_eq!(negotiated.policy_id(), PolicyId::new(1));
+    }
+
+    #[test]
+    fn decoded_peer_order_cannot_override_local_preference() {
+        let local_ids = [
+            CapabilityId::new(1),
+            CapabilityId::new(2),
+            CapabilityId::new(3),
+        ];
+        let peer_ids = [
+            CapabilityId::new(3),
+            CapabilityId::new(2),
+            CapabilityId::new(1),
+        ];
+        let allowed = local_ids;
+        let mut encoded = [0_u8; 8];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(2), &allowed).unwrap();
+        let length = encode_offer(&peer_ids, &mut encoded);
+        let peer = DecodedCapabilityOffer::decode_exact(&encoded[..length]).unwrap();
+
+        assert_eq!(
+            negotiate_decoded_policy_permitted_common(local, peer, policy)
+                .unwrap()
+                .capability(),
+            CapabilityId::new(1)
+        );
+    }
+
+    #[test]
+    fn decoded_negotiation_applies_policy_filtering() {
+        let local_ids = [
+            CapabilityId::new(1),
+            CapabilityId::new(2),
+            CapabilityId::new(3),
+        ];
+        let peer_ids = local_ids;
+        let allowed = [CapabilityId::new(2), CapabilityId::new(3)];
+        let mut encoded = [0_u8; 8];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(3), &allowed).unwrap();
+        let length = encode_offer(&peer_ids, &mut encoded);
+        let peer = DecodedCapabilityOffer::decode_exact(&encoded[..length]).unwrap();
+
+        assert_eq!(
+            negotiate_decoded_policy_permitted_common(local, peer, policy)
+                .unwrap()
+                .capability(),
+            CapabilityId::new(2)
+        );
+    }
+
+    #[test]
+    fn decoded_peer_only_capability_cannot_be_selected() {
+        let local_ids = [CapabilityId::new(10), CapabilityId::new(20)];
+        let peer_ids = [CapabilityId::new(999), CapabilityId::new(20)];
+        let allowed = [
+            CapabilityId::new(999),
+            CapabilityId::new(10),
+            CapabilityId::new(20),
+        ];
+        let mut encoded = [0_u8; 6];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(4), &allowed).unwrap();
+        let length = encode_offer(&peer_ids, &mut encoded);
+        let peer = DecodedCapabilityOffer::decode_exact(&encoded[..length]).unwrap();
+
+        let negotiated = negotiate_decoded_policy_permitted_common(local, peer, policy).unwrap();
+
+        assert_eq!(negotiated.capability(), CapabilityId::new(20));
+        assert_ne!(negotiated.capability(), CapabilityId::new(999));
+    }
+
+    #[test]
+    fn decoded_negotiation_returns_none_without_common_capability() {
+        let local_ids = [CapabilityId::new(1), CapabilityId::new(2)];
+        let peer_ids = [CapabilityId::new(3), CapabilityId::new(4)];
+        let allowed = [
+            CapabilityId::new(1),
+            CapabilityId::new(2),
+            CapabilityId::new(3),
+            CapabilityId::new(4),
+        ];
+        let mut encoded = [0_u8; 6];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(5), &allowed).unwrap();
+        let length = encode_offer(&peer_ids, &mut encoded);
+        let peer = DecodedCapabilityOffer::decode_exact(&encoded[..length]).unwrap();
+
+        assert_eq!(
+            negotiate_decoded_policy_permitted_common(local, peer, policy),
+            None
+        );
+    }
+
+    #[test]
+    fn decoded_negotiation_returns_none_without_policy_permitted_common_capability() {
+        let local_ids = [CapabilityId::new(1), CapabilityId::new(2)];
+        let peer_ids = local_ids;
+        let allowed = [CapabilityId::new(9)];
+        let mut encoded = [0_u8; 6];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(6), &allowed).unwrap();
+        let length = encode_offer(&peer_ids, &mut encoded);
+        let peer = DecodedCapabilityOffer::decode_exact(&encoded[..length]).unwrap();
+
+        assert_eq!(
+            negotiate_decoded_policy_permitted_common(local, peer, policy),
+            None
+        );
+    }
+
+    #[test]
+    fn semantic_and_decoded_negotiation_are_equivalent() {
+        let local_ids = [
+            CapabilityId::new(10),
+            CapabilityId::new(20),
+            CapabilityId::new(30),
+        ];
+        let peer_ids = [CapabilityId::new(30), CapabilityId::new(20)];
+        let allowed = [CapabilityId::new(20), CapabilityId::new(30)];
+        let mut encoded = [0_u8; 6];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let semantic_peer = CapabilityOffer::new(&peer_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(7), &allowed).unwrap();
+
+        let expected = negotiate_policy_permitted_common(local, semantic_peer, policy);
+
+        let length = encode_offer(&peer_ids, &mut encoded);
+        let decoded_peer = DecodedCapabilityOffer::decode_exact(&encoded[..length]).unwrap();
+
+        let actual = negotiate_decoded_policy_permitted_common(local, decoded_peer, policy);
+
+        assert_eq!(actual, expected);
+    }
+
+    #[test]
+    fn selected_capability_is_accepted_when_offered_and_permitted() {
+        let local_ids = [CapabilityId::new(10), CapabilityId::new(20)];
+        let allowed = local_ids;
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(8), &allowed).unwrap();
+
+        let negotiated =
+            validate_selected_capability(local, CapabilityId::new(20), policy).unwrap();
+
+        assert_eq!(negotiated.capability(), CapabilityId::new(20));
+        assert_eq!(negotiated.policy_id(), PolicyId::new(8));
+    }
+
+    #[test]
+    fn selected_capability_is_rejected_when_policy_forbids_it() {
+        let local_ids = [CapabilityId::new(10), CapabilityId::new(20)];
+        let allowed = [CapabilityId::new(10)];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(9), &allowed).unwrap();
+
+        assert_eq!(
+            validate_selected_capability(local, CapabilityId::new(20), policy),
+            None
+        );
+    }
+
+    #[test]
+    fn selected_capability_is_rejected_when_never_offered() {
+        let local_ids = [CapabilityId::new(10), CapabilityId::new(20)];
+        let allowed = [
+            CapabilityId::new(10),
+            CapabilityId::new(20),
+            CapabilityId::new(30),
+        ];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(10), &allowed).unwrap();
+
+        assert_eq!(
+            validate_selected_capability(local, CapabilityId::new(30), policy),
+            None
+        );
+    }
+
+    #[test]
+    fn completely_unknown_selected_capability_is_rejected() {
+        let local_ids = [CapabilityId::new(1)];
+        let allowed = [CapabilityId::new(1)];
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let policy = CapabilityPolicy::new(PolicyId::new(11), &allowed).unwrap();
+
+        assert_eq!(
+            validate_selected_capability(local, CapabilityId::new(999), policy),
+            None
+        );
+    }
+
+    #[test]
+    fn selected_validation_binds_exact_local_policy_and_capability() {
+        let local_ids = [CapabilityId::new(100), CapabilityId::new(200)];
+        let allowed = [CapabilityId::new(200), CapabilityId::new(100)];
+        let policy_id = PolicyId::new(0x55);
+
+        let local = CapabilityOffer::new(&local_ids).unwrap();
+        let policy = CapabilityPolicy::new(policy_id, &allowed).unwrap();
+
+        let negotiated =
+            validate_selected_capability(local, CapabilityId::new(200), policy).unwrap();
+
+        assert_eq!(negotiated.policy_id(), policy_id);
+        assert_eq!(negotiated.capability(), CapabilityId::new(200));
     }
 }

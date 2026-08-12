@@ -58,7 +58,8 @@ pub use message::{MessageClass, MessageId};
 pub use message_trait::ProtocolMessage;
 pub use metadata::{CapabilityId, ProtocolDirection, ProtocolId};
 pub use negotiation::{
-    negotiate_policy_permitted_common, select_policy_permitted_common, select_preferred_common,
+    negotiate_decoded_policy_permitted_common, negotiate_policy_permitted_common,
+    select_policy_permitted_common, select_preferred_common, validate_selected_capability,
     CapabilityOffer, CapabilityOfferError, CapabilityOfferResult, CapabilityPolicy,
     CapabilityPolicyError, CapabilityPolicyResult, NegotiatedCapability,
 };
