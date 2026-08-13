@@ -789,6 +789,7 @@ version = "0.4.0"
 dependencies = [
  "pqc-rs-hpke",
  "pqc-rs-protocol",
+ "rand_core",
 ]
 
 [[package]]

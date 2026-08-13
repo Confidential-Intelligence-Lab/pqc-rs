@@ -7,6 +7,13 @@
 //! capability identifiers cannot directly supply KEM, KDF, or AEAD
 //! identifiers.
 
+mod activation;
+
+pub use activation::{
+    activate_receiver, activate_sender, SecureChannelError, SecureChannelReceiver,
+    SecureChannelSender, SenderActivation,
+};
+
 use core::fmt;
 
 use pqc_hpke::{hybrid_kem::HybridKem, AeadId, HpkeSuite, HpkeSuiteId, KdfId, MlKemHpke};
