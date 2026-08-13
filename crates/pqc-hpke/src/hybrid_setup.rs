@@ -1,5 +1,7 @@
 //! Base-mode HPKE setup for PQ/traditional hybrid KEMs.
 
+use rand_core::{CryptoRng, RngCore};
+
 use crate::aead::AeadAlgorithm;
 use crate::context::{ReceiverContext, SenderContext};
 use crate::hybrid_kem::{HybridKem, HybridKemError};
@@ -14,6 +16,25 @@ pub struct HybridBaseSenderSetup {
     pub encapsulated_key: Vec<u8>,
     /// Sender context.
     pub context: SenderContext,
+}
+
+/// Set up a hybrid Base-mode sender using fresh caller-supplied
+/// cryptographic randomness.
+pub fn setup_hybrid_base_sender<R>(
+    kem: HybridKem,
+    suite: HpkeSuiteId,
+    recipient_public_key: &[u8],
+    info: &[u8],
+    rng: &mut R,
+) -> Result<HybridBaseSenderSetup, HpkeError>
+where
+    R: CryptoRng + RngCore,
+{
+    let mut randomness = vec![0_u8; kem.randomness_length()];
+    rng.try_fill_bytes(&mut randomness)
+        .map_err(|_| HpkeError::RandomnessFailure)?;
+
+    setup_hybrid_base_sender_deterministic(kem, suite, recipient_public_key, info, &randomness)
 }
 
 /// Deterministically set up a hybrid Base-mode sender.
