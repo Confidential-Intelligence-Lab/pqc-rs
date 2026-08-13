@@ -19,6 +19,8 @@ mod establishment;
 mod frame;
 mod frame_transport;
 mod handler;
+mod handshake;
+mod handshake_state;
 mod identifiers;
 mod memory_transport;
 mod message;
@@ -46,13 +48,23 @@ pub use frame_transport::{
     FrameReceiver, FrameTransferError, FrameTransferResult, FrameTransmitter,
 };
 pub use handler::{HandlerAction, HandlerOutcome, ProtocolHandler};
+pub use handshake::{
+    CapabilityOfferPayload, CapabilityRejectionPayload, CapabilityRejectionReason,
+    CapabilitySelectionPayload, DecodedCapabilityOffer, CAPABILITY_OFFER_MESSAGE_ID,
+    CAPABILITY_REJECTION_MESSAGE_ID, CAPABILITY_SELECTION_MESSAGE_ID,
+};
+pub use handshake_state::{
+    ClientCapabilityHandshake, ClientHandshakeError, ClientHandshakeState,
+    ServerCapabilityHandshake, ServerHandshakeError, ServerHandshakeState,
+};
 pub use identifiers::{PolicyId, ProtocolVersion, SessionId};
 pub use memory_transport::MemoryTransport;
 pub use message::{MessageClass, MessageId};
 pub use message_trait::ProtocolMessage;
 pub use metadata::{CapabilityId, ProtocolDirection, ProtocolId};
 pub use negotiation::{
-    negotiate_policy_permitted_common, select_policy_permitted_common, select_preferred_common,
+    negotiate_decoded_policy_permitted_common, negotiate_policy_permitted_common,
+    select_policy_permitted_common, select_preferred_common, validate_selected_capability,
     CapabilityOffer, CapabilityOfferError, CapabilityOfferResult, CapabilityPolicy,
     CapabilityPolicyError, CapabilityPolicyResult, NegotiatedCapability,
 };
