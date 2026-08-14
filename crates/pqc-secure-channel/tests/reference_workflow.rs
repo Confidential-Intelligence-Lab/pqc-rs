@@ -88,11 +88,7 @@ fn fixtures() -> [ProfileFixture; 3] {
     [
         ml_kem_fixture(HPKE_ML_KEM_768, MlKemHpke::MlKem768, 0x11),
         ml_kem_fixture(HPKE_ML_KEM_1024, MlKemHpke::MlKem1024, 0x21),
-        hybrid_fixture(
-            HPKE_ML_KEM_768_X25519,
-            HybridKem::MlKem768X25519,
-            0x31,
-        ),
+        hybrid_fixture(HPKE_ML_KEM_768_X25519, HybridKem::MlKem768X25519, 0x31),
     ]
 }
 
@@ -100,11 +96,7 @@ fn other_capabilities(target: CapabilityId) -> [CapabilityId; 2] {
     let mut others = [CapabilityId::new(0); 2];
     let mut index = 0;
 
-    for capability in [
-        HPKE_ML_KEM_768,
-        HPKE_ML_KEM_1024,
-        HPKE_ML_KEM_768_X25519,
-    ] {
+    for capability in [HPKE_ML_KEM_768, HPKE_ML_KEM_1024, HPKE_ML_KEM_768_X25519] {
         if capability != target {
             others[index] = capability;
             index += 1;
@@ -115,10 +107,7 @@ fn other_capabilities(target: CapabilityId) -> [CapabilityId; 2] {
     others
 }
 
-fn negotiate(
-    capability: CapabilityId,
-    policy_id: PolicyId,
-) -> pqc_protocol::NegotiatedCapability {
+fn negotiate(capability: CapabilityId, policy_id: PolicyId) -> pqc_protocol::NegotiatedCapability {
     let [a, b] = other_capabilities(capability);
 
     let local_ids = [capability, a, b];
@@ -184,13 +173,8 @@ fn exercise_reference_workflow(fixture: &ProfileFixture) {
 
     let mut rng = DeterministicRng::new(0x51);
 
-    let sender_activation = activate_sender(
-        &client,
-        &fixture.public_key,
-        APPLICATION_CONTEXT,
-        &mut rng,
-    )
-    .unwrap();
+    let sender_activation =
+        activate_sender(&client, &fixture.public_key, APPLICATION_CONTEXT, &mut rng).unwrap();
 
     let (encapsulated_key, mut sender) = sender_activation.into_parts();
 
