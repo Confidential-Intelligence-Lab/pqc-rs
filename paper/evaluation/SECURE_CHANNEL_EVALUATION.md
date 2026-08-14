@@ -402,3 +402,207 @@ E10  Reproducibility freeze
 
 Performance result collection must not begin until the relevant benchmark
 semantics and fixtures have been frozen and validated.
+
+## 14. E1b Benchmark Matrix and Fixture Contract
+
+This section freezes the initial benchmark matrix and fixture architecture
+before reference-workflow and Criterion implementation.
+
+### 14.1 Profile Parameterization
+
+All successful-path benchmarks are parameterized over the same three
+registered secure-channel capabilities:
+
+| Benchmark label | Capability |
+| --- | --- |
+| `MLKEM768` | `HPKE_ML_KEM_768` (`0x0101`) |
+| `MLKEM1024` | `HPKE_ML_KEM_1024` (`0x0102`) |
+| `MLKEM768-X25519` | `HPKE_ML_KEM_768_X25519` (`0x0111`) |
+
+A common fixture representation supplies at least:
+
+- benchmark label;
+- capability identifier;
+- recipient public key material;
+- recipient private key material.
+
+Algorithm-specific key-material construction is confined to fixture
+preparation. Negotiation, establishment, resolution, binding, activation, and
+protected-message benchmark workflows must not contain separate
+profile-specific application paths.
+
+### 14.2 Controlled Negotiation Fixture
+
+Capability negotiation uses structurally equivalent three-capability inputs
+for every target profile.
+
+For target capability `T`, with the other registered capabilities denoted
+`A` and `B`, the fixture has the form:
+
+~~~text
+local offer:  [T, A, B]
+peer offer:   [A, T, B]
+policy allow: [A, B, T]
+~~~
+
+All three lists contain exactly the three registered secure-channel
+capabilities and contain no duplicates.
+
+Local offer preference is authoritative, so the expected negotiated
+capability is always `T`. The permutation is constructed consistently for all
+profiles so that capability identity is not intentionally coupled to a
+different negotiation-list size or target preference rank.
+
+The `negotiation` microbenchmark begins with already validated
+`CapabilityOffer` and `CapabilityPolicy` values and times
+`negotiate_policy_permitted_common`.
+
+Offer and policy construction are therefore excluded from the negotiation
+microbenchmark but are included where specified in end-to-end establishment.
+
+### 14.3 Common Protocol Fixture Values
+
+Unless a later experiment explicitly varies one of these values, successful
+profile comparisons use common protocol semantics:
+
+~~~text
+protocol identifier:  0x1300
+protocol version:     1.0
+client session bytes: [0x41; 16]
+server session bytes: [0x42; 16]
+client role:          Client
+server role:          Server
+~~~
+
+Client and server policy identifiers remain endpoint-local and distinct.
+Their numeric values must not be derived from the negotiated capability
+identifier.
+
+The application context and AAD are fixed byte strings shared across profile
+comparisons.
+
+### 14.4 Recipient Key Material
+
+Recipient key material is generated or deterministically derived during
+fixture preparation and outside timed activation regions.
+
+Pure ML-KEM and hybrid profiles may require different implementation-level
+key-derivation APIs. Those differences are normalized by fixture preparation
+into serialized public and private material consumed by the public
+secure-channel activation APIs.
+
+Recipient key generation is not part of sender activation, receiver
+activation, or initial end-to-end establishment measurements.
+
+### 14.5 Randomness
+
+Correctness fixtures may use deterministic test randomness when required for
+repeatability.
+
+Performance measurements of the production sender-activation API use
+`rand_core::OsRng`. Randomness acquisition performed through the
+`activate_sender` API is therefore part of sender-activation latency.
+
+Benchmark code must not replace `activate_sender` with deterministic
+lower-level HPKE setup merely to reduce timing variance.
+
+Recipient key generation remains outside the timed region.
+
+### 14.6 Initial Benchmark Matrix
+
+The initial Criterion matrix is:
+
+| Operation | Profiles | Initial timed boundary |
+| --- | --- | --- |
+| `negotiation` | all three | `negotiate_policy_permitted_common` |
+| `profile_resolution` | all three | `resolve_hpke_profile` |
+| `binding` | all three | `SecureChannelBinding::new` |
+| `activate_sender` | all three | `activate_sender` |
+| `activate_receiver` | all three | `activate_receiver` |
+| `seal_1k` | all three | `SecureChannelSender::seal` |
+| `open_1k` | all three | `SecureChannelReceiver::open` |
+| `establish_channel` | all three | complete initial establishment workflow |
+
+Criterion identifiers use the form:
+
+~~~text
+secure_channel/<operation>/<profile-label>
+~~~
+
+### 14.7 Microbenchmark Inputs
+
+For `profile_resolution`, negotiation evidence is prepared outside the timed
+region.
+
+For `binding`, an `EstablishedProtocolContext` and application context are
+prepared outside the timed region. The measurement includes allocation and
+canonical serialization performed by `SecureChannelBinding::new`.
+
+For `activate_sender`, the established client context, recipient public key,
+and application context exist before timing begins. The timed call includes
+profile resolution, binding construction, HPKE sender setup, production-path
+randomness acquisition through the supplied RNG, and sender-context
+construction.
+
+For `activate_receiver`, the established server context, recipient private
+material, application context, and valid encapsulated key exist before timing
+begins. Sender activation used to create that encapsulated key is outside the
+receiver timed region.
+
+### 14.8 Protected-Message Batching
+
+`seal_1k` and `open_1k` operate on fresh activated contexts supplied through
+Criterion batched setup.
+
+For `seal_1k`, channel activation occurs outside the timed routine and the
+timed routine contains only the secure-channel `seal` call for the 1024-byte
+payload and fixed AAD.
+
+For `open_1k`, activation and preparation of a valid ciphertext occur outside
+the timed routine and the timed routine contains only the secure-channel
+`open` call.
+
+Fresh contexts prevent sequence-number evolution across benchmark iterations
+from changing measurement semantics.
+
+### 14.9 Initial End-to-End Establishment Boundary
+
+The initial `establish_channel` benchmark begins from caller-owned capability
+identifier arrays, fixed protocol/session metadata, already provisioned
+recipient key material, fixed application context, and an available
+production RNG.
+
+The timed workflow includes:
+
+1. construction and validation of capability offers;
+2. construction and validation of the resolved capability policy;
+3. capability negotiation;
+4. client and server typed-session construction;
+5. transition into establishment;
+6. establishment with retained negotiation evidence;
+7. sender secure-channel activation;
+8. receiver secure-channel activation.
+
+Recipient key generation is excluded.
+
+Protected-message `seal` and `open` operations are excluded and measured
+separately.
+
+The result must be a usable sender/receiver secure-channel pair authorized by
+the expected negotiated capability.
+
+### 14.10 Matched Lower-Layer Baselines
+
+Existing HPKE benchmarks are not assumed to be cryptographically identical to
+the negotiated secure-channel profiles. In particular, existing benchmark
+suites may use different AEAD selections from the closed secure-channel
+profiles.
+
+Any paper result intended to quantify secure-channel integration overhead
+relative to direct HPKE must therefore use a matched lower-layer baseline with
+the same KEM, KDF, AEAD, payload, and otherwise relevant experimental
+conditions.
+
+Historical or unmatched HPKE benchmark results may be reported as contextual
+lower-layer measurements but must not be used to derive a numerical
+secure-channel overhead value.
