@@ -8,10 +8,15 @@
 //! identifiers.
 
 mod activation;
+mod binding;
 
 pub use activation::{
     activate_receiver, activate_sender, SecureChannelError, SecureChannelReceiver,
     SecureChannelSender, SenderActivation,
+};
+pub use binding::{
+    SecureChannelBinding, SECURE_CHANNEL_BINDING_DOMAIN, SECURE_CHANNEL_BINDING_HEADER_LEN,
+    SECURE_CHANNEL_BINDING_VERSION,
 };
 
 use core::fmt;
