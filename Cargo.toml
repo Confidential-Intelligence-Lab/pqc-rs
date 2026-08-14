@@ -8,6 +8,7 @@ members = [
     "crates/pqc-hybrid",
     "crates/pqc-hpke",
     "crates/pqc-protocol",
+    "crates/pqc-secure-channel",
     "crates/pqc-test-harness",
 ]
 
@@ -47,3 +48,4 @@ pqc-ml-dsa = { package = "pqc-rs-ml-dsa", path = "crates/pqc-ml-dsa", version = 
 pqc-slh-dsa = { package = "pqc-rs-slh-dsa", path = "crates/pqc-slh-dsa", version = "0.4.0" }
 pqc-test-harness = { package = "pqc-rs-test-harness", path = "crates/pqc-test-harness", version = "0.4.0" }
 pqc-protocol = { package = "pqc-rs-protocol", path = "crates/pqc-protocol", version = "0.4.0" }
+pqc-secure-channel = { package = "pqc-rs-secure-channel", path = "crates/pqc-secure-channel", version = "0.4.0" }

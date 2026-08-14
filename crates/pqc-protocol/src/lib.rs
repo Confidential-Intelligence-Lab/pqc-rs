@@ -11,6 +11,7 @@
 //! The crate intentionally contains no networking, operating-system I/O,
 //! or asynchronous-runtime dependency.
 
+mod capabilities;
 mod codec;
 mod driver;
 mod envelope;
@@ -35,6 +36,9 @@ mod transport;
 mod typestate;
 mod wire;
 
+pub use capabilities::{
+    HPKE_ML_KEM_1024, HPKE_ML_KEM_768, HPKE_ML_KEM_768_X25519, REGISTERED_CAPABILITIES,
+};
 pub use codec::{ProtocolDecode, ProtocolEncode};
 pub use driver::{
     DriverError, DriverResult, ProtocolDriver, ResponseError, ResponseResult,

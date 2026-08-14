@@ -1,0 +1,17 @@
+[package]
+name = "pqc-rs-secure-channel"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Policy-bound secure-channel integration for PQC-rs protocol negotiation and HPKE."
+publish = false
+
+[dependencies]
+pqc-protocol = { workspace = true }
+pqc-hpke = { workspace = true }
+rand_core = { workspace = true }
+
+[lib]
+name = "pqc_secure_channel"
