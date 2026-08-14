@@ -606,3 +606,111 @@ conditions.
 Historical or unmatched HPKE benchmark results may be reported as contextual
 lower-layer measurements but must not be used to derive a numerical
 secure-channel overhead value.
+
+## 15. E1e Correctness and Benchmark-Isolation Validation
+
+E1e validates that the frozen benchmark matrix executes successfully in the
+optimized benchmark configuration and that benchmark setup remains separated
+from the intended timed regions.
+
+This stage is a correctness and instrumentation gate. It does not collect
+paper-facing performance results.
+
+### 15.1 Optimized Criterion Smoke Validation
+
+The secure-channel Criterion benchmark is executed in Criterion test mode:
+
+~~~text
+cargo bench \
+  -p pqc-rs-secure-channel \
+  --bench secure_channel \
+  -- \
+  --test
+~~~
+
+The smoke execution must succeed for all eight benchmark operations:
+
+~~~text
+negotiation
+profile_resolution
+binding
+activate_sender
+activate_receiver
+seal_1k
+open_1k
+establish_channel
+~~~
+
+across all three registered secure-channel profiles:
+
+~~~text
+MLKEM768
+MLKEM1024
+MLKEM768-X25519
+~~~
+
+This produces 24 successful benchmark-path executions.
+
+Criterion test mode is used only to confirm that optimized benchmark
+binaries, fixtures, activation paths, and batched state preparation execute
+successfully. Timing values from this gate are not treated as experimental
+results.
+
+### 15.2 Release-Mode Reference Workflow
+
+The public-API reference workflow is also executed under the optimized release
+profile:
+
+~~~text
+cargo test \
+  -p pqc-rs-secure-channel \
+  --release \
+  --test reference_workflow
+~~~
+
+The workflow must succeed for all three registered profiles and verify
+successful negotiation, establishment, sender activation, receiver activation,
+1 KiB sealing, opening, and plaintext recovery.
+
+### 15.3 Isolation Review
+
+The benchmark source is reviewed against the E1b measurement contract.
+
+The validated boundaries are:
+
+- recipient key derivation occurs during fixture construction and is excluded
+  from activation and establishment timing;
+- the `negotiation` microbenchmark begins with validated
+  `CapabilityOffer` and `CapabilityPolicy` values;
+- `profile_resolution` begins with already negotiated capability evidence;
+- `binding` begins with an already established protocol context;
+- `activate_sender` begins with established context and provisioned recipient
+  public material and includes production-path randomness acquisition;
+- `activate_receiver` receives valid encapsulated material generated outside
+  its timed routine;
+- `seal_1k` uses Criterion batched setup to provide a fresh activated sender;
+- `open_1k` uses Criterion batched setup to provide a fresh activated receiver
+  and valid ciphertext;
+- `establish_channel` includes capability-offer validation, policy validation,
+  negotiation, typed-session establishment, sender activation, and receiver
+  activation;
+- `establish_channel` excludes recipient key derivation and protected-message
+  operations.
+
+The batched protected-message fixtures prevent channel sequence-number
+evolution from changing benchmark semantics across iterations.
+
+### 15.4 E1 Completion Gate
+
+E1 is considered complete only when:
+
+1. the experimental contract is frozen;
+2. the benchmark matrix and fixture architecture are frozen;
+3. the common reference workflow succeeds for all registered profiles;
+4. all benchmark targets compile;
+5. all 24 Criterion benchmark paths succeed in optimized test mode;
+6. the release-mode reference workflow succeeds;
+7. formatting, lint, documentation, and diff-hygiene checks pass.
+
+Successful completion of E1 authorizes subsequent evaluation stages but does
+not itself constitute paper-facing performance measurement.
