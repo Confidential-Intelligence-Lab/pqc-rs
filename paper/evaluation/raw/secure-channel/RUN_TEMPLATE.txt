@@ -1,0 +1,20 @@
+PQC-Forge secure-channel evaluation run
+
+revision=4223700846625fb9bd584fd88c7c8233c2490bc1
+branch=feature/secure-channel-evaluation
+rustc=1.89.0
+cargo=1.89.0
+criterion=0.5.1
+target=aarch64-apple-darwin
+host_model=Mac16,1
+soc=Apple M4
+memory_gib=24
+os=macOS 26.5.2
+os_build=25F84
+
+run_id=
+timestamp=
+power_source=
+low_power_mode=0
+command=
+notes=

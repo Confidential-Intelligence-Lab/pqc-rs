@@ -1,0 +1,79 @@
+    Finished `bench` profile [optimized] target(s) in 0.04s
+     Running benches/composition.rs (target/release/deps/composition-d9228daab7d2cec9)
+Benchmarking hpke/composition/setup_sender/MLKEM768
+Benchmarking hpke/composition/setup_sender/MLKEM768: Warming up for 3.0000 s
+Benchmarking hpke/composition/setup_sender/MLKEM768: Collecting 100 samples in estimated 5.1955 s (76k iterations)
+Benchmarking hpke/composition/setup_sender/MLKEM768: Analyzing
+hpke/composition/setup_sender/MLKEM768
+                        time:   [68.669 µs 68.794 µs 68.951 µs]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high severe
+Benchmarking hpke/composition/setup_sender/MLKEM768-X25519
+Benchmarking hpke/composition/setup_sender/MLKEM768-X25519: Warming up for 3.0000 s
+Benchmarking hpke/composition/setup_sender/MLKEM768-X25519: Collecting 100 samples in estimated 5.4789 s (56k iterations)
+Benchmarking hpke/composition/setup_sender/MLKEM768-X25519: Analyzing
+hpke/composition/setup_sender/MLKEM768-X25519
+                        time:   [98.668 µs 98.783 µs 98.898 µs]
+Found 7 outliers among 100 measurements (7.00%)
+  1 (1.00%) low mild
+  3 (3.00%) high mild
+  3 (3.00%) high severe
+Benchmarking hpke/composition/setup_receiver/MLKEM768
+Benchmarking hpke/composition/setup_receiver/MLKEM768: Warming up for 3.0000 s
+Benchmarking hpke/composition/setup_receiver/MLKEM768: Collecting 100 samples in estimated 5.6044 s (45k iterations)
+Benchmarking hpke/composition/setup_receiver/MLKEM768: Analyzing
+hpke/composition/setup_receiver/MLKEM768
+                        time:   [123.28 µs 123.38 µs 123.54 µs]
+Found 9 outliers among 100 measurements (9.00%)
+  1 (1.00%) low severe
+  1 (1.00%) low mild
+  3 (3.00%) high mild
+  4 (4.00%) high severe
+Benchmarking hpke/composition/setup_receiver/MLKEM768-X25519
+Benchmarking hpke/composition/setup_receiver/MLKEM768-X25519: Warming up for 3.0000 s
+Benchmarking hpke/composition/setup_receiver/MLKEM768-X25519: Collecting 100 samples in estimated 5.4033 s (35k iterations)
+Benchmarking hpke/composition/setup_receiver/MLKEM768-X25519: Analyzing
+hpke/composition/setup_receiver/MLKEM768-X25519
+                        time:   [152.67 µs 152.80 µs 153.03 µs]
+Found 4 outliers among 100 measurements (4.00%)
+  1 (1.00%) low mild
+  3 (3.00%) high severe
+Benchmarking hpke/composition/seal_1k/MLKEM768
+Benchmarking hpke/composition/seal_1k/MLKEM768: Warming up for 3.0000 s
+Benchmarking hpke/composition/seal_1k/MLKEM768: Collecting 100 samples in estimated 5.2921 s (71k iterations)
+Benchmarking hpke/composition/seal_1k/MLKEM768: Analyzing
+hpke/composition/seal_1k/MLKEM768
+                        time:   [6.1938 µs 6.1998 µs 6.2072 µs]
+Found 13 outliers among 100 measurements (13.00%)
+  1 (1.00%) low mild
+  5 (5.00%) high mild
+  7 (7.00%) high severe
+Benchmarking hpke/composition/seal_1k/MLKEM768-X25519
+Benchmarking hpke/composition/seal_1k/MLKEM768-X25519: Warming up for 3.0000 s
+Benchmarking hpke/composition/seal_1k/MLKEM768-X25519: Collecting 100 samples in estimated 5.2969 s (50k iterations)
+Benchmarking hpke/composition/seal_1k/MLKEM768-X25519: Analyzing
+hpke/composition/seal_1k/MLKEM768-X25519
+                        time:   [6.2012 µs 6.2155 µs 6.2395 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  4 (4.00%) high mild
+  2 (2.00%) high severe
+Benchmarking hpke/composition/open_1k/MLKEM768
+Benchmarking hpke/composition/open_1k/MLKEM768: Warming up for 3.0000 s
+Benchmarking hpke/composition/open_1k/MLKEM768: Collecting 100 samples in estimated 5.1539 s (25k iterations)
+Benchmarking hpke/composition/open_1k/MLKEM768: Analyzing
+hpke/composition/open_1k/MLKEM768
+                        time:   [6.2726 µs 6.2766 µs 6.2809 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  1 (1.00%) low severe
+  1 (1.00%) high mild
+  4 (4.00%) high severe
+Benchmarking hpke/composition/open_1k/MLKEM768-X25519
+Benchmarking hpke/composition/open_1k/MLKEM768-X25519: Warming up for 3.0000 s
+Benchmarking hpke/composition/open_1k/MLKEM768-X25519: Collecting 100 samples in estimated 5.3320 s (20k iterations)
+Benchmarking hpke/composition/open_1k/MLKEM768-X25519: Analyzing
+hpke/composition/open_1k/MLKEM768-X25519
+                        time:   [6.2713 µs 6.2759 µs 6.2813 µs]
+Found 11 outliers among 100 measurements (11.00%)
+  2 (2.00%) low severe
+  5 (5.00%) high mild
+  4 (4.00%) high severe

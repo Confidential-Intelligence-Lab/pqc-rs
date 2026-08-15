@@ -13,5 +13,12 @@ pqc-protocol = { workspace = true }
 pqc-hpke = { workspace = true }
 rand_core = { workspace = true }
 
+[dev-dependencies]
+criterion = { workspace = true }
+
+[[bench]]
+name = "secure_channel"
+harness = false
+
 [lib]
 name = "pqc_secure_channel"
