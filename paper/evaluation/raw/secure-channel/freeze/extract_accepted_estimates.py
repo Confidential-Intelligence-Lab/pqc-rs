@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 from pathlib import Path
 import csv
 import json
@@ -5,23 +7,40 @@ import statistics
 
 BASE = Path("paper/evaluation/raw/secure-channel")
 FREEZE = BASE / "freeze"
+ARCHIVE = BASE / "accepted-runs"
 
 accepted = [
     line.strip()
-    for line in (FREEZE / "ACCEPTED_RUNS.txt").read_text(encoding="utf-8").splitlines()
+    for line in (FREEZE / "ACCEPTED_RUNS.txt")
+    .read_text(encoding="utf-8")
+    .splitlines()
     if line.strip()
 ]
+
+if len(accepted) != 5:
+    raise SystemExit(f"expected 5 accepted runs, found {len(accepted)}")
 
 rows = []
 
 for run_id in accepted:
-    run_dir = BASE / "runs" / run_id / "criterion" / "secure_channel"
+    run_dir = ARCHIVE / run_id / "criterion" / "secure_channel"
 
-    for path in sorted(run_dir.glob("*/*/new/estimates.json")):
+    if not run_dir.is_dir():
+        raise SystemExit(f"missing archived Criterion directory: {run_dir}")
+
+    paths = sorted(run_dir.glob("*/*/new/estimates.json"))
+
+    if len(paths) != 24:
+        raise SystemExit(
+            f"{run_id}: expected 24 estimates.json files, found {len(paths)}"
+        )
+
+    for path in paths:
         operation = path.parents[2].name
         profile = path.parents[1].name
 
         data = json.loads(path.read_text(encoding="utf-8"))
+
         mean = data["mean"]
         median = data["median"]
 
@@ -39,32 +58,47 @@ for run_id in accepted:
             }
         )
 
-expected = len(accepted) * 24
-if len(rows) != expected:
-    raise SystemExit(f"expected {expected} rows, found {len(rows)}")
+expected_rows = 5 * 24
 
-with (FREEZE / "accepted_estimates.csv").open("w", newline="", encoding="utf-8") as handle:
+if len(rows) != expected_rows:
+    raise SystemExit(
+        f"expected {expected_rows} accepted estimates, found {len(rows)}"
+    )
+
+accepted_csv = FREEZE / "accepted_estimates.csv"
+
+with accepted_csv.open(
+    "w",
+    newline="",
+    encoding="utf-8",
+) as handle:
     writer = csv.DictWriter(handle, fieldnames=rows[0].keys())
     writer.writeheader()
     writer.writerows(rows)
 
-grouped = {}
+grouped: dict[tuple[str, str], list[float]] = {}
+
 for row in rows:
     key = (row["operation"], row["profile"])
     grouped.setdefault(key, []).append(float(row["mean_point_ns"]))
 
-summary = []
+if len(grouped) != 24:
+    raise SystemExit(
+        f"expected 24 operation/profile groups, found {len(grouped)}"
+    )
+
+summary_rows = []
 
 for (operation, profile), values in sorted(grouped.items()):
-    if len(values) != len(accepted):
+    if len(values) != 5:
         raise SystemExit(
-            f"{operation}/{profile}: expected {len(accepted)} runs, found {len(values)}"
+            f"{operation}/{profile}: expected 5 runs, found {len(values)}"
         )
 
     mean = statistics.fmean(values)
     stdev = statistics.stdev(values)
 
-    summary.append(
+    summary_rows.append(
         {
             "operation": operation,
             "profile": profile,
@@ -78,13 +112,19 @@ for (operation, profile), values in sorted(grouped.items()):
         }
     )
 
-with (FREEZE / "cross_run_summary.csv").open(
-    "w", newline="", encoding="utf-8"
-) as handle:
-    writer = csv.DictWriter(handle, fieldnames=summary[0].keys())
-    writer.writeheader()
-    writer.writerows(summary)
+summary_csv = FREEZE / "cross_run_summary.csv"
 
-print(f"accepted_runs={len(accepted)}")
-print(f"accepted_estimates={len(rows)}")
-print(f"summary_rows={len(summary)}")
+with summary_csv.open(
+    "w",
+    newline="",
+    encoding="utf-8",
+) as handle:
+    writer = csv.DictWriter(handle, fieldnames=summary_rows[0].keys())
+    writer.writeheader()
+    writer.writerows(summary_rows)
+
+print("accepted_runs=5")
+print("accepted_estimates=120")
+print("summary_rows=24")
+print(f"accepted_csv={accepted_csv}")
+print(f"summary_csv={summary_csv}")

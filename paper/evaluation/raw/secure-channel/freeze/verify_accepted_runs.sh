@@ -2,7 +2,7 @@
 set -eu
 
 BASE="paper/evaluation/raw/secure-channel"
-RUNS="$BASE/runs"
+RUNS="$BASE/accepted-runs"
 EXPECTED_REVISION="e0610df9d070fe93a4e016161358c945289dd28d"
 
 failure=0

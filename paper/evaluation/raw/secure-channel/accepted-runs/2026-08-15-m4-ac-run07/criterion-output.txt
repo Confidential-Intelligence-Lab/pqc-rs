@@ -1,0 +1,212 @@
+    Finished `bench` profile [optimized] target(s) in 0.05s
+     Running benches/secure_channel.rs (target/release/deps/secure_channel-b02540a2000a8630)
+Benchmarking secure_channel/negotiation/MLKEM768
+Benchmarking secure_channel/negotiation/MLKEM768: Warming up for 3.0000 s
+Benchmarking secure_channel/negotiation/MLKEM768: Collecting 100 samples in estimated 5.0000 s (1.8B iterations)
+Benchmarking secure_channel/negotiation/MLKEM768: Analyzing
+secure_channel/negotiation/MLKEM768
+                        time:   [2.7683 ns 2.8030 ns 2.8443 ns]
+Benchmarking secure_channel/profile_resolution/MLKEM768
+Benchmarking secure_channel/profile_resolution/MLKEM768: Warming up for 3.0000 s
+Benchmarking secure_channel/profile_resolution/MLKEM768: Collecting 100 samples in estimated 5.0001 s (344M iterations)
+Benchmarking secure_channel/profile_resolution/MLKEM768: Analyzing
+secure_channel/profile_resolution/MLKEM768
+                        time:   [14.379 ns 14.400 ns 14.423 ns]
+Benchmarking secure_channel/binding/MLKEM768
+Benchmarking secure_channel/binding/MLKEM768: Warming up for 3.0000 s
+Benchmarking secure_channel/binding/MLKEM768: Collecting 100 samples in estimated 5.0001 s (314M iterations)
+Benchmarking secure_channel/binding/MLKEM768: Analyzing
+secure_channel/binding/MLKEM768
+                        time:   [15.776 ns 15.858 ns 15.968 ns]
+Found 8 outliers among 100 measurements (8.00%)
+  5 (5.00%) high mild
+  3 (3.00%) high severe
+Benchmarking secure_channel/activate_sender/MLKEM768
+Benchmarking secure_channel/activate_sender/MLKEM768: Warming up for 3.0000 s
+Benchmarking secure_channel/activate_sender/MLKEM768: Collecting 100 samples in estimated 5.3643 s (61k iterations)
+Benchmarking secure_channel/activate_sender/MLKEM768: Analyzing
+secure_channel/activate_sender/MLKEM768
+                        time:   [88.241 µs 88.380 µs 88.563 µs]
+Found 17 outliers among 100 measurements (17.00%)
+  1 (1.00%) high mild
+  16 (16.00%) high severe
+Benchmarking secure_channel/activate_receiver/MLKEM768
+Benchmarking secure_channel/activate_receiver/MLKEM768: Warming up for 3.0000 s
+Benchmarking secure_channel/activate_receiver/MLKEM768: Collecting 100 samples in estimated 5.8264 s (25k iterations)
+Benchmarking secure_channel/activate_receiver/MLKEM768: Analyzing
+secure_channel/activate_receiver/MLKEM768
+                        time:   [142.15 µs 142.46 µs 142.81 µs]
+Found 11 outliers among 100 measurements (11.00%)
+  4 (4.00%) low severe
+  3 (3.00%) low mild
+  4 (4.00%) high mild
+Benchmarking secure_channel/seal_1k/MLKEM768
+Benchmarking secure_channel/seal_1k/MLKEM768: Warming up for 3.0000 s
+Benchmarking secure_channel/seal_1k/MLKEM768: Collecting 100 samples in estimated 5.6851 s (25k iterations)
+Benchmarking secure_channel/seal_1k/MLKEM768: Analyzing
+secure_channel/seal_1k/MLKEM768
+                        time:   [6.0911 µs 6.0957 µs 6.1011 µs]
+Found 6 outliers among 100 measurements (6.00%)
+  4 (4.00%) high mild
+  2 (2.00%) high severe
+Benchmarking secure_channel/open_1k/MLKEM768
+Benchmarking secure_channel/open_1k/MLKEM768: Warming up for 3.0000 s
+Benchmarking secure_channel/open_1k/MLKEM768: Collecting 100 samples in estimated 5.8387 s (25k iterations)
+Benchmarking secure_channel/open_1k/MLKEM768: Analyzing
+secure_channel/open_1k/MLKEM768
+                        time:   [6.1108 µs 6.1165 µs 6.1227 µs]
+Found 11 outliers among 100 measurements (11.00%)
+  2 (2.00%) low mild
+  6 (6.00%) high mild
+  3 (3.00%) high severe
+Benchmarking secure_channel/establish_channel/MLKEM768
+Benchmarking secure_channel/establish_channel/MLKEM768: Warming up for 3.0000 s
+Benchmarking secure_channel/establish_channel/MLKEM768: Collecting 100 samples in estimated 5.5300 s (25k iterations)
+Benchmarking secure_channel/establish_channel/MLKEM768: Analyzing
+secure_channel/establish_channel/MLKEM768
+                        time:   [218.61 µs 219.97 µs 222.38 µs]
+Found 14 outliers among 100 measurements (14.00%)
+  7 (7.00%) high mild
+  7 (7.00%) high severe
+Benchmarking secure_channel/negotiation/MLKEM1024
+Benchmarking secure_channel/negotiation/MLKEM1024: Warming up for 3.0000 s
+Benchmarking secure_channel/negotiation/MLKEM1024: Collecting 100 samples in estimated 5.0000 s (1.8B iterations)
+Benchmarking secure_channel/negotiation/MLKEM1024: Analyzing
+secure_channel/negotiation/MLKEM1024
+                        time:   [2.7379 ns 2.7536 ns 2.7703 ns]
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) high mild
+Benchmarking secure_channel/profile_resolution/MLKEM1024
+Benchmarking secure_channel/profile_resolution/MLKEM1024: Warming up for 3.0000 s
+Benchmarking secure_channel/profile_resolution/MLKEM1024: Collecting 100 samples in estimated 5.0000 s (341M iterations)
+Benchmarking secure_channel/profile_resolution/MLKEM1024: Analyzing
+secure_channel/profile_resolution/MLKEM1024
+                        time:   [14.675 ns 14.718 ns 14.774 ns]
+Found 8 outliers among 100 measurements (8.00%)
+  3 (3.00%) high mild
+  5 (5.00%) high severe
+Benchmarking secure_channel/binding/MLKEM1024
+Benchmarking secure_channel/binding/MLKEM1024: Warming up for 3.0000 s
+Benchmarking secure_channel/binding/MLKEM1024: Collecting 100 samples in estimated 5.0001 s (313M iterations)
+Benchmarking secure_channel/binding/MLKEM1024: Analyzing
+secure_channel/binding/MLKEM1024
+                        time:   [15.872 ns 15.929 ns 15.987 ns]
+Benchmarking secure_channel/activate_sender/MLKEM1024
+Benchmarking secure_channel/activate_sender/MLKEM1024: Warming up for 3.0000 s
+Benchmarking secure_channel/activate_sender/MLKEM1024: Collecting 100 samples in estimated 5.4338 s (40k iterations)
+Benchmarking secure_channel/activate_sender/MLKEM1024: Analyzing
+secure_channel/activate_sender/MLKEM1024
+                        time:   [134.16 µs 134.30 µs 134.58 µs]
+Found 10 outliers among 100 measurements (10.00%)
+  6 (6.00%) high mild
+  4 (4.00%) high severe
+Benchmarking secure_channel/activate_receiver/MLKEM1024
+Benchmarking secure_channel/activate_receiver/MLKEM1024: Warming up for 3.0000 s
+Benchmarking secure_channel/activate_receiver/MLKEM1024: Collecting 100 samples in estimated 5.2479 s (15k iterations)
+Benchmarking secure_channel/activate_receiver/MLKEM1024: Analyzing
+secure_channel/activate_receiver/MLKEM1024
+                        time:   [210.88 µs 211.24 µs 211.74 µs]
+Found 16 outliers among 100 measurements (16.00%)
+  6 (6.00%) low severe
+  6 (6.00%) low mild
+  2 (2.00%) high mild
+  2 (2.00%) high severe
+Benchmarking secure_channel/seal_1k/MLKEM1024
+Benchmarking secure_channel/seal_1k/MLKEM1024: Warming up for 3.0000 s
+Benchmarking secure_channel/seal_1k/MLKEM1024: Collecting 100 samples in estimated 5.1248 s (15k iterations)
+Benchmarking secure_channel/seal_1k/MLKEM1024: Analyzing
+secure_channel/seal_1k/MLKEM1024
+                        time:   [6.0961 µs 6.1028 µs 6.1103 µs]
+Found 9 outliers among 100 measurements (9.00%)
+  4 (4.00%) high mild
+  5 (5.00%) high severe
+Benchmarking secure_channel/open_1k/MLKEM1024
+Benchmarking secure_channel/open_1k/MLKEM1024: Warming up for 3.0000 s
+Benchmarking secure_channel/open_1k/MLKEM1024: Collecting 100 samples in estimated 5.2265 s (15k iterations)
+Benchmarking secure_channel/open_1k/MLKEM1024: Analyzing
+secure_channel/open_1k/MLKEM1024
+                        time:   [6.1184 µs 6.1249 µs 6.1328 µs]
+Found 11 outliers among 100 measurements (11.00%)
+  5 (5.00%) high mild
+  6 (6.00%) high severe
+Benchmarking secure_channel/establish_channel/MLKEM1024
+Benchmarking secure_channel/establish_channel/MLKEM1024: Warming up for 3.0000 s
+Benchmarking secure_channel/establish_channel/MLKEM1024: Collecting 100 samples in estimated 5.0376 s (15k iterations)
+Benchmarking secure_channel/establish_channel/MLKEM1024: Analyzing
+secure_channel/establish_channel/MLKEM1024
+                        time:   [331.94 µs 332.28 µs 332.83 µs]
+Found 5 outliers among 100 measurements (5.00%)
+  5 (5.00%) high severe
+Benchmarking secure_channel/negotiation/MLKEM768-X25519
+Benchmarking secure_channel/negotiation/MLKEM768-X25519: Warming up for 3.0000 s
+Benchmarking secure_channel/negotiation/MLKEM768-X25519: Collecting 100 samples in estimated 5.0000 s (1.8B iterations)
+Benchmarking secure_channel/negotiation/MLKEM768-X25519: Analyzing
+secure_channel/negotiation/MLKEM768-X25519
+                        time:   [2.7170 ns 2.7304 ns 2.7446 ns]
+Found 9 outliers among 100 measurements (9.00%)
+  5 (5.00%) high mild
+  4 (4.00%) high severe
+Benchmarking secure_channel/profile_resolution/MLKEM768-X25519
+Benchmarking secure_channel/profile_resolution/MLKEM768-X25519: Warming up for 3.0000 s
+Benchmarking secure_channel/profile_resolution/MLKEM768-X25519: Collecting 100 samples in estimated 5.0000 s (396M iterations)
+Benchmarking secure_channel/profile_resolution/MLKEM768-X25519: Analyzing
+secure_channel/profile_resolution/MLKEM768-X25519
+                        time:   [12.493 ns 12.503 ns 12.518 ns]
+Found 13 outliers among 100 measurements (13.00%)
+  1 (1.00%) low mild
+  4 (4.00%) high mild
+  8 (8.00%) high severe
+Benchmarking secure_channel/binding/MLKEM768-X25519
+Benchmarking secure_channel/binding/MLKEM768-X25519: Warming up for 3.0000 s
+Benchmarking secure_channel/binding/MLKEM768-X25519: Collecting 100 samples in estimated 5.0000 s (314M iterations)
+Benchmarking secure_channel/binding/MLKEM768-X25519: Analyzing
+secure_channel/binding/MLKEM768-X25519
+                        time:   [15.875 ns 15.932 ns 15.992 ns]
+Benchmarking secure_channel/activate_sender/MLKEM768-X25519
+Benchmarking secure_channel/activate_sender/MLKEM768-X25519: Warming up for 3.0000 s
+Benchmarking secure_channel/activate_sender/MLKEM768-X25519: Collecting 100 samples in estimated 5.5217 s (45k iterations)
+Benchmarking secure_channel/activate_sender/MLKEM768-X25519: Analyzing
+secure_channel/activate_sender/MLKEM768-X25519
+                        time:   [123.03 µs 123.11 µs 123.24 µs]
+Found 11 outliers among 100 measurements (11.00%)
+  2 (2.00%) low severe
+  4 (4.00%) high mild
+  5 (5.00%) high severe
+Benchmarking secure_channel/activate_receiver/MLKEM768-X25519
+Benchmarking secure_channel/activate_receiver/MLKEM768-X25519: Warming up for 3.0000 s
+Benchmarking secure_channel/activate_receiver/MLKEM768-X25519: Collecting 100 samples in estimated 5.9661 s (20k iterations)
+Benchmarking secure_channel/activate_receiver/MLKEM768-X25519: Analyzing
+secure_channel/activate_receiver/MLKEM768-X25519
+                        time:   [170.87 µs 171.01 µs 171.16 µs]
+Found 13 outliers among 100 measurements (13.00%)
+  8 (8.00%) low severe
+  5 (5.00%) low mild
+Benchmarking secure_channel/seal_1k/MLKEM768-X25519
+Benchmarking secure_channel/seal_1k/MLKEM768-X25519: Warming up for 3.0000 s
+Benchmarking secure_channel/seal_1k/MLKEM768-X25519: Collecting 100 samples in estimated 5.8404 s (20k iterations)
+Benchmarking secure_channel/seal_1k/MLKEM768-X25519: Analyzing
+secure_channel/seal_1k/MLKEM768-X25519
+                        time:   [6.0954 µs 6.1065 µs 6.1206 µs]
+Found 10 outliers among 100 measurements (10.00%)
+  1 (1.00%) low mild
+  6 (6.00%) high mild
+  3 (3.00%) high severe
+Benchmarking secure_channel/open_1k/MLKEM768-X25519
+Benchmarking secure_channel/open_1k/MLKEM768-X25519: Warming up for 3.0000 s
+Benchmarking secure_channel/open_1k/MLKEM768-X25519: Collecting 100 samples in estimated 5.9409 s (20k iterations)
+Benchmarking secure_channel/open_1k/MLKEM768-X25519: Analyzing
+secure_channel/open_1k/MLKEM768-X25519
+                        time:   [6.1164 µs 6.1240 µs 6.1333 µs]
+Found 10 outliers among 100 measurements (10.00%)
+  5 (5.00%) high mild
+  5 (5.00%) high severe
+Benchmarking secure_channel/establish_channel/MLKEM768-X25519
+Benchmarking secure_channel/establish_channel/MLKEM768-X25519: Warming up for 3.0000 s
+Benchmarking secure_channel/establish_channel/MLKEM768-X25519: Collecting 100 samples in estimated 5.6767 s (20k iterations)
+Benchmarking secure_channel/establish_channel/MLKEM768-X25519: Analyzing
+secure_channel/establish_channel/MLKEM768-X25519
+                        time:   [282.57 µs 282.74 µs 282.95 µs]
+Found 8 outliers among 100 measurements (8.00%)
+  2 (2.00%) high mild
+  6 (6.00%) high severe
+

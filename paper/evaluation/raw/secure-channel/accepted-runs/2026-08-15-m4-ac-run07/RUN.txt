@@ -1,0 +1,76 @@
+PQC-Forge secure-channel evaluation run
+
+revision=e0610df9d070fe93a4e016161358c945289dd28d
+branch=feature/secure-channel-evaluation
+rustc=1.89.0
+cargo=1.89.0
+criterion=0.5.1
+target=aarch64-apple-darwin
+host_model=Mac16,1
+soc=Apple M4
+memory_gib=24
+os=macOS 26.5.2
+os_build=25F84
+
+run_id=2026-08-15-m4-ac-run07
+timestamp=2026-08-15T00:10:19Z
+power_source=AC
+low_power_mode=0
+command=cargo bench -p pqc-rs-secure-channel --bench secure_channel
+notes=Controlled-AC E2 secure-channel measurement run 07.
+
+===== pre-run repository =====
+e0610df9d070fe93a4e016161358c945289dd28d
+## feature/secure-channel-evaluation...origin/feature/secure-channel-evaluation
+?? paper/evaluation/raw/secure-channel/runs/
+
+===== pre-run power =====
+Now drawing from 'AC Power'
+ -InternalBattery-0 (id=23068771)	75%; charging; 0:51 remaining present: true
+
+===== pre-run low-power configuration =====
+AC Power:
+ Sleep On Power Button 1
+ lowpowermode         0
+ standby              1
+ ttyskeepawake        1
+ hibernatemode        3
+ powernap             1
+ hibernatefile        /var/vm/sleepimage
+ displaysleep         10
+ womp                 1
+ networkoversleep     0
+ sleep                1
+ tcpkeepalive         1
+benchmark_exit_status=0
+
+===== post-run repository =====
+e0610df9d070fe93a4e016161358c945289dd28d
+## feature/secure-channel-evaluation...origin/feature/secure-channel-evaluation
+?? paper/evaluation/raw/secure-channel/runs/
+
+===== post-run power =====
+Now drawing from 'AC Power'
+ -InternalBattery-0 (id=23068771)	79%; charging; 1:06 remaining present: true
+
+===== post-run low-power configuration =====
+AC Power:
+ Sleep On Power Button 1
+ lowpowermode         0
+ standby              1
+ ttyskeepawake        1
+ hibernatemode        3
+ powernap             1
+ hibernatefile        /var/vm/sleepimage
+ displaysleep         10
+ womp                 1
+ networkoversleep     0
+ sleep                1
+ tcpkeepalive         1
+
+===== acceptance assessment =====
+status=accepted
+reason=Pre-run and post-run observations both confirmed AC Power with
+low-power mode disabled, cargo bench exited successfully, all 24 benchmark
+cases reached Criterion analysis, and all 24 new estimate artifacts were
+retained.
