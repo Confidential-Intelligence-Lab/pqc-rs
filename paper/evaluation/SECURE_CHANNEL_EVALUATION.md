@@ -779,66 +779,134 @@ E4 is successful only when every frozen case fails or succeeds at the expected
 boundary without silently substituting a different capability, profile, or
 cryptographic behavior.
 
-## 16. E4 Negative and Mismatch Evaluation
+## 17. E5 Loopback TCP Transport Evaluation
 
-E4 evaluates whether invalid, unsupported, or inconsistent inputs fail at
-explicit architectural boundaries.
+E5 evaluates whether the negotiated secure-channel workflow operates correctly
+when protocol and protected-message bytes cross a real TCP byte stream between
+independently executing endpoints.
 
-These experiments are correctness and failure-localization measurements.
-They are not performance benchmarks.
+This stage is a transport-integration and end-to-end correctness experiment.
+It is not a network-performance benchmark.
 
-For each case, the evaluation records:
+### 17.1 Evaluation Boundary
 
-- case identifier;
-- injected inconsistency;
-- expected rejection boundary;
-- actual rejection boundary;
-- returned error category or negotiation outcome;
-- whether plaintext was released;
-- receiver sequence state before and after rejection;
-- final PASS/FAIL result.
+The experiment uses IPv4 loopback TCP with an operating-system-assigned port.
 
-### 16.1 Frozen Negative Matrix
+The client and server execute in separate threads and communicate exclusively
+through connected TCP streams for all inter-endpoint protocol and
+protected-message data exercised by the workflow.
 
-| ID | Case | Expected boundary | Required result |
-| --- | --- | --- | --- |
-| N1 | duplicate local capability offer | offer validation | duplicate rejected |
-| N2 | duplicate policy capability | policy validation | duplicate rejected |
-| N3 | no policy-permitted common capability | negotiation | no negotiated capability |
-| N4 | unsupported negotiated capability | profile resolution | unsupported capability rejected before HPKE |
-| N5 | malformed recipient public key | sender activation | activation fails |
-| N6 | malformed recipient private material | receiver activation | activation fails |
-| N7 | malformed encapsulated key | receiver activation | activation fails |
-| N8 | peer negotiated-capability mismatch | receiver activation | receiver activation fails |
-| N9 | protocol identifier mismatch | protected-message authentication | open fails, no plaintext, receiver sequence unchanged |
-| N10 | protocol version mismatch | protected-message authentication | open fails, no plaintext, receiver sequence unchanged |
-| N11 | application-context mismatch | protected-message authentication | open fails, no plaintext, receiver sequence unchanged |
-| N12 | modified ciphertext | protected-message authentication | open fails, no plaintext, receiver sequence unchanged |
-| N13 | wrong AAD | protected-message authentication | open fails, no plaintext, receiver sequence unchanged |
-| N14 | valid message after failed authentication | protected-message processing | open succeeds and receiver advances exactly once |
+The experiment uses the existing transport-independent protocol framing
+interfaces. No TCP-specific framing format is introduced.
 
-### 16.2 Boundary Semantics
+The TCP adapter is test-local and implements the existing
+`TransportTransmit` and `TransportReceive` contracts. E5 does not require a
+new production transport abstraction.
 
-Structurally invalid offers and policies are rejected before negotiation.
+### 17.2 Partial-I/O Semantics
 
-A structurally valid negotiation for which no capability satisfies the local
-offer, peer offer, and policy constraints produces no negotiated capability.
+TCP is treated as a byte stream and no assumption is made that one transport
+operation corresponds to one protocol frame.
 
-Unsupported negotiated capabilities are rejected during secure-channel profile
-resolution before HPKE setup.
+Frame transmission and reception use the existing `FrameTransmitter` and
+`FrameReceiver` state machines.
 
-Malformed recipient key material and malformed encapsulated material are
-rejected by secure-channel activation through the HPKE/KEM boundary.
+The test-local TCP adapter limits each successful transmit or receive operation
+to at most seven bytes. This deliberately exercises resumable partial-I/O
+behavior independently of the amount of progress the operating system would
+otherwise permit in one operation.
 
-Protocol identifier, protocol version, negotiated capability, and application
-context participate in secure-channel establishment semantics. Where a mismatch
-permits local HPKE context construction but produces a different key-schedule
-binding, rejection is expected at authenticated protected-message processing.
+The adapter must not use `write_all` or `read_exact` internally.
 
-Authentication failure must not release plaintext. Where the HPKE context API
-permits observation of sequence state, a rejected `open` must not advance the
-receiver sequence.
+Retryable interrupted operations map to `TransportError::Interrupted`.
+Operations that cannot currently make progress map to
+`TransportError::Pending`. End-of-stream is treated as
+`TransportError::Closed`. Other operating-system I/O failures map to
+`TransportError::Other`.
 
-E4 is successful only when every frozen case fails or succeeds at the expected
-boundary without silently substituting a different capability, profile, or
-cryptographic behavior.
+### 17.3 Frozen Workflow
+
+For each registered secure-channel profile:
+
+1. a server listener is bound to IPv4 loopback using an operating-system-
+   assigned port;
+2. the server endpoint executes in a separate thread;
+3. the client establishes a TCP connection to the listener;
+4. capability information required for negotiation crosses the TCP stream as
+   protocol-frame payload data;
+5. each endpoint independently validates received capability information and
+   completes policy-constrained negotiation;
+6. each endpoint independently constructs its established protocol context;
+7. sender activation is performed using the selected secure-channel profile;
+8. the resulting HPKE encapsulated key crosses the TCP stream as framed
+   payload data;
+9. the peer activates its receiver from the received encapsulated key;
+10. a protected application request is sealed by one endpoint and the
+    resulting ciphertext crosses the TCP stream as framed payload data;
+11. the receiving endpoint authenticates and opens the request;
+12. the receiving endpoint seals a protected response and the resulting
+    ciphertext crosses the TCP stream as framed payload data;
+13. the originating endpoint authenticates and opens the response.
+
+The three registered profiles are:
+
+~~~text
+MLKEM768
+MLKEM1024
+MLKEM768-X25519
+~~~
+
+### 17.4 Endpoint Isolation
+
+The experiment must not pass negotiated capability results, established
+protocol contexts, HPKE contexts, encapsulated keys, protected ciphertexts, or
+recovered application plaintext between client and server through shared Rust
+memory.
+
+Thread return values may contain only final test observations required to
+verify experiment success.
+
+Static test configuration such as protocol identifiers, protocol versions,
+policy definitions, application context, AAD, and expected application
+messages may be common to both endpoint implementations.
+
+Cryptographic recipient key material may be provisioned as test fixture input
+to the endpoint that requires it, but cryptographic outputs produced during
+the workflow must cross the TCP transport whenever they are required by the
+peer.
+
+### 17.5 Framing Requirements
+
+Every inter-endpoint message in the frozen workflow is carried as a
+`ProtocolFrame`.
+
+Frames are constructed with the existing public protocol-frame API and are
+transferred with `FrameTransmitter` and `FrameReceiver`.
+
+The receiver must acquire exactly one complete frame at a time. TCP packet
+boundaries, write boundaries, and read boundaries are not treated as protocol
+message boundaries.
+
+Each received frame is validated for the expected protocol identifier,
+protocol version, message identifier, message class, and protocol direction
+before its payload is consumed by the next workflow stage.
+
+### 17.6 Success Criteria
+
+E5 succeeds only when all three registered secure-channel profiles complete
+the frozen loopback workflow and demonstrate:
+
+- successful TCP connection establishment;
+- successful framed transport under forced partial I/O;
+- successful independent capability negotiation at both endpoints;
+- agreement on the expected negotiated capability;
+- successful independent protocol-context establishment;
+- successful sender and receiver activation;
+- successful transport of the HPKE encapsulated key;
+- successful authenticated request protection and recovery;
+- successful authenticated response protection and recovery;
+- exact recovery of the expected request and response plaintexts;
+- no plaintext transfer between endpoints outside the protected TCP workflow;
+- no reliance on TCP operation boundaries as protocol-frame boundaries.
+
+Timing observations from E5 are not paper-facing performance measurements.
