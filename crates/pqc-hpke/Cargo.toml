@@ -43,5 +43,9 @@ harness = false
 name = "hybrid_hpke"
 harness = false
 
+[[bench]]
+name = "composition"
+harness = false
+
 [lib]
 name = "pqc_hpke"
