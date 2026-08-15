@@ -714,3 +714,131 @@ E1 is considered complete only when:
 
 Successful completion of E1 authorizes subsequent evaluation stages but does
 not itself constitute paper-facing performance measurement.
+
+## 16. E4 Negative and Mismatch Evaluation
+
+E4 evaluates whether invalid, unsupported, or inconsistent inputs fail at
+explicit architectural boundaries.
+
+These experiments are correctness and failure-localization measurements.
+They are not performance benchmarks.
+
+For each case, the evaluation records:
+
+- case identifier;
+- injected inconsistency;
+- expected rejection boundary;
+- actual rejection boundary;
+- returned error category or negotiation outcome;
+- whether plaintext was released;
+- receiver sequence state before and after rejection;
+- final PASS/FAIL result.
+
+### 16.1 Frozen Negative Matrix
+
+| ID | Case | Expected boundary | Required result |
+| --- | --- | --- | --- |
+| N1 | duplicate local capability offer | offer validation | duplicate rejected |
+| N2 | duplicate policy capability | policy validation | duplicate rejected |
+| N3 | no policy-permitted common capability | negotiation | no negotiated capability |
+| N4 | unsupported negotiated capability | profile resolution | unsupported capability rejected before HPKE |
+| N5 | malformed recipient public key | sender activation | activation fails |
+| N6 | malformed recipient private material | receiver activation | activation fails |
+| N7 | malformed encapsulated key | receiver activation | activation fails |
+| N8 | peer negotiated-capability mismatch | receiver activation | receiver activation fails |
+| N9 | protocol identifier mismatch | protected-message authentication | open fails, no plaintext, receiver sequence unchanged |
+| N10 | protocol version mismatch | protected-message authentication | open fails, no plaintext, receiver sequence unchanged |
+| N11 | application-context mismatch | protected-message authentication | open fails, no plaintext, receiver sequence unchanged |
+| N12 | modified ciphertext | protected-message authentication | open fails, no plaintext, receiver sequence unchanged |
+| N13 | wrong AAD | protected-message authentication | open fails, no plaintext, receiver sequence unchanged |
+| N14 | valid message after failed authentication | protected-message processing | open succeeds and receiver advances exactly once |
+
+### 16.2 Boundary Semantics
+
+Structurally invalid offers and policies are rejected before negotiation.
+
+A structurally valid negotiation for which no capability satisfies the local
+offer, peer offer, and policy constraints produces no negotiated capability.
+
+Unsupported negotiated capabilities are rejected during secure-channel profile
+resolution before HPKE setup.
+
+Malformed recipient key material and malformed encapsulated material are
+rejected by secure-channel activation through the HPKE/KEM boundary.
+
+Protocol identifier, protocol version, negotiated capability, and application
+context participate in secure-channel establishment semantics. Where a mismatch
+permits local HPKE context construction but produces a different key-schedule
+binding, rejection is expected at authenticated protected-message processing.
+
+Authentication failure must not release plaintext. Where the HPKE context API
+permits observation of sequence state, a rejected `open` must not advance the
+receiver sequence.
+
+E4 is successful only when every frozen case fails or succeeds at the expected
+boundary without silently substituting a different capability, profile, or
+cryptographic behavior.
+
+## 16. E4 Negative and Mismatch Evaluation
+
+E4 evaluates whether invalid, unsupported, or inconsistent inputs fail at
+explicit architectural boundaries.
+
+These experiments are correctness and failure-localization measurements.
+They are not performance benchmarks.
+
+For each case, the evaluation records:
+
+- case identifier;
+- injected inconsistency;
+- expected rejection boundary;
+- actual rejection boundary;
+- returned error category or negotiation outcome;
+- whether plaintext was released;
+- receiver sequence state before and after rejection;
+- final PASS/FAIL result.
+
+### 16.1 Frozen Negative Matrix
+
+| ID | Case | Expected boundary | Required result |
+| --- | --- | --- | --- |
+| N1 | duplicate local capability offer | offer validation | duplicate rejected |
+| N2 | duplicate policy capability | policy validation | duplicate rejected |
+| N3 | no policy-permitted common capability | negotiation | no negotiated capability |
+| N4 | unsupported negotiated capability | profile resolution | unsupported capability rejected before HPKE |
+| N5 | malformed recipient public key | sender activation | activation fails |
+| N6 | malformed recipient private material | receiver activation | activation fails |
+| N7 | malformed encapsulated key | receiver activation | activation fails |
+| N8 | peer negotiated-capability mismatch | receiver activation | receiver activation fails |
+| N9 | protocol identifier mismatch | protected-message authentication | open fails, no plaintext, receiver sequence unchanged |
+| N10 | protocol version mismatch | protected-message authentication | open fails, no plaintext, receiver sequence unchanged |
+| N11 | application-context mismatch | protected-message authentication | open fails, no plaintext, receiver sequence unchanged |
+| N12 | modified ciphertext | protected-message authentication | open fails, no plaintext, receiver sequence unchanged |
+| N13 | wrong AAD | protected-message authentication | open fails, no plaintext, receiver sequence unchanged |
+| N14 | valid message after failed authentication | protected-message processing | open succeeds and receiver advances exactly once |
+
+### 16.2 Boundary Semantics
+
+Structurally invalid offers and policies are rejected before negotiation.
+
+A structurally valid negotiation for which no capability satisfies the local
+offer, peer offer, and policy constraints produces no negotiated capability.
+
+Unsupported negotiated capabilities are rejected during secure-channel profile
+resolution before HPKE setup.
+
+Malformed recipient key material and malformed encapsulated material are
+rejected by secure-channel activation through the HPKE/KEM boundary.
+
+Protocol identifier, protocol version, negotiated capability, and application
+context participate in secure-channel establishment semantics. Where a mismatch
+permits local HPKE context construction but produces a different key-schedule
+binding, rejection is expected at authenticated protected-message processing.
+
+Authentication failure must not release plaintext. Where the HPKE context API
+permits observation of sequence state, a rejected `open` must not advance the
+receiver sequence.
+
+E4 is successful only when every frozen case fails or succeeds at the expected
+boundary without silently substituting a different capability, profile, or
+cryptographic behavior.
