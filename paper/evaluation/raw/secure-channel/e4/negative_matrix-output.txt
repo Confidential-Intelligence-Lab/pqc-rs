@@ -1,0 +1,23 @@
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.05s
+     Running tests/negative_matrix.rs (target/debug/deps/negative_matrix-605bd4fceafcc621)
+
+running 1 test
+id|case|expected_boundary|actual_boundary|outcome|plaintext_released|sequence_before|sequence_after|result
+N1|duplicate local capability offer|offer validation|offer validation|DuplicateCapability|false|-|-|PASS
+N2|duplicate policy capability|policy validation|policy validation|DuplicateCapability|false|-|-|PASS
+N3|no policy-permitted common capability|negotiation|negotiation|None|false|-|-|PASS
+N4|unsupported negotiated capability|profile resolution|profile resolution|UnsupportedCapability|false|-|-|PASS
+N5|malformed recipient public key|sender activation|sender activation|HPKE/KEM error|false|-|-|PASS
+N6|malformed recipient private material|receiver activation|receiver activation|HPKE/KEM error|false|-|-|PASS
+N7|malformed encapsulated key|receiver activation|receiver activation|HPKE/KEM error|false|-|-|PASS
+N8|peer negotiated-capability mismatch|receiver activation|receiver activation|HPKE/KEM error|false|-|-|PASS
+N9|protocol identifier mismatch|protected-message authentication|protected-message authentication|OpenError|false|0|0|PASS
+N10|protocol version mismatch|protected-message authentication|protected-message authentication|OpenError|false|0|0|PASS
+N11|application-context mismatch|protected-message authentication|protected-message authentication|OpenError|false|0|0|PASS
+N12|modified ciphertext|protected-message authentication|protected-message authentication|OpenError|false|0|0|PASS
+N13|wrong AAD|protected-message authentication|protected-message authentication|OpenError|false|0|0|PASS
+N14|valid message after failed authentication|protected-message processing|protected-message processing|valid open succeeds after rejected open|true|0|1|PASS
+test frozen_negative_matrix_matches_expected_boundaries ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
