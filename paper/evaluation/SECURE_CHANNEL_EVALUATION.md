@@ -1116,3 +1116,170 @@ Instead, it evaluates a narrower property:
 The experiment therefore provides end-to-end evidence connecting the
 transport abstraction's resumability contract to negotiated cryptographic
 execution and protected application data.
+
+## 19. E7 Reproducible Secure-Channel Demonstration
+
+E7 provides a deterministic, reviewer-facing reproduction path for the
+correctness and transport claims established by the secure-channel evaluation.
+
+E7 introduces no new cryptographic capability, protocol behavior, transport
+semantics, or performance measurement.
+
+### Purpose
+
+The purpose of E7 is to demonstrate that the principal secure-channel
+evaluation claims can be reproduced from a clean repository checkout using a
+single explicitly versioned script and the repository's existing tests and
+frozen evidence artifacts.
+
+The reproduction path covers:
+
+- the successful negotiated reference workflow;
+- E4 negative and mismatch behavior;
+- E5 loopback TCP transport behavior;
+- E6 deterministic adverse-schedule behavior.
+
+E2 and E3 controlled performance campaigns are not re-executed by the E7
+demonstration. Their accepted frozen datasets are verified separately because
+repeating controlled measurement campaigns is intentionally more expensive
+than reproducing functional and transport correctness.
+
+### Interpreter Contract
+
+The E7 script MUST use explicit interpreter paths rather than relying on an
+interactive shell's implicit interpreter selection.
+
+The primary shell interpreter is:
+
+~~~text
+/bin/zsh
+~~~
+
+Where Python is required, the script MUST select and report an explicit Python
+3 interpreter before use.
+
+The script MUST print the selected interpreter paths and relevant version
+information.
+
+### Reproduction Inputs
+
+E7 operates on repository-controlled sources and evidence only.
+
+It MUST NOT depend on:
+
+- the untracked working measurement directories under
+  `paper/evaluation/raw/*/runs/`;
+- previously populated `target/` artifacts;
+- manually copied external files;
+- network access;
+- wall-clock-sensitive assertions;
+- randomized transport schedules.
+
+Build artifacts required by the tests may be generated normally by Cargo.
+
+### Reproduced Checks
+
+The E7 demonstration MUST execute or verify the following gates.
+
+#### Reference workflow
+
+Run the public secure-channel reference workflow and require successful
+execution for all three registered profiles:
+
+~~~text
+MLKEM768
+MLKEM1024
+MLKEM768-X25519
+~~~
+
+#### E4 negative matrix
+
+Execute the frozen negative evaluation matrix.
+
+The matrix MUST contain exactly 14 frozen cases and every case MUST satisfy its
+expected architectural boundary and final PASS condition.
+
+#### E5 loopback TCP
+
+Execute the loopback TCP evaluation.
+
+Exactly three E5 observations MUST be produced, one for each registered
+secure-channel profile, and all three MUST end in PASS.
+
+#### E6 adverse schedules
+
+Execute the deterministic adverse-schedule evaluation.
+
+Exactly 18 E6 observations MUST be produced:
+
+~~~text
+6 schedules x 3 profiles = 18 observations
+~~~
+
+Every observation MUST end in PASS.
+
+The schedule distribution MUST contain exactly three observations for each of:
+
+~~~text
+S0
+S1
+S2
+S3
+S4
+S5
+~~~
+
+The profile distribution MUST contain exactly six observations for each of:
+
+~~~text
+MLKEM768
+MLKEM1024
+MLKEM768-X25519
+~~~
+
+All final sender and receiver sequence observations MUST equal one.
+
+### Frozen Evidence Verification
+
+Where frozen E4, E5, or E6 machine-readable evidence artifacts are present,
+E7 MUST verify their expected row counts and PASS counts.
+
+The reproduction script MUST fail if the executable result and frozen evidence
+contract disagree.
+
+### Repository Hygiene
+
+The E7 script MUST NOT modify tracked repository files.
+
+After execution, repository differences caused by the reproduction script
+itself are not permitted.
+
+Cargo build artifacts under ignored build directories are permitted.
+
+### Success Criteria
+
+E7 succeeds only when all required reproduction gates pass.
+
+The final script output MUST contain an unambiguous summary equivalent to:
+
+~~~text
+REFERENCE WORKFLOW: PASS
+E4 NEGATIVE MATRIX: PASS
+E5 LOOPBACK TCP: PASS
+E6 ADVERSE SCHEDULE MATRIX: PASS
+FROZEN EVIDENCE VERIFICATION: PASS
+REPOSITORY HYGIENE: PASS
+
+SECURE-CHANNEL REPRODUCIBILITY DEMO: PASS
+~~~
+
+A nonzero exit status MUST be returned if any required gate fails.
+
+### Interpretation
+
+E7 demonstrates reproducibility of the evaluated secure-channel correctness,
+failure-localization, real-transport, fragmentation, and retryable-progress
+claims.
+
+It does not constitute a new performance campaign and does not replace the
+controlled E2 and E3 measurement methodology.
