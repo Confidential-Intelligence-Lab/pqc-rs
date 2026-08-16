@@ -910,3 +910,209 @@ the frozen loopback workflow and demonstrate:
 - no reliance on TCP operation boundaries as protocol-frame boundaries.
 
 Timing observations from E5 are not paper-facing performance measurements.
+
+## 18. E6 Deterministic Adverse-Schedule Secure-Channel Evaluation
+
+### Purpose
+
+E6 evaluates whether the complete negotiated secure-channel path preserves
+its protocol and application semantics when deterministic retryable transport
+conditions are introduced between partial byte-stream progress operations.
+
+The experiment extends the E5 secure-channel path rather than replacing it.
+E5 establishes successful operation over fragmented loopback TCP. E6 evaluates
+whether the same negotiated secure-channel semantics remain invariant when
+transport progress is additionally interrupted by explicit retryable
+no-progress outcomes.
+
+E6 is an evaluation of end-to-end secure-channel behavior. It is not intended
+to duplicate the existing unit-level tests for `FrameTransmitter`,
+`FrameReceiver`, `MemoryTransport`, or `ProtocolDriver`.
+
+### Transport Conditions
+
+The evaluation distinguishes the two retryable transport conditions defined by
+the protocol transport abstraction:
+
+- `TransportError::Pending`: the transport cannot currently make progress and
+  the operation may be retried.
+- `TransportError::Interrupted`: the operation was interrupted before progress
+  was made and the operation may be retried.
+
+A scheduled `Pending` or `Interrupted` event MUST occur before the underlying
+transport operation commits bytes. Therefore, a retryable scheduled event
+commits zero bytes and MUST NOT advance framed-transfer state.
+
+### Deterministic Schedule Matrix
+
+E6 evaluates the following schedules:
+
+| Schedule | Transfer limit | Adverse condition |
+|---|---:|---|
+| S0 | 7 bytes | none |
+| S1 | 1 byte | none |
+| S2 | 7 bytes | periodic `Pending` |
+| S3 | 7 bytes | periodic `Interrupted` |
+| S4 | 1 byte | alternating progress and `Pending` |
+| S5 | 1 byte | alternating progress and `Interrupted` |
+
+S0 is the E6 control schedule.
+
+S1 forces maximal deterministic fragmentation without injected retryable
+failures.
+
+S2 and S3 evaluate retryable no-progress behavior while retaining the
+seven-byte transfer limit used by the E5 fragmented transport evaluation.
+
+S4 and S5 combine maximal one-byte fragmentation with deterministic retryable
+no-progress conditions.
+
+The schedule definition, including the exact periodicity used by S2 and S3,
+MUST be fixed in the evaluation harness and reported with the frozen results.
+No schedule may depend on wall-clock timing, operating-system scheduling, or
+random choices.
+
+### Capability Profiles
+
+Every schedule MUST be evaluated against each secure-channel capability profile
+included in the E5 evaluation baseline.
+
+The capability profile determines the cryptographic composition. The adverse
+transport schedule MUST NOT alter capability negotiation, provider resolution,
+cryptographic binding, or secure-channel activation semantics.
+
+The complete E6 matrix therefore contains:
+
+```text
+6 deterministic schedules × 3 capability profiles = 18 observations
+```
+
+### Evaluation Path
+
+Each observation MUST exercise the complete negotiated secure-channel path:
+
+```text
+capability offer
+    ->
+capability negotiation
+    ->
+validated negotiation evidence
+    ->
+provider resolution
+    ->
+cryptographic binding
+    ->
+secure-channel activation
+    ->
+protected request
+    ->
+protected response
+```
+
+The adverse transport adapter MUST operate below the framed protocol path so
+that retryable transport outcomes are observed by the existing resumable frame
+transport machinery.
+
+Production protocol semantics MUST NOT be modified solely to support E6.
+
+### Required Invariants
+
+For every observation, E6 MUST verify all of the following:
+
+1. The client and server negotiate the expected capability.
+
+2. The client and server establish the expected secure-channel profile.
+
+3. The plaintext request recovered by the server is byte-for-byte identical to
+   the plaintext request supplied by the client.
+
+4. The plaintext response recovered by the client is byte-for-byte identical
+   to the plaintext response supplied by the server.
+
+5. Retryable `Pending` and `Interrupted` events commit zero transport bytes.
+
+6. Retryable events do not advance framed-transfer progress.
+
+7. Retrying after a retryable event does not duplicate previously committed
+   frame bytes.
+
+8. Retrying after a retryable event does not omit uncommitted frame bytes.
+
+9. Retryable transport behavior does not duplicate or omit protected
+   application messages.
+
+10. Client and server secure-channel sequence state advances exactly once for
+    each successfully processed protected application message.
+
+11. Capability negotiation, binding, and activation results are invariant
+    across transport schedules for a fixed capability profile.
+
+An observation is `PASS` only when every required invariant holds.
+
+### Recorded Fields
+
+Each E6 observation MUST record at least:
+
+```text
+experiment
+schedule
+profile
+transfer_limit
+schedule_kind
+client_tx_pending
+client_tx_interrupted
+client_rx_pending
+client_rx_interrupted
+server_tx_pending
+server_tx_interrupted
+server_rx_pending
+server_rx_interrupted
+client_tx_calls
+client_rx_calls
+server_tx_calls
+server_rx_calls
+request_bytes
+response_bytes
+client_tx_sequence
+client_rx_sequence
+server_tx_sequence
+server_rx_sequence
+result
+```
+
+Additional diagnostic fields may be recorded provided that the required fields
+and their meanings remain stable.
+
+Retryable-event counters MUST distinguish endpoint, direction, and retryable
+condition. This ensures that the frozen result demonstrates which adverse paths
+were actually exercised.
+
+### Result Format
+
+The machine-readable result artifact MUST contain one observation per
+schedule/profile combination.
+
+A representative record is:
+
+```text
+E6|S4|<profile>|limit=1|schedule=progress-pending|client_tx_pending=<n>|client_tx_interrupted=0|client_rx_pending=<n>|client_rx_interrupted=0|server_tx_pending=<n>|server_tx_interrupted=0|server_rx_pending=<n>|server_rx_interrupted=0|client_tx_calls=<n>|client_rx_calls=<n>|server_tx_calls=<n>|server_rx_calls=<n>|request_bytes=<n>|response_bytes=<n>|client_tx_sequence=<n>|client_rx_sequence=<n>|server_tx_sequence=<n>|server_rx_sequence=<n>|PASS
+```
+
+The exact serialization format may be made more compact by the implementation,
+but the semantic fields defined above MUST remain recoverable.
+
+### Interpretation
+
+E6 does not claim resistance to arbitrary network faults, packet loss,
+connection termination, Byzantine transport behavior, or operating-system
+failure.
+
+Instead, it evaluates a narrower property:
+
+> For the tested secure-channel profiles, deterministic fragmentation and
+> retryable zero-progress transport conditions do not change the observable
+> negotiated secure-channel semantics.
+
+The experiment therefore provides end-to-end evidence connecting the
+transport abstraction's resumability contract to negotiated cryptographic
+execution and protected application data.
