@@ -1377,3 +1377,120 @@ FIGURE GENERATION: PASS
 DETERMINISTIC REGENERATION: PASS
 
 E8 PAPER RESULTS DERIVATION: PASS
+
+## 21. E9 Controlled Cryptographic Change-Localization Evaluation
+
+E9 measures how localized a cryptographic capability change remains in the
+mature PQC-Forge architecture.
+
+E9 introduces one additional secure-channel HPKE profile composed entirely from
+cryptographic components already implemented and validated by PQC-rs.
+
+### Baseline
+
+The E9 baseline revision is:
+
+```text
+0c904832bcc3d7e224a743388e0eec6024e3f719
+The baseline contains three registered secure-channel profiles:
+
+ML-KEM-768 + HKDF-SHA256 + AES-256-GCM
+ML-KEM-1024 + HKDF-SHA384 + AES-256-GCM
+ML-KEM-768 + X25519 + HKDF-SHA256 + AES-256-GCM
+Controlled Mutation
+
+E9 adds one complete HPKE capability using:
+
+KEM:  ML-KEM-768
+KDF:  HKDF-SHA256
+AEAD: ChaCha20-Poly1305
+
+The mutation reuses existing HPKE, KDF, AEAD, and ML-KEM implementations.
+
+E9 MUST NOT add a new cryptographic primitive implementation.
+
+The new profile is introduced only to evaluate change localization. E9 does not
+claim that ChaCha20-Poly1305 is preferable to AES-256-GCM and does not constitute
+a new performance experiment.
+
+Hypothesis
+
+Adding the profile should require production changes only at explicit
+cryptographic-agility boundaries:
+
+protocol capability registration;
+secure-channel profile resolution.
+
+Generic protocol negotiation, handshake encoding, framing, transport,
+cryptographic binding, HPKE primitives, ML-KEM primitives, and application
+message processing should remain unchanged.
+
+Change-Localization Metrics
+
+E9 MUST record:
+
+production files changed;
+production lines added and removed;
+test/evaluation files changed;
+architectural layers touched;
+architectural layers unchanged;
+whether algorithm-specific branching appears above the profile-resolution
+boundary.
+
+Documentation and evaluation artifacts MUST be reported separately from
+production implementation changes.
+
+Required Functional Validation
+
+The controlled profile MUST:
+
+be represented by a unique stable CapabilityId;
+participate in generic capability negotiation without negotiation-algorithm
+changes;
+resolve deterministically to ML-KEM-768, HKDF-SHA256, and
+ChaCha20-Poly1305;
+establish a secure channel through the existing activation path;
+protect and recover application data through the existing secure-channel
+API.
+
+The three pre-existing profiles MUST continue to pass their existing tests.
+
+Architectural Non-Modification Checks
+
+E9 MUST mechanically verify that the controlled mutation does not modify the
+production implementation of:
+
+generic capability negotiation
+capability handshake codec
+protocol framing
+transport abstraction
+secure-channel binding
+HPKE primitive implementation
+ML-KEM primitive implementation
+hybrid KEM implementation
+
+Changes to tests, fixtures, registry declarations, profile resolution, and
+evaluation tooling are permitted and MUST be classified separately.
+
+Interpretation
+
+A localized result supports the claim that the PQC-Forge architecture confines
+cryptographic-suite change to explicit registration and resolution boundaries.
+
+E9 MUST NOT claim that all possible cryptographic migrations have identical
+change cost.
+
+The result applies specifically to introducing a new complete HPKE profile from
+already-supported cryptographic components.
+
+Success Criteria
+
+E9 succeeds when:
+
+CONTROLLED PROFILE VALIDATION: PASS
+EXISTING PROFILE REGRESSION: PASS
+CHANGE CLASSIFICATION: PASS
+ARCHITECTURAL NON-MODIFICATION: PASS
+
+
+E9 CHANGE-LOCALIZATION EVALUATION: PASS
