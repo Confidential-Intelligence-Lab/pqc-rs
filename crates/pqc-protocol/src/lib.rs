@@ -37,7 +37,8 @@ mod typestate;
 mod wire;
 
 pub use capabilities::{
-    HPKE_ML_KEM_1024, HPKE_ML_KEM_768, HPKE_ML_KEM_768_X25519, REGISTERED_CAPABILITIES,
+    HPKE_ML_KEM_1024, HPKE_ML_KEM_768, HPKE_ML_KEM_768_CHACHA20, HPKE_ML_KEM_768_X25519,
+    REGISTERED_CAPABILITIES,
 };
 pub use codec::{ProtocolDecode, ProtocolEncode};
 pub use driver::{
