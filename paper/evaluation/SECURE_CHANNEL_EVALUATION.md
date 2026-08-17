@@ -1283,3 +1283,97 @@ claims.
 
 It does not constitute a new performance campaign and does not replace the
 controlled E2 and E3 measurement methodology.
+
+## 20. E8 Paper-Facing Results Derivation
+
+E8 converts the frozen E2 and E3 measurement summaries into deterministic
+paper-facing tables and figures. It introduces no new benchmark campaign or
+cryptographic implementation change.
+
+### Inputs
+
+E8 MUST derive results only from:
+
+- paper/evaluation/raw/secure-channel/freeze/cross_run_summary.csv
+- paper/evaluation/raw/hpke-composition/freeze/composition_summary.csv
+
+The generator MUST NOT read untracked runs directories or execute Criterion.
+
+### E2 Derived Results
+
+The E2 table MUST report cross-run means for activate_sender,
+activate_receiver, establish_channel, seal_1k, and open_1k for MLKEM768,
+MLKEM768-X25519, and MLKEM1024.
+
+Values MUST be converted from nanoseconds to microseconds using ns / 1000.
+
+Negotiation, profile resolution, and binding MUST remain separate because
+their costs are at nanosecond scale.
+
+### E3 Derived Results
+
+The E3 table MUST report pure_mean_us, hybrid_mean_us, delta_mean_us, and
+overhead_mean_percent for setup_sender, setup_receiver, seal_1k, and open_1k.
+
+The percentage value MUST come directly from the frozen
+overhead_mean_percent field.
+
+### Figure
+
+E8 MUST generate one primary figure showing that hybrid composition materially
+changes HPKE setup cost while established-context 1 KiB seal/open cost remains
+effectively unchanged.
+
+The small negative open_1k delta MUST NOT be interpreted as evidence that the
+hybrid construction is faster.
+
+### Outputs
+
+A single repository-controlled generator MUST create:
+
+- paper/evaluation/derived/secure-channel-summary.csv
+- paper/evaluation/derived/hpke-composition-summary.csv
+- paper/evaluation/derived/secure-channel-summary.tex
+- paper/evaluation/derived/hpke-composition-summary.tex
+- paper/evaluation/derived/figures/hpke-composition-overhead.pdf
+
+### Validation
+
+The generator MUST fail if required input rows or columns are missing or
+duplicated. It MUST verify 24 E2 rows, 4 E3 rows, all required operation/profile
+combinations, finite numeric values, deterministic ordering, consistent unit
+conversion, and deterministic regeneration.
+
+### Interpretation
+
+E8 preserves E2 and E3 as distinct experiments. E2 measures the complete
+negotiated secure-channel path, while E3 isolates pure-PQ versus hybrid HPKE
+composition.
+
+The derived results may support these claims:
+
+1. Secure-channel establishment is dominated by cryptographic activation rather
+   than negotiation, resolution, or binding.
+2. ML-KEM-768 has the lowest establishment cost among the evaluated profiles,
+   ML-KEM-768-X25519 is intermediate, and ML-KEM-1024 is highest.
+3. Hybrid composition increases sender and receiver HPKE setup cost relative
+   to pure ML-KEM-768.
+4. One-kilobyte seal/open cost is materially unchanged by hybrid composition
+   at the scale of the experiment.
+
+E8 MUST NOT infer claims beyond the frozen measurements.
+
+### Success Criteria
+
+E8 succeeds when the frozen inputs validate, all required paper-facing
+artifacts are generated, and repeated generation is deterministic.
+
+The generator MUST report:
+
+E2 FROZEN INPUT VALIDATION: PASS
+E3 FROZEN INPUT VALIDATION: PASS
+PAPER TABLE GENERATION: PASS
+FIGURE GENERATION: PASS
+DETERMINISTIC REGENERATION: PASS
+
+E8 PAPER RESULTS DERIVATION: PASS
