@@ -1,0 +1,27 @@
+PQC-Forge Final Evaluation Freeze
+
+Evaluated revision:
+218f3a3165cc5355ce084b63ac69082cac1afa26
+
+Canonical artifacts:
+
+9389a7c8e374fa27ae1dd93915c85fa141664bc717798a1faa6e9ffd4327784a  paper/evaluation/raw/secure-channel/freeze/cross_run_summary.csv
+0eca719756e1cd739161f6b7adfc24a42b915f8a084dc41942658db06d3a3475  paper/evaluation/raw/hpke-composition/freeze/composition_summary.csv
+dcf9b4c8f25735b15def739854d96c593f978d0ad430f3dd7886090c50bf0ad6  paper/evaluation/raw/secure-channel/e4/negative_matrix-results.psv
+f5dc130541020fd1325ff3712596958ac8abbb66e819e8300dda31aeaec4c3be  paper/evaluation/raw/secure-channel/e5/loopback_tcp-results.psv
+5694ec1e32b10518d819ba1dd84cc8b840f706050330b88cdaee478b6f76aae5  paper/evaluation/raw/secure-channel/e6/adverse_schedule-results.psv
+c8e49767fd7bc9811d18d4ea3b097ae0eb422dfa65c8f9c31b22c6aa5542f37a  paper/evaluation/scripts/reproduce_secure_channel_demo.zsh
+06247d6d4ec2608d1d48d344c519a89da1b14e7b149de283bd9c28315d72d1a8  paper/evaluation/derived/secure-channel-summary.csv
+452acf3ac5e6bd1cda9bf8ffd5dbf1345a705499ea3c494397f6139c00c35fc9  paper/evaluation/derived/hpke-composition-summary.csv
+b50ada2f611a53cd4c3a082e18c1b6cfe94d84c807f2d85c8788e2c71a8e1e04  paper/evaluation/derived/secure-channel-summary.tex
+51c39341084cc9b7630c15acab26de4c43c3ff890e2254edad8edf88ac48bf6d  paper/evaluation/derived/hpke-composition-summary.tex
+e0caf8c8645c5335a37f1c42d32dbde3ef289c796d31cbc7c40fe64f609f9a5d  paper/evaluation/derived/figures/hpke-composition-overhead.pdf
+1e27a673180db51fee1884aeac855802196665f5e1c7abe8759d69f7e0ec9744  paper/evaluation/raw/secure-channel/e9/change-localization-results.psv
+8749cbe0569c316a4b75229411b88badc95d38aa7d66a60f752713f772fc7819  paper/evaluation/raw/secure-channel/e9/change-localization-summary.txt
+
+Verification:
+FINAL BASELINE REVISION: PASS
+CANONICAL ARTIFACT INVENTORY: PASS
+CANONICAL ARTIFACT HASHING: PASS
+
+FINAL EVALUATION FREEZE: PASS
