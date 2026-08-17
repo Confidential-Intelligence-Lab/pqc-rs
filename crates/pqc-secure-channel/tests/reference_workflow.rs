@@ -2,7 +2,8 @@ use pqc_hpke::{hybrid_kem::HybridKem, MlKemHpke};
 use pqc_protocol::{
     negotiate_policy_permitted_common, CapabilityId, CapabilityOffer, CapabilityPolicy,
     EstablishedProtocolContext, PolicyId, ProtocolId, ProtocolRole, ProtocolVersion, SessionId,
-    TypedProtocolSession, HPKE_ML_KEM_1024, HPKE_ML_KEM_768, HPKE_ML_KEM_768_X25519,
+    TypedProtocolSession, HPKE_ML_KEM_1024, HPKE_ML_KEM_768, HPKE_ML_KEM_768_CHACHA20,
+    HPKE_ML_KEM_768_X25519,
 };
 use pqc_secure_channel::{activate_receiver, activate_sender};
 use rand_core::{CryptoRng, Error as RandError, RngCore};
@@ -84,35 +85,41 @@ fn hybrid_fixture(capability: CapabilityId, kem: HybridKem, seed: u8) -> Profile
     }
 }
 
-fn fixtures() -> [ProfileFixture; 3] {
+fn fixtures() -> [ProfileFixture; 4] {
     [
         ml_kem_fixture(HPKE_ML_KEM_768, MlKemHpke::MlKem768, 0x11),
         ml_kem_fixture(HPKE_ML_KEM_1024, MlKemHpke::MlKem1024, 0x21),
-        hybrid_fixture(HPKE_ML_KEM_768_X25519, HybridKem::MlKem768X25519, 0x31),
+        ml_kem_fixture(HPKE_ML_KEM_768_CHACHA20, MlKemHpke::MlKem768, 0x31),
+        hybrid_fixture(HPKE_ML_KEM_768_X25519, HybridKem::MlKem768X25519, 0x41),
     ]
 }
 
-fn other_capabilities(target: CapabilityId) -> [CapabilityId; 2] {
-    let mut others = [CapabilityId::new(0); 2];
+fn other_capabilities(target: CapabilityId) -> [CapabilityId; 3] {
+    let mut others = [CapabilityId::new(0); 3];
     let mut index = 0;
 
-    for capability in [HPKE_ML_KEM_768, HPKE_ML_KEM_1024, HPKE_ML_KEM_768_X25519] {
+    for capability in [
+        HPKE_ML_KEM_768,
+        HPKE_ML_KEM_1024,
+        HPKE_ML_KEM_768_CHACHA20,
+        HPKE_ML_KEM_768_X25519,
+    ] {
         if capability != target {
             others[index] = capability;
             index += 1;
         }
     }
 
-    assert_eq!(index, 2);
+    assert_eq!(index, 3);
     others
 }
 
 fn negotiate(capability: CapabilityId, policy_id: PolicyId) -> pqc_protocol::NegotiatedCapability {
-    let [a, b] = other_capabilities(capability);
+    let [a, b, c] = other_capabilities(capability);
 
-    let local_ids = [capability, a, b];
-    let peer_ids = [a, capability, b];
-    let allowed = [a, b, capability];
+    let local_ids = [capability, a, b, c];
+    let peer_ids = [a, capability, c, b];
+    let allowed = [a, b, c, capability];
 
     let local = CapabilityOffer::new(&local_ids).unwrap();
     let peer = CapabilityOffer::new(&peer_ids).unwrap();

@@ -1,0 +1,49 @@
+E9 Controlled Cryptographic Change-Localization Evaluation
+
+Baseline:
+0c904832bcc3d7e224a743388e0eec6024e3f719
+
+Controlled profile:
+CapabilityId: 0x0103
+KEM: ML-KEM-768
+KDF: HKDF-SHA256
+AEAD: ChaCha20-Poly1305
+
+Production changes:
+13 additions, 2 deletions  crates/pqc-protocol/src/capabilities.rs
+ 2 additions, 1 deletion   crates/pqc-protocol/src/lib.rs
+30 additions, 1 deletion   crates/pqc-secure-channel/src/lib.rs
+
+Total production delta:
+3 files
+45 additions
+4 deletions
+
+Validation changes:
+18 additions, 11 deletions
+crates/pqc-secure-channel/tests/reference_workflow.rs
+
+Architectural non-modification:
+generic capability negotiation: unchanged
+capability handshake codec: unchanged
+protocol framing: unchanged
+frame transport: unchanged
+transport abstraction: unchanged
+secure-channel binding: unchanged
+secure-channel activation: unchanged
+HPKE implementation: unchanged
+ML-KEM implementation: unchanged
+hybrid KEM implementation: unchanged
+
+Interpretation:
+The controlled capability change was localized to capability registration,
+public exposure, and secure-channel profile resolution. Existing generic
+negotiation, activation, transport, binding, and cryptographic primitive
+implementations required no production modification.
+
+CONTROLLED PROFILE VALIDATION: PASS
+EXISTING PROFILE REGRESSION: PASS
+CHANGE CLASSIFICATION: PASS
+ARCHITECTURAL NON-MODIFICATION: PASS
+
+E9 CHANGE-LOCALIZATION EVALUATION: PASS

@@ -24,7 +24,7 @@ use core::fmt;
 use pqc_hpke::{hybrid_kem::HybridKem, AeadId, HpkeSuite, HpkeSuiteId, KdfId, MlKemHpke};
 use pqc_protocol::{
     CapabilityId, NegotiatedCapability, PolicyId, HPKE_ML_KEM_1024, HPKE_ML_KEM_768,
-    HPKE_ML_KEM_768_X25519,
+    HPKE_ML_KEM_768_CHACHA20, HPKE_ML_KEM_768_X25519,
 };
 
 /// Closed cryptographic interpretation of a negotiated HPKE capability.
@@ -155,6 +155,17 @@ pub fn resolve_hpke_profile(
             HpkeProfileKind::MlKem1024 { suite }
         }
 
+        HPKE_ML_KEM_768_CHACHA20 => {
+            let suite = HpkeSuite::new(
+                MlKemHpke::MlKem768,
+                KdfId::HKDF_SHA256,
+                AeadId::CHACHA20_POLY1305,
+            )
+            .map_err(|_| HpkeProfileResolutionError::InvalidProfile)?;
+
+            HpkeProfileKind::MlKem768 { suite }
+        }
+
         HPKE_ML_KEM_768_X25519 => {
             let kem = HybridKem::MlKem768X25519;
             let suite = HpkeSuiteId {
@@ -221,6 +232,24 @@ mod tests {
         assert_eq!(suite.id().kem_id, MlKemHpke::MlKem1024.kem_id());
         assert_eq!(suite.id().kdf_id, KdfId::HKDF_SHA384);
         assert_eq!(suite.id().aead_id, AeadId::AES_256_GCM);
+    }
+
+    #[test]
+    fn resolves_ml_kem_768_chacha20_profile_exactly() {
+        let evidence = negotiated(HPKE_ML_KEM_768_CHACHA20, PolicyId::new(3));
+        let profile = resolve_hpke_profile(evidence).unwrap();
+
+        assert_eq!(profile.negotiated(), evidence);
+        assert_eq!(profile.policy_id(), PolicyId::new(3));
+        assert_eq!(profile.capability(), HPKE_ML_KEM_768_CHACHA20);
+
+        let HpkeProfileKind::MlKem768 { suite } = profile.kind() else {
+            panic!("unexpected profile kind");
+        };
+
+        assert_eq!(suite.id().kem_id, MlKemHpke::MlKem768.kem_id());
+        assert_eq!(suite.id().kdf_id, KdfId::HKDF_SHA256);
+        assert_eq!(suite.id().aead_id, AeadId::CHACHA20_POLY1305);
     }
 
     #[test]
