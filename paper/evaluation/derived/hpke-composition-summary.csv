@@ -1,0 +1,5 @@
+operation,pure_mean_us,hybrid_mean_us,delta_mean_us,overhead_mean_percent
+setup_sender,68.755,98.763,30.008,43.64
+setup_receiver,123.384,153.008,29.623,24.01
+seal_1k,6.202,6.211,0.010,0.16
+open_1k,6.274,6.272,-0.002,-0.03

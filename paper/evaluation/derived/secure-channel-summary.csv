@@ -1,0 +1,6 @@
+operation,MLKEM768_mean_us,MLKEM768-X25519_mean_us,MLKEM1024_mean_us
+activate_sender,88.417,122.737,134.570
+activate_receiver,140.923,170.049,210.104
+establish_channel,219.134,281.818,332.935
+seal_1k,6.130,6.111,6.123
+open_1k,6.135,6.126,6.138
