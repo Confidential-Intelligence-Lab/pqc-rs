@@ -36,7 +36,7 @@ infrastructure.
 | [`pqc-rs-ml-kem`](https://crates.io/crates/pqc-rs-ml-kem) | FIPS 203 ML-KEM implementation | Published (`0.4.1`) |
 | [`pqc-rs-ml-dsa`](https://crates.io/crates/pqc-rs-ml-dsa) | FIPS 204 ML-DSA implementation | Published (`0.4.0`) |
 | [`pqc-rs-slh-dsa`](https://crates.io/crates/pqc-rs-slh-dsa) | FIPS 205 SLH-DSA implementation | Published (`0.4.0`) |
-| [`pqc-rs-hpke`](https://crates.io/crates/pqc-rs-hpke) | HPKE with post-quantum and hybrid KEM integration | Published (`0.4.0`) |
+| [`pqc-rs-hpke`](https://crates.io/crates/pqc-rs-hpke) | HPKE with post-quantum and hybrid KEM integration | Release candidate for `0.4.1` |
 | `pqc-rs-hybrid` | Support for PQ/traditional hybrid cryptographic composition | Publication-ready; not yet published |
 | `pqc-rs-protocol` | Transport-independent protocol roles, framing, capability negotiation, policy binding, and session machinery | Publication-ready; not yet published |
 | `pqc-rs-secure-channel` | PQC-Forge integration from validated negotiation evidence to bound HPKE secure channels | Publication-ready; not yet published |
@@ -95,7 +95,7 @@ Published cryptographic crates:
     pqc-rs-ml-kem = "0.4.1"
     pqc-rs-ml-dsa = "0.4.0"
     pqc-rs-slh-dsa = "0.4.0"
-    pqc-rs-hpke = "0.4.0"
+    pqc-rs-hpke = "0.4.1"
 
 The corresponding Rust library names are `pqc_core`, `pqc_ml_kem`,
 `pqc_ml_dsa`, `pqc_slh_dsa`, and `pqc_hpke`.

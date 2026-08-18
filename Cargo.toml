@@ -42,7 +42,7 @@ chacha20poly1305 = "0.10"
 x25519-dalek = { version = "2", features = ["static_secrets"] }
 p256 = { version = "0.13", features = ["ecdh"] }
 p384 = { version = "0.13", features = ["ecdh"] }
-pqc-hpke = { package = "pqc-rs-hpke", path = "crates/pqc-hpke", version = "0.4.0" }
+pqc-hpke = { package = "pqc-rs-hpke", path = "crates/pqc-hpke", version = "0.4.1" }
 pqc-hybrid = { package = "pqc-rs-hybrid", path = "crates/pqc-hybrid", version = "0.4.0" }
 pqc-ml-dsa = { package = "pqc-rs-ml-dsa", path = "crates/pqc-ml-dsa", version = "0.4.0" }
 pqc-slh-dsa = { package = "pqc-rs-slh-dsa", path = "crates/pqc-slh-dsa", version = "0.4.0" }
