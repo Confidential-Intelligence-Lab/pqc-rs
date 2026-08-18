@@ -36,11 +36,11 @@ infrastructure.
 | [`pqc-rs-ml-kem`](https://crates.io/crates/pqc-rs-ml-kem) | FIPS 203 ML-KEM implementation | Published (`0.4.1`) |
 | [`pqc-rs-ml-dsa`](https://crates.io/crates/pqc-rs-ml-dsa) | FIPS 204 ML-DSA implementation | Published (`0.4.0`) |
 | [`pqc-rs-slh-dsa`](https://crates.io/crates/pqc-rs-slh-dsa) | FIPS 205 SLH-DSA implementation | Published (`0.4.0`) |
-| [`pqc-rs-hpke`](https://crates.io/crates/pqc-rs-hpke) | HPKE with post-quantum and hybrid KEM integration | Release candidate for `0.4.1` |
-| `pqc-rs-hybrid` | Support for PQ/traditional hybrid cryptographic composition | Publication-ready; not yet published |
-| `pqc-rs-protocol` | Transport-independent protocol roles, framing, capability negotiation, policy binding, and session machinery | Publication-ready; not yet published |
-| `pqc-rs-secure-channel` | PQC-Forge integration from validated negotiation evidence to bound HPKE secure channels | Publication-ready; not yet published |
-| `pqc-rs-test-harness` | Conformance, vector, interoperability, and assurance support infrastructure | Publication-ready; not yet published |
+| [`pqc-rs-hpke`](https://crates.io/crates/pqc-rs-hpke) | HPKE with post-quantum and hybrid KEM integration | Published (`0.4.1`) |
+| [`pqc-rs-hybrid`](https://crates.io/crates/pqc-rs-hybrid) | Support for PQ/traditional hybrid cryptographic composition | Published (`0.4.0`) |
+| [`pqc-rs-protocol`](https://crates.io/crates/pqc-rs-protocol) | Transport-independent protocol roles, framing, capability negotiation, policy binding, and session machinery | Published (`0.4.0`) |
+| [`pqc-rs-secure-channel`](https://crates.io/crates/pqc-rs-secure-channel) | PQC-Forge integration from validated negotiation evidence to bound HPKE secure channels | Published (`0.4.0`) |
+| [`pqc-rs-test-harness`](https://crates.io/crates/pqc-rs-test-harness) | Conformance, vector, interoperability, and assurance support infrastructure | Published (`0.4.0`) |
 
 The pre-1.0 APIs and publication boundaries may change before version 1.0.
 
@@ -100,8 +100,8 @@ Published cryptographic crates:
 The corresponding Rust library names are `pqc_core`, `pqc_ml_kem`,
 `pqc_ml_dsa`, `pqc_slh_dsa`, and `pqc_hpke`.
 
-The protocol, hybrid, secure-channel, and test-harness crates are currently
-prepared for publication but are not yet available from crates.io.
+The protocol, hybrid, secure-channel, and test-harness crates are also
+available from crates.io.
 
 ## Reference applications
 

@@ -9,8 +9,8 @@ It connects the transport-independent protocol machinery in
 `pqc-rs-hpke`. Peer-controlled capability identifiers remain separate from
 KEM, KDF, and AEAD selection.
 
-> **Status:** pre-1.0 and not independently audited. This crate is currently
-> an experimental workspace component and is not published on crates.io.
+> **Status:** pre-1.0 and not independently audited. Version `0.4.0` is
+> published on crates.io.
 
 ## Quick start
 
