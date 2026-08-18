@@ -5,8 +5,10 @@ edition.workspace = true
 license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
-description = "Policy-bound secure-channel integration for PQC-rs protocol negotiation and HPKE."
-publish = false
+description = "Policy-bound negotiated HPKE secure-channel integration for PQC-rs and PQC-Forge."
+readme = "README.md"
+categories = ["cryptography", "network-programming"]
+keywords = ["post-quantum", "hpke", "secure-channel", "pqc", "rust"]
 
 [dependencies]
 pqc-protocol = { workspace = true }
