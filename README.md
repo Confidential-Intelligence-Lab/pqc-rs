@@ -1,170 +1,226 @@
 # PQC-rs
 
-**Standards-driven post-quantum cryptography in Rust**
+**Post-quantum cryptography and cryptographic agility in Rust**
 
-PQC-rs is a Rust workspace for post-quantum cryptography and post-quantum key establishment. The project emphasizes standards traceability, interoperability, explicit secret handling, reproducible validation, and production-oriented engineering.
+PQC-rs is an open-source Rust implementation and research platform for
+standards-based post-quantum cryptography.
 
-> **Project status:** pre-1.0 and not independently audited. The current code
-> and validation evidence are suitable for research, evaluation, and integration
-> testing. Do not rely on this project to protect production secrets without an
-> independent security review and an application-specific risk assessment.
+The repository is organized into two project layers plus shared validation
+and assurance infrastructure.
 
-## Scope
+## Project architecture
 
-The workspace implements the three finalized NIST post-quantum cryptography
-standards together with protocol-composition and validation infrastructure:
+### PQC-rs: cryptographic foundation
+
+PQC-rs provides the cryptographic mechanisms used by the project:
 
 - ML-KEM (FIPS 203);
 - ML-DSA (FIPS 204);
 - SLH-DSA (FIPS 205);
 - HPKE with post-quantum KEM integration;
-- post-quantum/traditional hybrid key establishment;
-- ACVP-oriented validation, interoperability, fuzzing, side-channel regression
-  testing, and release assurance.
+- post-quantum / traditional hybrid composition.
 
-RFC 9958 is used as an informational engineering guide. Normative conformance claims are traced separately to the applicable FIPS, RFC, and future ISO/IEC specifications.
+### PQC-Forge: cryptographic agility
 
-## Workspace
+PQC-Forge builds on PQC-rs to provide:
 
-PQC-rs provides the cryptographic foundation. PQC-Forge builds on that
-foundation to provide cryptographic-agility and negotiated secure-channel
-infrastructure.
-
-| Package | Purpose | Publication status |
-|---|---|---|
-| [`pqc-rs-core`](https://crates.io/crates/pqc-rs-core) | Common traits, byte wrappers, errors, and secret containers | Published (`0.4.0`) |
-| [`pqc-rs-ml-kem`](https://crates.io/crates/pqc-rs-ml-kem) | FIPS 203 ML-KEM implementation | Published (`0.4.1`) |
-| [`pqc-rs-ml-dsa`](https://crates.io/crates/pqc-rs-ml-dsa) | FIPS 204 ML-DSA implementation | Published (`0.4.0`) |
-| [`pqc-rs-slh-dsa`](https://crates.io/crates/pqc-rs-slh-dsa) | FIPS 205 SLH-DSA implementation | Published (`0.4.0`) |
-| [`pqc-rs-hpke`](https://crates.io/crates/pqc-rs-hpke) | HPKE with post-quantum and hybrid KEM integration | Published (`0.4.1`) |
-| [`pqc-rs-hybrid`](https://crates.io/crates/pqc-rs-hybrid) | Support for PQ/traditional hybrid cryptographic composition | Published (`0.4.0`) |
-| [`pqc-rs-protocol`](https://crates.io/crates/pqc-rs-protocol) | Transport-independent protocol roles, framing, capability negotiation, policy binding, and session machinery | Published (`0.4.0`) |
-| [`pqc-rs-secure-channel`](https://crates.io/crates/pqc-rs-secure-channel) | PQC-Forge integration from validated negotiation evidence to bound HPKE secure channels | Published (`0.4.0`) |
-| [`pqc-rs-test-harness`](https://crates.io/crates/pqc-rs-test-harness) | Conformance, vector, interoperability, and assurance support infrastructure | Published (`0.4.0`) |
-
-The pre-1.0 APIs and publication boundaries may change before version 1.0.
-
-## PQC-rs and PQC-Forge
-
-**PQC-rs** is the cryptographic substrate: standardized post-quantum
-algorithms, HPKE integration, hybrid composition support, secret-handling
-types, validation tooling, and assurance infrastructure.
-
-**PQC-Forge** is the cryptographic-agility architecture layered above those
-primitives. It separates:
-
-- capability advertisement and negotiation;
-- local policy validation;
+- capability negotiation;
+- policy validation;
 - negotiated evidence;
 - cryptographic profile resolution;
 - protocol-context binding;
 - secure-channel activation;
-- transport and application processing.
+- transport integration.
 
-The intent is to keep protocol behavior independent of concrete cryptographic
-implementations wherever possible.
+PQC-Forge is currently implemented by the `pqc-rs-protocol` and
+`pqc-rs-secure-channel` crates within the PQC-rs monorepo.
+
+The current implementation includes separate client and server execution over
+real loopback TCP and supports both pure post-quantum and hybrid HPKE profiles.
+
+### Validation and assurance
+
+The repository also includes shared infrastructure for conformance testing,
+interoperability, vector processing, fuzzing, timing analysis, reproducibility,
+and release assurance.
+
+> **Status:** PQC-rs is pre-1.0 and has not been independently audited.
+> The project is intended for research, evaluation, interoperability work,
+> and integration testing. Production use requires independent security
+> review and application-specific risk assessment.
+
+## Repository structure
+
+    PQC-rs repository
+    |
+    +-- PQC-rs -- cryptographic foundation
+    |   +-- pqc-rs-core
+    |   +-- pqc-rs-ml-kem
+    |   +-- pqc-rs-ml-dsa
+    |   +-- pqc-rs-slh-dsa
+    |   +-- pqc-rs-hybrid
+    |   `-- pqc-rs-hpke
+    |
+    +-- PQC-Forge -- agility and secure-channel architecture
+    |   +-- pqc-rs-protocol
+    |   `-- pqc-rs-secure-channel
+    |
+    `-- Validation and assurance
+        `-- pqc-rs-test-harness
+
+## Runtime architecture
+
+The runtime boundary is equally explicit:
+
+    Application
+        |
+        v
+    PQC-Forge
+        |
+        +-- capability negotiation
+        +-- policy validation
+        +-- negotiated evidence
+        +-- profile resolution
+        +-- secure-channel binding
+        +-- activation
+        |
+        v
+    PQC-rs
+        |
+        +-- ML-KEM
+        +-- ML-DSA
+        +-- SLH-DSA
+        +-- HPKE
+        `-- hybrid KEMs
+
+The separation is intentional:
+
+- **PQC-rs owns cryptographic mechanisms.**
+- **PQC-Forge owns negotiation and cryptographic-agility policy.**
+- **Peers do not directly select arbitrary KEM, KDF, or AEAD identifiers.**
+- **Transport behavior is separate from cryptographic profile resolution.**
+
+At the PQC-Forge protocol boundary, capability identifiers are opaque.
+Validated capabilities are resolved locally into a closed set of
+implementation-defined cryptographic profiles.
 
 The secure-channel path is:
 
-    capability offer
-        ->
     capability negotiation
-        ->
+            |
+            v
     validated negotiation evidence
-        ->
-    cryptographic profile resolution
-        ->
-    secure-channel binding
-        ->
-    sender / receiver activation
-        ->
+            |
+            v
+    local profile resolution
+            |
+            v
+    protocol-context binding
+            |
+            v
+    HPKE activation
+            |
+            v
     protected application traffic
 
-Capability identifiers are opaque at the protocol layer. Concrete KEM, KDF,
-and AEAD choices are resolved locally from closed implementation-defined
-profiles rather than being accepted directly from the peer.
+This allows cryptographic capabilities to evolve behind explicit negotiation,
+policy, resolution, and activation boundaries rather than embedding
+algorithm-selection logic throughout an application.
+
+## Crates
+
+| Crate | Layer | Purpose | Version |
+|---|---|---|---|
+| [`pqc-rs-core`](https://crates.io/crates/pqc-rs-core) | PQC-rs | Core traits, byte types, errors, and secret containers | `0.4.0` |
+| [`pqc-rs-ml-kem`](https://crates.io/crates/pqc-rs-ml-kem) | PQC-rs | ML-KEM (FIPS 203) | `0.4.1` |
+| [`pqc-rs-ml-dsa`](https://crates.io/crates/pqc-rs-ml-dsa) | PQC-rs | ML-DSA (FIPS 204) | `0.4.0` |
+| [`pqc-rs-slh-dsa`](https://crates.io/crates/pqc-rs-slh-dsa) | PQC-rs | SLH-DSA (FIPS 205) | `0.4.0` |
+| [`pqc-rs-hybrid`](https://crates.io/crates/pqc-rs-hybrid) | PQC-rs | PQ/traditional hybrid composition | `0.4.0` |
+| [`pqc-rs-hpke`](https://crates.io/crates/pqc-rs-hpke) | PQC-rs | HPKE with post-quantum and hybrid KEM integration | `0.4.1` |
+| [`pqc-rs-protocol`](https://crates.io/crates/pqc-rs-protocol) | PQC-Forge | Framing, negotiation, policy binding, and protocol state | `0.4.0` |
+| [`pqc-rs-secure-channel`](https://crates.io/crates/pqc-rs-secure-channel) | PQC-Forge | Profile resolution, binding, and HPKE secure-channel activation | `0.4.0` |
+| [`pqc-rs-test-harness`](https://crates.io/crates/pqc-rs-test-harness) | Assurance | Conformance, interoperability, vector, and validation infrastructure | `0.4.0` |
+
+All listed crates are published on crates.io. APIs remain pre-1.0 and may
+change before version 1.0.
 
 ## Installation
 
 Add only the crates required by your application.
 
-Published cryptographic crates:
+PQC-rs cryptographic foundation:
 
     [dependencies]
     pqc-rs-core = "0.4.0"
     pqc-rs-ml-kem = "0.4.1"
     pqc-rs-ml-dsa = "0.4.0"
     pqc-rs-slh-dsa = "0.4.0"
+    pqc-rs-hybrid = "0.4.0"
     pqc-rs-hpke = "0.4.1"
 
-The corresponding Rust library names are `pqc_core`, `pqc_ml_kem`,
-`pqc_ml_dsa`, `pqc_slh_dsa`, and `pqc_hpke`.
+PQC-Forge:
 
-The protocol, hybrid, secure-channel, and test-harness crates are also
-available from crates.io.
+    [dependencies]
+    pqc-rs-protocol = "0.4.0"
+    pqc-rs-secure-channel = "0.4.0"
 
-## Reference applications
+Validation and assurance:
 
-The repository includes examples ranging from primitive composition to
-negotiated networked secure channels.
+    [dev-dependencies]
+    pqc-rs-test-harness = "0.4.0"
 
-| # | Application | Purpose |
-|---|---|---|
-| 01 | [01_mlkem_secure_channel.rs](crates/pqc-ml-kem/examples/01_mlkem_secure_channel.rs) | Educational composition of ML-KEM-768, HKDF-SHA-256, and ChaCha20-Poly1305 with associated-data binding and tamper detection. |
-| 02 | [02_mldsa_document_signing.rs](crates/pqc-ml-dsa/examples/02_mldsa_document_signing.rs) | ML-DSA detached document authentication with context binding and rejection of modified documents and signatures. |
-| 03 | [03_hpke_secure_messaging.rs](crates/pqc-hpke/examples/03_hpke_secure_messaging.rs) | ML-KEM HPKE Base-mode setup, ordered authenticated messaging, tamper rejection, and receiver-state preservation. |
-| 04 | [04_hpke_crypto_agility.rs](crates/pqc-hpke/examples/04_hpke_crypto_agility.rs) | Policy-driven KEM/KDF/AEAD selection while reusing one messaging workflow. |
-| 05 | [negotiated_tcp.rs](crates/pqc-secure-channel/examples/negotiated_tcp.rs) | PQC-Forge client/server capability negotiation, secure-channel activation, and protected request/response traffic over real loopback TCP. |
+The Rust library names use underscores, for example `pqc_ml_kem`,
+`pqc_hpke`, `pqc_protocol`, and `pqc_secure_channel`.
 
-### Run the examples
+## Quick start
 
-Run these commands from the workspace root:
+### PQC-Forge negotiated TCP example
+
+The fastest way to see the complete PQC-Forge path is the negotiated
+client/server secure-channel example:
+
+    cargo run -p pqc-rs-secure-channel --example negotiated_tcp
+
+It runs separate client and server roles over a real loopback TCP socket,
+negotiates a cryptographic capability, validates it against local policy,
+resolves it to an HPKE profile, activates secure channels in both directions,
+and exchanges authenticated encrypted application data.
+
+A successful run reports:
+
+    negotiated secure channel over loopback TCP: pass
+    selected capability: 0x0101
+    request authenticated and decrypted: pass
+    response authenticated and decrypted: pass
+
+The example uses simple length-prefixed TCP records for readability. TCP is
+not part of the PQC-Forge cryptographic profile model; transport remains
+separate from capability resolution and secure-channel activation.
+
+### Cryptographic examples
+
+The repository also includes focused examples for the PQC-rs cryptographic
+foundation:
+
+| Example | Purpose |
+|---|---|
+| [`01_mlkem_secure_channel.rs`](crates/pqc-ml-kem/examples/01_mlkem_secure_channel.rs) | ML-KEM-768 with symmetric channel composition and tamper detection |
+| [`02_mldsa_document_signing.rs`](crates/pqc-ml-dsa/examples/02_mldsa_document_signing.rs) | ML-DSA document signing and verification |
+| [`03_hpke_secure_messaging.rs`](crates/pqc-hpke/examples/03_hpke_secure_messaging.rs) | Post-quantum HPKE secure messaging |
+| [`04_hpke_crypto_agility.rs`](crates/pqc-hpke/examples/04_hpke_crypto_agility.rs) | Policy-driven HPKE cryptographic agility |
+
+Run them from the workspace root:
 
     cargo run -p pqc-rs-ml-kem --example 01_mlkem_secure_channel --all-features
     cargo run -p pqc-rs-ml-dsa --example 02_mldsa_document_signing --all-features
     cargo run -p pqc-rs-hpke --example 03_hpke_secure_messaging --all-features
     cargo run -p pqc-rs-hpke --example 04_hpke_crypto_agility --all-features
-    cargo run -p pqc-rs-secure-channel --example negotiated_tcp
 
-The first four examples execute locally within one process and focus on
-cryptographic API composition.
+The evaluation suite goes beyond these teaching examples and exercises framed
+transport, partial byte-stream progress, real loopback TCP, and deterministic
+retryable `Pending` and `Interrupted` schedules.
 
-The PQC-Forge `negotiated_tcp` example is different: client and server roles
-execute in separate threads and communicate through a real loopback TCP
-socket. They exchange serialized capability-handshake frames, establish
-negotiated protocol state, activate HPKE contexts in both directions, and
-exchange authenticated encrypted application data.
-
-Conceptually:
-
-    Client                                      Server
-    ------                                      ------
-
-    capability offer -------------------------->
-
-                               validate offer against local policy
-                               select registered capability
-
-                        <---------------- capability selection
-
-    establish context                           establish context
-            |                                           |
-            +----------- HPKE activation ---------------+
-            |                                           |
-    encrypted request -------------------------->
-
-                        <--------------- encrypted response
-
-The public example deliberately uses simple length-prefixed TCP records to
-keep the workflow readable.
-
-The evaluation suite goes further: it exercises the protocol framing and
-transport abstractions over real loopback TCP, enforces small partial
-transfers, and injects deterministic retryable `Pending` and `Interrupted`
-events. These transport tests are distinct from the higher-level teaching
-example.
-
-## Registered secure-channel profiles
+## PQC-Forge secure-channel profiles
 
 The current PQC-Forge secure-channel resolver includes complete profiles based
 on:

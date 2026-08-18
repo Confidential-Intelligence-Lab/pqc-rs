@@ -1,8 +1,10 @@
 # pqc-rs-test-harness
 
-pqc-rs-test-harness contains shared validation infrastructure used by PQC-rs
-for conformance testing, interoperability testing, vector processing, and
-assurance workflows.
+`pqc-rs-test-harness` is the shared **validation and assurance** layer for
+PQC-rs and PQC-Forge.
+
+It provides infrastructure for conformance testing, interoperability testing,
+vector processing, and assurance workflows.
 
 This crate is published so downstream implementers and researchers can reuse
 the same support infrastructure used by PQC-rs.
