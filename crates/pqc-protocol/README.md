@@ -1,7 +1,14 @@
 # pqc-rs-protocol
 
-`pqc-rs-protocol` provides transport-independent protocol-layer foundations
-for the PQC-rs ecosystem.
+`pqc-rs-protocol` is the transport-independent protocol layer of
+**PQC-Forge**, the cryptographic-agility architecture built on PQC-rs.
+
+It provides protocol roles, framing, capability negotiation, policy binding,
+session state, and transport-independent execution machinery.
+
+Cryptographic capability identifiers remain opaque at this layer. Concrete
+KEM, KDF, and AEAD profiles are resolved by the PQC-Forge secure-channel
+layer rather than selected directly by peers.
 
 ## Initial scope
 

@@ -1,8 +1,11 @@
 # pqc-rs-hpke
 
-`pqc-rs-hpke` provides Hybrid Public Key Encryption context and key-schedule
-machinery based on RFC 9180, together with revision-pinned post-quantum and
-hybrid KEM integration.
+`pqc-rs-hpke` is part of the **PQC-rs cryptographic foundation** and provides
+the HPKE implementation used by PQC-Forge secure-channel activation.
+
+It provides Hybrid Public Key Encryption context and key-schedule machinery
+based on RFC 9180, together with revision-pinned post-quantum and hybrid KEM
+integration.
 
 ## Current scope
 
