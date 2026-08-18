@@ -9,7 +9,6 @@ description = "Protocol-layer types and wire-format foundations for PQC-rs."
 readme = "README.md"
 categories = ["cryptography", "network-programming"]
 keywords = ["post-quantum", "cryptography", "protocol", "pqc", "rust"]
-publish = false
 
 [features]
 default = ["std"]
