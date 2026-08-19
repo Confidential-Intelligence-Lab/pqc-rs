@@ -146,7 +146,7 @@ cryptographic applications to one another.
 | [`pqc-rs-slh-dsa`](https://crates.io/crates/pqc-rs-slh-dsa) | PQC-rs | SLH-DSA (FIPS 205) | `0.4.0` |
 | [`pqc-rs-hybrid`](https://crates.io/crates/pqc-rs-hybrid) | PQC-rs | PQ/traditional hybrid composition | `0.4.0` |
 | [`pqc-rs-hpke`](https://crates.io/crates/pqc-rs-hpke) | PQC-rs | HPKE with post-quantum and hybrid KEM integration | `0.4.1` |
-| [`pqc-rs-protocol`](https://crates.io/crates/pqc-rs-protocol) | PQC-Forge | Framing, negotiation, policy binding, and protocol state | `0.4.0` |
+| [`pqc-rs-protocol`](https://crates.io/crates/pqc-rs-protocol) | PQC-Forge | Framing, negotiation, policy binding, and protocol state | `0.4.1` |
 | [`pqc-rs-secure-channel`](https://crates.io/crates/pqc-rs-secure-channel) | PQC-Forge | Profile resolution, binding, and HPKE secure-channel activation | `0.4.0` |
 | `pqc-rs-authentication` | PQC-Forge | ML-DSA authentication-profile resolution and challenge-response proof workflow | `0.4.0` |
 | [`pqc-rs-test-harness`](https://crates.io/crates/pqc-rs-test-harness) | Assurance | Conformance, interoperability, vector, and validation infrastructure | `0.4.0` |
@@ -173,7 +173,7 @@ PQC-rs cryptographic foundation:
 PQC-Forge:
 
     [dependencies]
-    pqc-rs-protocol = "0.4.0"
+    pqc-rs-protocol = "0.4.1"
     pqc-rs-secure-channel = "0.4.0"
 
 The authentication integration is currently available from the workspace and
