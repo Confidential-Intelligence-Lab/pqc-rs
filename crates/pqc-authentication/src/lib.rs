@@ -16,6 +16,7 @@
 mod profile;
 mod proof;
 mod transcript;
+mod verifier;
 
 pub use profile::{resolve_authentication_profile, AuthenticationError, AuthenticationProfile};
 pub use proof::{
@@ -26,3 +27,5 @@ pub use transcript::{
     authentication_transcript, AuthenticationChallenge, AUTHENTICATION_CHALLENGE_BYTES,
     MAX_APPLICATION_CONTEXT_BYTES,
 };
+
+pub use verifier::{Authenticated, AuthenticationVerifier, PendingAuthentication};

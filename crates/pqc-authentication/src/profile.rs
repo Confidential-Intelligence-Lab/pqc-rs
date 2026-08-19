@@ -42,6 +42,9 @@ pub enum AuthenticationError {
         maximum: usize,
     },
 
+    /// The supplied authentication proof did not verify.
+    InvalidProof,
+
     /// The resolved ML-DSA operation failed.
     MlDsa(MlDsaError),
 }
@@ -56,6 +59,7 @@ impl fmt::Display for AuthenticationError {
                 formatter,
                 "authentication application context length {length} exceeds maximum {maximum}"
             ),
+            Self::InvalidProof => formatter.write_str("authentication proof is invalid"),
             Self::MlDsa(error) => {
                 write!(formatter, "ML-DSA authentication operation failed: {error}")
             }

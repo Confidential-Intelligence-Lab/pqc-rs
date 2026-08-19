@@ -35,7 +35,7 @@ impl AuthenticationChallenge {
 /// challenge-response ceremony.
 ///
 /// Fixed-width integer fields use network byte order. The variable-width
-/// application context is preceded by a 64-bit length. The transcript binds
+/// application context is preceded by a 16-bit length. The transcript binds
 /// the proof to the established session, protocol and version, negotiated
 /// policy and capability, verifier challenge, and application context.
 pub fn authentication_transcript(
