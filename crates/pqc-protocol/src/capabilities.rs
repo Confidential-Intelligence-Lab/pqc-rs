@@ -35,12 +35,19 @@ pub const HPKE_ML_KEM_768_CHACHA20: CapabilityId = CapabilityId::new(0x0103);
 /// layer rather than by `pqc-protocol`.
 pub const HPKE_ML_KEM_768_X25519: CapabilityId = CapabilityId::new(0x0111);
 
+/// ML-DSA-65 challenge-response authentication.
+///
+/// Cryptographic resolution of this capability is defined by the
+/// authentication integration layer rather than by `pqc-protocol`.
+pub const AUTH_ML_DSA_65: CapabilityId = CapabilityId::new(0x0201);
+
 /// Capability identifiers currently assigned by the PQC-rs protocol registry.
-pub const REGISTERED_CAPABILITIES: [CapabilityId; 4] = [
+pub const REGISTERED_CAPABILITIES: [CapabilityId; 5] = [
     HPKE_ML_KEM_768,
     HPKE_ML_KEM_1024,
     HPKE_ML_KEM_768_CHACHA20,
     HPKE_ML_KEM_768_X25519,
+    AUTH_ML_DSA_65,
 ];
 
 #[cfg(test)]
@@ -53,6 +60,7 @@ mod tests {
         assert_eq!(HPKE_ML_KEM_1024.value(), 0x0102);
         assert_eq!(HPKE_ML_KEM_768_CHACHA20.value(), 0x0103);
         assert_eq!(HPKE_ML_KEM_768_X25519.value(), 0x0111);
+        assert_eq!(AUTH_ML_DSA_65.value(), 0x0201);
     }
 
     #[test]
