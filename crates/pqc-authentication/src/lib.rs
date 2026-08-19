@@ -14,5 +14,15 @@
 //! the secure-channel integration.
 
 mod profile;
+mod proof;
+mod transcript;
 
 pub use profile::{resolve_authentication_profile, AuthenticationError, AuthenticationProfile};
+pub use proof::{
+    prove_authentication_deterministic, prove_authentication_hedged, verify_authentication,
+    AuthenticationProof,
+};
+pub use transcript::{
+    authentication_transcript, AuthenticationChallenge, AUTHENTICATION_CHALLENGE_BYTES,
+    MAX_APPLICATION_CONTEXT_BYTES,
+};

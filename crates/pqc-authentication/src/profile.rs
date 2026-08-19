@@ -1,6 +1,6 @@
 use core::fmt;
 
-use pqc_ml_dsa::MlDsaParameterSet;
+use pqc_ml_dsa::{MlDsaError, MlDsaParameterSet};
 use pqc_protocol::{CapabilityId, EstablishedProtocolContext, AUTH_ML_DSA_65};
 
 /// Locally implemented authentication profiles.
@@ -33,6 +33,17 @@ pub enum AuthenticationError {
         /// Negotiated capability that could not be resolved.
         capability: CapabilityId,
     },
+
+    /// The application context exceeds the canonical transcript limit.
+    ApplicationContextTooLong {
+        /// Actual application-context length.
+        length: usize,
+        /// Maximum accepted application-context length.
+        maximum: usize,
+    },
+
+    /// The resolved ML-DSA operation failed.
+    MlDsa(MlDsaError),
 }
 
 impl fmt::Display for AuthenticationError {
@@ -41,11 +52,24 @@ impl fmt::Display for AuthenticationError {
             Self::UnsupportedCapability { .. } => {
                 formatter.write_str("negotiated capability has no supported authentication profile")
             }
+            Self::ApplicationContextTooLong { length, maximum } => write!(
+                formatter,
+                "authentication application context length {length} exceeds maximum {maximum}"
+            ),
+            Self::MlDsa(error) => {
+                write!(formatter, "ML-DSA authentication operation failed: {error}")
+            }
         }
     }
 }
 
 impl std::error::Error for AuthenticationError {}
+
+impl From<MlDsaError> for AuthenticationError {
+    fn from(error: MlDsaError) -> Self {
+        Self::MlDsa(error)
+    }
+}
 
 /// Resolve established negotiation evidence into a local authentication
 /// profile.
