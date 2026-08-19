@@ -22,21 +22,29 @@ PQC-rs provides the cryptographic mechanisms used by the project:
 
 ### PQC-Forge: cryptographic agility
 
-PQC-Forge builds on PQC-rs to provide:
+PQC-Forge builds on PQC-rs to provide a common cryptographic-agility
+architecture:
 
 - capability negotiation;
 - policy validation;
-- negotiated evidence;
-- cryptographic profile resolution;
-- protocol-context binding;
-- secure-channel activation;
-- transport integration.
+- validated negotiation evidence;
+- local cryptographic profile resolution;
+- binding of cryptographic operations to established protocol context;
+- application-specific cryptographic realization.
 
-PQC-Forge is currently implemented by the `pqc-rs-protocol` and
-`pqc-rs-secure-channel` crates within the PQC-rs monorepo.
+The common protocol machinery is implemented by `pqc-rs-protocol`. Validated
+protocol evidence is then consumed by application-specific integration layers.
 
-The current implementation includes separate client and server execution over
-real loopback TCP and supports both pure post-quantum and hybrid HPKE profiles.
+Two concrete realizations are currently implemented:
+
+- `pqc-rs-secure-channel` resolves negotiated capabilities into pure
+  post-quantum or hybrid HPKE secure channels;
+- `pqc-rs-authentication` resolves negotiated authentication capabilities into
+  ML-DSA-65 challenge-response authentication.
+
+These realizations share negotiation, policy, and protocol-state machinery
+without requiring the authentication layer to depend on the secure-channel,
+HPKE, or ML-KEM implementations.
 
 ### Validation and assurance
 
@@ -61,71 +69,72 @@ and release assurance.
     |   +-- pqc-rs-hybrid
     |   `-- pqc-rs-hpke
     |
-    +-- PQC-Forge -- agility and secure-channel architecture
+    +-- PQC-Forge -- cryptographic-agility architecture
     |   +-- pqc-rs-protocol
-    |   `-- pqc-rs-secure-channel
+    |   +-- pqc-rs-secure-channel
+    |   `-- pqc-rs-authentication
     |
     `-- Validation and assurance
         `-- pqc-rs-test-harness
 
 ## Runtime architecture
 
-The runtime boundary is equally explicit:
+PQC-Forge separates common negotiation and policy machinery from the
+cryptographic operation performed after negotiation:
 
     Application
         |
         v
-    PQC-Forge
+    pqc-rs-protocol
         |
         +-- capability negotiation
         +-- policy validation
-        +-- negotiated evidence
-        +-- profile resolution
-        +-- secure-channel binding
-        +-- activation
+        +-- validated negotiation evidence
+        +-- established protocol context
         |
-        v
-    PQC-rs
-        |
-        +-- ML-KEM
-        +-- ML-DSA
-        +-- SLH-DSA
-        +-- HPKE
-        `-- hybrid KEMs
+        +-------------------------------+
+        |                               |
+        v                               v
+    pqc-rs-secure-channel          pqc-rs-authentication
+        |                               |
+        +-- HPKE profile resolution     +-- ML-DSA profile resolution
+        +-- context binding             +-- challenge binding
+        +-- channel activation          +-- proof generation / verification
+        |                               |
+        v                               v
+    protected application          authenticated possession of
+    traffic                        the configured public key
 
 The separation is intentional:
 
 - **PQC-rs owns cryptographic mechanisms.**
-- **PQC-Forge owns negotiation and cryptographic-agility policy.**
-- **Peers do not directly select arbitrary KEM, KDF, or AEAD identifiers.**
-- **Transport behavior is separate from cryptographic profile resolution.**
+- **PQC-Forge owns negotiation, policy, protocol-state establishment, and
+  application-specific cryptographic integration.**
+- **The common protocol layer does not resolve peer-controlled identifiers
+  directly into arbitrary cryptographic parameters.**
+- **Validated capabilities are resolved locally by the integration layer that
+  consumes them.**
+- **Different cryptographic applications can share protocol machinery without
+  depending on one another.**
 
 At the PQC-Forge protocol boundary, capability identifiers are opaque.
 Validated capabilities are resolved locally into a closed set of
 implementation-defined cryptographic profiles.
 
-The secure-channel path is:
+The secure-channel realization maps validated capabilities to HPKE profiles,
+binds them to the established protocol context, activates sender and receiver
+state, and protects application traffic.
 
-    capability negotiation
-            |
-            v
-    validated negotiation evidence
-            |
-            v
-    local profile resolution
-            |
-            v
-    protocol-context binding
-            |
-            v
-    HPKE activation
-            |
-            v
-    protected application traffic
+The authentication realization maps a validated authentication capability to
+ML-DSA-65, binds a verifier-issued challenge and application context to the
+established protocol context, and verifies proof of possession of the public
+key configured by the verifier. Pending challenges are single-use within the
+verifier workflow.
 
-This allows cryptographic capabilities to evolve behind explicit negotiation,
-policy, resolution, and activation boundaries rather than embedding
-algorithm-selection logic throughout an application.
+Together, the two realizations demonstrate that cryptographic capabilities can
+evolve behind common negotiation and policy boundaries without embedding
+algorithm-selection logic throughout an application or coupling distinct
+cryptographic applications to one another.
 
 ## Crates
 
@@ -139,10 +148,13 @@ algorithm-selection logic throughout an application.
 | [`pqc-rs-hpke`](https://crates.io/crates/pqc-rs-hpke) | PQC-rs | HPKE with post-quantum and hybrid KEM integration | `0.4.1` |
 | [`pqc-rs-protocol`](https://crates.io/crates/pqc-rs-protocol) | PQC-Forge | Framing, negotiation, policy binding, and protocol state | `0.4.0` |
 | [`pqc-rs-secure-channel`](https://crates.io/crates/pqc-rs-secure-channel) | PQC-Forge | Profile resolution, binding, and HPKE secure-channel activation | `0.4.0` |
+| `pqc-rs-authentication` | PQC-Forge | ML-DSA authentication-profile resolution and challenge-response proof workflow | `0.4.0` |
 | [`pqc-rs-test-harness`](https://crates.io/crates/pqc-rs-test-harness) | Assurance | Conformance, interoperability, vector, and validation infrastructure | `0.4.0` |
 
-All listed crates are published on crates.io. APIs remain pre-1.0 and may
-change before version 1.0.
+The cryptographic foundation, protocol, secure-channel, and test-harness
+crates listed above are published on crates.io. `pqc-rs-authentication` is
+currently workspace-only while its integration API is evaluated. APIs remain
+pre-1.0 and may change before version 1.0.
 
 ## Installation
 
@@ -164,27 +176,30 @@ PQC-Forge:
     pqc-rs-protocol = "0.4.0"
     pqc-rs-secure-channel = "0.4.0"
 
+The authentication integration is currently available from the workspace and
+has not yet been released separately on crates.io.
+
 Validation and assurance:
 
     [dev-dependencies]
     pqc-rs-test-harness = "0.4.0"
 
 The Rust library names use underscores, for example `pqc_ml_kem`,
-`pqc_hpke`, `pqc_protocol`, and `pqc_secure_channel`.
+`pqc_hpke`, `pqc_protocol`, `pqc_secure_channel`, and
+`pqc_authentication`.
 
 ## Quick start
 
-### PQC-Forge negotiated TCP example
+### PQC-Forge secure-channel example
 
-The fastest way to see the complete PQC-Forge path is the negotiated
-client/server secure-channel example:
+Run the negotiated client/server secure-channel realization:
 
     cargo run -p pqc-rs-secure-channel --example negotiated_tcp
 
 It runs separate client and server roles over a real loopback TCP socket,
-negotiates a cryptographic capability, validates it against local policy,
-resolves it to an HPKE profile, activates secure channels in both directions,
-and exchanges authenticated encrypted application data.
+negotiates a cryptographic capability under local policy, resolves the
+validated capability to an HPKE profile, activates secure channels, and
+exchanges authenticated encrypted application data.
 
 A successful run reports:
 
@@ -193,9 +208,31 @@ A successful run reports:
     request authenticated and decrypted: pass
     response authenticated and decrypted: pass
 
-The example uses simple length-prefixed TCP records for readability. TCP is
-not part of the PQC-Forge cryptographic profile model; transport remains
-separate from capability resolution and secure-channel activation.
+TCP is used by this example as a readable transport demonstration; transport
+is separate from cryptographic profile resolution.
+
+### PQC-Forge authentication example
+
+Run the ML-DSA-65 challenge-response realization:
+
+    cargo run -p pqc-rs-authentication --example challenge_response
+
+The example negotiates the registered authentication capability, establishes
+validated protocol context, resolves the capability to ML-DSA-65, issues a
+fresh verifier challenge, generates a context-bound authentication proof, and
+consumes the challenge during successful verification.
+
+A successful run includes:
+
+    negotiated capability: 0x0201
+    resolved authentication profile: MlDsa65
+    verifier issued fresh challenge
+    prover generated ML-DSA-65 authentication proof
+    authentication succeeded
+
+The result demonstrates proof of possession of the public key configured by
+the verifier. Mapping that key to a user, device, service, certificate, or
+other identity is application policy and is outside this example.
 
 ### Cryptographic examples
 
@@ -232,6 +269,21 @@ on:
 
 The protocol layer negotiates capability identifiers. The secure-channel layer
 maps validated identifiers to the concrete cryptographic suites.
+
+## PQC-Forge authentication profiles
+
+The current authentication resolver includes:
+
+- ML-DSA-65 challenge-response authentication (`AUTH_ML_DSA_65`).
+
+The authentication proof binds the established protocol context, negotiated
+policy and capability, verifier-issued challenge, and application context into
+a canonical transcript before ML-DSA signing.
+
+Verifier-side pending challenges are consumed by a verification attempt. The
+current workflow therefore provides a single-use challenge lifecycle within
+one verifier instance without claiming a distributed replay database or
+identity-management system.
 
 ## Runtime model: `std`, `alloc`, and portability
 
