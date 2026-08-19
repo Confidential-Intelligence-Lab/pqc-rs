@@ -148,13 +148,11 @@ cryptographic applications to one another.
 | [`pqc-rs-hpke`](https://crates.io/crates/pqc-rs-hpke) | PQC-rs | HPKE with post-quantum and hybrid KEM integration | `0.4.1` |
 | [`pqc-rs-protocol`](https://crates.io/crates/pqc-rs-protocol) | PQC-Forge | Framing, negotiation, policy binding, and protocol state | `0.4.1` |
 | [`pqc-rs-secure-channel`](https://crates.io/crates/pqc-rs-secure-channel) | PQC-Forge | Profile resolution, binding, and HPKE secure-channel activation | `0.4.0` |
-| `pqc-rs-authentication` | PQC-Forge | ML-DSA authentication-profile resolution and challenge-response proof workflow | `0.4.0` |
+| [`pqc-rs-authentication`](https://crates.io/crates/pqc-rs-authentication) | PQC-Forge | ML-DSA authentication-profile resolution and challenge-response proof workflow | `0.4.0` |
 | [`pqc-rs-test-harness`](https://crates.io/crates/pqc-rs-test-harness) | Assurance | Conformance, interoperability, vector, and validation infrastructure | `0.4.0` |
 
-The cryptographic foundation, protocol, secure-channel, and test-harness
-crates listed above are published on crates.io. `pqc-rs-authentication` is
-currently workspace-only while its integration API is evaluated. APIs remain
-pre-1.0 and may change before version 1.0.
+All listed crates are published on crates.io. APIs remain pre-1.0 and may
+change before version 1.0.
 
 ## Installation
 
@@ -175,9 +173,7 @@ PQC-Forge:
     [dependencies]
     pqc-rs-protocol = "0.4.1"
     pqc-rs-secure-channel = "0.4.0"
-
-The authentication integration is currently available from the workspace and
-has not yet been released separately on crates.io.
+    pqc-rs-authentication = "0.4.0"
 
 Validation and assurance:
 

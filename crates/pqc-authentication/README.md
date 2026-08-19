@@ -8,8 +8,8 @@ capability-negotiation evidence and resolves registered authentication
 capabilities into closed local cryptographic profiles. The initial realization
 uses ML-DSA-65.
 
-> **Status:** pre-1.0, experimental, and not independently audited. The crate
-> is currently workspace-only while its integration API is evaluated.
+> **Status:** pre-1.0, experimental, and not independently audited.
+> Version `0.4.0` is published on crates.io.
 
 ## Architecture
 
