@@ -48,6 +48,6 @@ pqc-hybrid = { package = "pqc-rs-hybrid", path = "crates/pqc-hybrid", version = 
 pqc-ml-dsa = { package = "pqc-rs-ml-dsa", path = "crates/pqc-ml-dsa", version = "0.4.0" }
 pqc-slh-dsa = { package = "pqc-rs-slh-dsa", path = "crates/pqc-slh-dsa", version = "0.4.0" }
 pqc-test-harness = { package = "pqc-rs-test-harness", path = "crates/pqc-test-harness", version = "0.4.0" }
-pqc-protocol = { package = "pqc-rs-protocol", path = "crates/pqc-protocol", version = "0.4.0" }
+pqc-protocol = { package = "pqc-rs-protocol", path = "crates/pqc-protocol", version = "0.4.1" }
 pqc-secure-channel = { package = "pqc-rs-secure-channel", path = "crates/pqc-secure-channel", version = "0.4.0" }
 pqc-authentication = { package = "pqc-rs-authentication", path = "crates/pqc-authentication", version = "0.4.0" }
