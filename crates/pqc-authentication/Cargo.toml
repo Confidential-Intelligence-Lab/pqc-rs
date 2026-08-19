@@ -9,7 +9,6 @@ description = "Capability-bound post-quantum authentication integration for PQC-
 readme = "README.md"
 categories = ["cryptography", "authentication"]
 keywords = ["post-quantum", "authentication", "ml-dsa", "pqc", "rust"]
-publish = false
 
 [dependencies]
 pqc-protocol = { workspace = true }
