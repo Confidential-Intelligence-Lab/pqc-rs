@@ -1,0 +1,19 @@
+[package]
+name = "pqc-rs-authentication"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+description = "Capability-bound post-quantum authentication integration for PQC-rs and PQC-Forge."
+readme = "README.md"
+categories = ["cryptography", "authentication"]
+keywords = ["post-quantum", "authentication", "ml-dsa", "pqc", "rust"]
+publish = false
+
+[dependencies]
+pqc-protocol = { workspace = true }
+pqc-ml-dsa = { workspace = true }
+
+[lib]
+name = "pqc_authentication"
