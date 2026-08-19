@@ -1,6 +1,6 @@
 # Roadmap
 
-> Last reviewed: 2026-07-25
+> Last reviewed: 2026-08-19
 
 This roadmap communicates project direction and release gates rather than a
 binding delivery schedule. PQC-rs advances a crate only when its normative
@@ -17,7 +17,7 @@ source of record.
 
 | Area | Completed checkpoint |
 |---|---|
-| Published crates | `pqc-rs-core`, `pqc-rs-ml-kem`, `pqc-rs-ml-dsa`, and `pqc-rs-hpke` are available from crates.io at `0.4.0` |
+| Initial published crates | `pqc-rs-core`, `pqc-rs-ml-kem`, `pqc-rs-ml-dsa`, and `pqc-rs-hpke` reached their initial `0.4.0` publication checkpoints; later patch and PQC-Forge releases are recorded below |
 | Public releases | The original stable foundation is identified by annotated tag `v0.4.0`; the later ML-DSA publication is identified independently by annotated tag `pqc-rs-ml-dsa-v0.4.0` |
 | ML-KEM | FIPS 203 ML-KEM-512, ML-KEM-768, and ML-KEM-1024 are implemented and ACVP-oriented vector validated |
 | ML-DSA | FIPS 204 ML-DSA-44, ML-DSA-65, ML-DSA-87, and HashML-DSA are implemented, repository validated, and published as `pqc-rs-ml-dsa` `0.4.0` |
@@ -79,16 +79,17 @@ Primary outcome: publish `pqc-rs-core`, `pqc-rs-ml-kem`, and `pqc-rs-hpke` at
 
 ### Retained follow-up work
 
-1. Reinstate Stage 10B-5 on public GitHub-hosted runners:
+1. Maintain Stage 10B-5 cross-architecture assurance on public
+   GitHub-hosted runners:
 
    - Linux x86-64 (`ubuntu-24.04`);
    - Linux ARM64 (`ubuntu-24.04-arm`); and
    - Apple ARM64 (`macos-14` or another explicitly pinned ARM64 image).
 
-   Functional, generated-code, secret-dependency, and artifact-integrity checks
-   are release gates. Hosted-runner timing measurements initially produce
-   architecture-specific evidence and regression screens; absolute performance
-   is not compared across unlike machines.
+   The public matrix is active and passing. Functional, generated-code,
+   secret-dependency, and artifact-integrity checks remain release gates.
+   Architecture-specific timing evidence is used for regression screening;
+   absolute performance is not compared across unlike machines.
 
 2. Maintain the user-facing release documentation:
 
@@ -182,7 +183,60 @@ Publication result: `pqc-rs-ml-dsa` `0.4.0`, tied to its immutable publication
 source, annotated tag `pqc-rs-ml-dsa-v0.4.0`, registry checksum, GitHub release,
 and closeout evidence.
 
-## Milestone 3 — FIPS 205 SLH-DSA
+## Milestone 3 — PQC-Forge protocol and application realizations (complete)
+
+Primary outcome: establish PQC-Forge as a reusable cryptographic-agility
+architecture above the PQC-rs primitive layer and demonstrate that the common
+protocol and policy machinery supports structurally different cryptographic
+applications.
+
+Completed work:
+
+- published `pqc-rs-protocol` `0.4.1`, including capability identifiers,
+  negotiation, local policy evaluation, validated negotiation evidence,
+  established protocol context, framing, transport state, and lifecycle
+  machinery;
+- published `pqc-rs-secure-channel` `0.4.0` as a PQC-Forge realization that
+  resolves validated capabilities into pure post-quantum and hybrid HPKE
+  profiles;
+- published `pqc-rs-authentication` `0.4.0` as a sibling PQC-Forge realization
+  using ML-DSA-65 challenge-response authentication;
+- bound authentication proofs to the established protocol session, protocol
+  identifier and version, negotiated policy and capability, verifier-issued
+  challenge, and application context through a canonical transcript;
+- added verifier-side single-use challenge lifecycle semantics;
+- demonstrated that the authentication realization does not depend on
+  `pqc-rs-secure-channel`, `pqc-rs-hpke`, or `pqc-rs-ml-kem`; and
+- preserved the existing secure-channel realization without modifying it to
+  accommodate authentication.
+
+Architectural result: secure-channel establishment and challenge-response
+authentication are now sibling consumers of the same common negotiation,
+policy, and protocol-state layer. PQC-Forge is therefore not defined by one
+secure-channel workflow; secure channels are one application realization of a
+broader agility architecture.
+
+Publication result:
+
+- `pqc-rs-protocol` `0.4.1`;
+- `pqc-rs-secure-channel` `0.4.0`; and
+- `pqc-rs-authentication` `0.4.0`.
+
+Retained follow-up work:
+
+- additional authentication profiles where standards and composition rules are
+  sufficiently mature;
+- credential, certificate, account, device, or other identity binding at an
+  application-defined boundary;
+- shared challenge-consumption state for distributed verifier deployments;
+- future cross-provider interoperability for overlapping authentication
+  mechanisms;
+- additional PQC-Forge application realizations beyond secure channels and
+  challenge-response authentication; and
+- authentication-specific performance and reproducibility evaluation where it
+  materially supports a research claim.
+
+## Milestone 4 — FIPS 205 SLH-DSA
 
 Primary outcome: replace the `pqc-rs-slh-dsa` placeholder with a complete,
 standards-traced implementation.
@@ -201,7 +255,7 @@ Planned work:
 Crates.io action: first publication of `pqc-rs-slh-dsa` after all FIPS 205
 parameter sets and publication gates pass.
 
-## Milestone 4 — hybrid composition and HPKE evolution
+## Milestone 5 — hybrid composition and HPKE evolution
 
 Primary outcome: move reusable hybrid construction beyond HPKE-local profiles
 while preserving explicit draft compatibility boundaries.
@@ -223,7 +277,7 @@ Planned work:
 Crates.io action: first publication of `pqc-rs-hybrid` and a corresponding
 compatibility release of `pqc-rs-hpke`.
 
-## Milestone 5 — v1.0 stable NIST foundation
+## Milestone 6 — v1.0 stable NIST foundation
 
 Version 1.0 stabilizes the common traits and the NIST-centered production API;
 it is not blocked on every future regional or diversity algorithm.
@@ -300,7 +354,8 @@ Entry gates for every KpqC crate:
 
 | Crate group | Versioning policy | Publication status |
 |---|---|---|
-| Existing foundation crates | Synchronized through `1.0.0` | Four published at `0.4.0`; SLH-DSA and hybrid follow the gated sequence above |
+| Existing foundation crates | Synchronized through `1.0.0` | Core and ML-DSA are published at `0.4.0`; ML-KEM and HPKE have subsequent `0.4.1` releases; SLH-DSA and hybrid follow the gated sequence above |
+| PQC-Forge integration crates | Independently gated pre-1.0 releases aligned with the common protocol contract | `pqc-rs-protocol` `0.4.1`, `pqc-rs-secure-channel` `0.4.0`, and `pqc-rs-authentication` `0.4.0` are published |
 | ISO/European/NIST diversity crates | Independent `0.x` versions after the foundation stabilizes | Not yet created |
 | KpqC crates | Independent `0.x` versions after normative and licensing gates pass | Not yet created |
 | `pqc-rs` umbrella | Versioned with the stable foundation and composed from optional feature groups | Candidate after `1.0.0` APIs stabilize |
@@ -331,7 +386,12 @@ OpenSSL, and an independent RFC 9180 transcript oracle. Planned extensions are:
 - independent reference implementations for Classic McEliece, FrodoKEM,
   FN-DSA, HQC, and the KpqC algorithms before their stable publication;
 - future protocol adapters only when their IETF specifications and wire formats
-  are sufficiently stable.
+  are sufficiently stable;
+- cross-provider authentication checks where independently implemented
+  ML-DSA or later authentication profiles expose compatible interfaces; and
+- application-level interoperability demonstrations that preserve the
+  separation between common PQC-Forge negotiation/policy machinery and the
+  cryptographic provider used for local realization.
 
 An interoperability pass applies only to the named provider versions,
 parameter sets, operations, and vectors recorded in the evidence. It is not a
