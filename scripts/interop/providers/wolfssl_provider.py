@@ -14,7 +14,11 @@ ROOT = pathlib.Path(__file__).resolve().parents[3]
 SRC = pathlib.Path(__file__).with_name("wolfssl_bridge.c")
 BIN = ROOT / "target" / "interop" / "wolfssl_bridge"
 
-PARAMETER_SET = "ML-KEM-768"
+PARAMETER_SETS = [
+    "ML-KEM-512",
+    "ML-KEM-768",
+    "ML-KEM-1024",
+]
 
 OPERATIONS = [
     "kem-keygen",
@@ -105,7 +109,7 @@ def run_bridge(
     parameter_set: str,
     inputs: dict[str, Any],
 ) -> dict[str, Any]:
-    if parameter_set != PARAMETER_SET:
+    if parameter_set not in PARAMETER_SETS:
         raise ValueError(
             f"unsupported parameter set {parameter_set}"
         )
@@ -175,7 +179,7 @@ def capabilities() -> list[dict[str, Any]]:
     return [
         {
             "algorithm": "ML-KEM",
-            "parameter_sets": [PARAMETER_SET],
+            "parameter_sets": PARAMETER_SETS,
             "operations": [
                 "roundtrip",
                 *OPERATIONS,

@@ -6,12 +6,48 @@
 #include <wolfssl/wolfcrypt/types.h>
 #include <wolfssl/wolfcrypt/wc_mlkem.h>
 
+typedef struct {
+    int type;
+    const char *name;
+} MlKemParams;
+
+static int get_params(
+    const char *name,
+    MlKemParams *params
+)
+{
+    if (strcmp(name, "ML-KEM-512") == 0) {
+        params->type = WC_ML_KEM_512;
+        params->name = "ML-KEM-512";
+        return 0;
+    }
+
+    if (strcmp(name, "ML-KEM-768") == 0) {
+        params->type = WC_ML_KEM_768;
+        params->name = "ML-KEM-768";
+        return 0;
+    }
+
+    if (strcmp(name, "ML-KEM-1024") == 0) {
+        params->type = WC_ML_KEM_1024;
+        params->name = "ML-KEM-1024";
+        return 0;
+    }
+
+    fprintf(
+        stderr,
+        "unsupported parameter set: %s\n",
+        name
+    );
+
+    return -1;
+}
+
 static unsigned char *from_hex(
     const char *hex,
     size_t expected_len
 )
 {
-    size_t hex_len;
     unsigned char *out;
     size_t i;
 
@@ -19,13 +55,13 @@ static unsigned char *from_hex(
         return NULL;
     }
 
-    hex_len = strlen(hex);
-
-    if (hex_len != expected_len * 2U) {
+    if (strlen(hex) != expected_len * 2U) {
         return NULL;
     }
 
-    out = (unsigned char *)malloc(expected_len == 0U ? 1U : expected_len);
+    out = (unsigned char *)malloc(
+        expected_len == 0U ? 1U : expected_len
+    );
 
     if (out == NULL) {
         return NULL;
@@ -34,7 +70,11 @@ static unsigned char *from_hex(
     for (i = 0; i < expected_len; i++) {
         unsigned int value;
 
-        if (sscanf(hex + (2U * i), "%2x", &value) != 1) {
+        if (sscanf(
+                hex + (2U * i),
+                "%2x",
+                &value
+            ) != 1) {
             free(out);
             return NULL;
         }
@@ -62,13 +102,14 @@ static void print_hex(
     printf("\n");
 }
 
-static int init_mlkem768(MlKemKey *key)
+static int init_key(
+    MlKemKey *key,
+    int type
+)
 {
-    int rc;
-
-    rc = wc_MlKemKey_Init(
+    int rc = wc_MlKemKey_Init(
         key,
-        WC_ML_KEM_768,
+        type,
         NULL,
         INVALID_DEVID
     );
@@ -79,30 +120,66 @@ static int init_mlkem768(MlKemKey *key)
             "wc_MlKemKey_Init failed: %d\n",
             rc
         );
-        return rc;
     }
 
-    return 0;
+    return rc;
+}
+
+static int query_sizes(
+    MlKemKey *key,
+    word32 *public_key_size,
+    word32 *private_key_size,
+    word32 *ciphertext_size,
+    word32 *shared_secret_size
+)
+{
+    int rc;
+
+    rc = wc_MlKemKey_PublicKeySize(
+        key,
+        public_key_size
+    );
+    if (rc != 0) return rc;
+
+    rc = wc_MlKemKey_PrivateKeySize(
+        key,
+        private_key_size
+    );
+    if (rc != 0) return rc;
+
+    rc = wc_MlKemKey_CipherTextSize(
+        key,
+        ciphertext_size
+    );
+    if (rc != 0) return rc;
+
+    return wc_MlKemKey_SharedSecretSize(
+        key,
+        shared_secret_size
+    );
 }
 
 static int kem_keygen(
+    const MlKemParams *params,
     const char *d_hex,
     const char *z_hex
 )
 {
     MlKemKey key;
+
     unsigned char *d = NULL;
     unsigned char *z = NULL;
+    unsigned char *public_key = NULL;
+    unsigned char *private_key = NULL;
 
-    unsigned char randomness[WC_ML_KEM_MAKEKEY_RAND_SZ];
-
-    unsigned char public_key[
-        WC_ML_KEM_768_PUBLIC_KEY_SIZE
+    unsigned char randomness[
+        WC_ML_KEM_MAKEKEY_RAND_SZ
     ];
 
-    unsigned char private_key[
-        WC_ML_KEM_768_PRIVATE_KEY_SIZE
-    ];
+    word32 public_key_size = 0;
+    word32 private_key_size = 0;
+    word32 ciphertext_size = 0;
+    word32 shared_secret_size = 0;
 
     int initialized = 0;
     int rc = 1;
@@ -113,7 +190,7 @@ static int kem_keygen(
     if (d == NULL || z == NULL) {
         fprintf(
             stderr,
-            "d and z must each be exactly 32 bytes of hex\n"
+            "d and z must each be 32 bytes\n"
         );
         goto cleanup;
     }
@@ -130,13 +207,37 @@ static int kem_keygen(
         WC_ML_KEM_SYM_SZ
     );
 
-    rc = init_mlkem768(&key);
+    rc = init_key(&key, params->type);
+    if (rc != 0) goto cleanup;
+
+    initialized = 1;
+
+    rc = query_sizes(
+        &key,
+        &public_key_size,
+        &private_key_size,
+        &ciphertext_size,
+        &shared_secret_size
+    );
 
     if (rc != 0) {
+        fprintf(stderr, "size query failed: %d\n", rc);
         goto cleanup;
     }
 
-    initialized = 1;
+    public_key = (unsigned char *)malloc(
+        public_key_size
+    );
+
+    private_key = (unsigned char *)malloc(
+        private_key_size
+    );
+
+    if (public_key == NULL || private_key == NULL) {
+        fprintf(stderr, "allocation failure\n");
+        rc = 1;
+        goto cleanup;
+    }
 
     rc = wc_MlKemKey_MakeKeyWithRandom(
         &key,
@@ -156,43 +257,29 @@ static int kem_keygen(
     rc = wc_MlKemKey_EncodePublicKey(
         &key,
         public_key,
-        sizeof(public_key)
+        public_key_size
     );
 
-    if (rc != 0) {
-        fprintf(
-            stderr,
-            "wc_MlKemKey_EncodePublicKey failed: %d\n",
-            rc
-        );
-        goto cleanup;
-    }
+    if (rc != 0) goto cleanup;
 
     rc = wc_MlKemKey_EncodePrivateKey(
         &key,
         private_key,
-        sizeof(private_key)
+        private_key_size
     );
 
-    if (rc != 0) {
-        fprintf(
-            stderr,
-            "wc_MlKemKey_EncodePrivateKey failed: %d\n",
-            rc
-        );
-        goto cleanup;
-    }
+    if (rc != 0) goto cleanup;
 
     print_hex(
         "public_key",
         public_key,
-        sizeof(public_key)
+        public_key_size
     );
 
     print_hex(
         "secret_key",
         private_key,
-        sizeof(private_key)
+        private_key_size
     );
 
     rc = 0;
@@ -200,25 +287,19 @@ static int kem_keygen(
 cleanup:
 
     if (initialized) {
-        int free_rc = wc_MlKemKey_Free(&key);
-
-        if (free_rc != 0 && rc == 0) {
-            fprintf(
-                stderr,
-                "wc_MlKemKey_Free failed: %d\n",
-                free_rc
-            );
-            rc = free_rc;
-        }
+        (void)wc_MlKemKey_Free(&key);
     }
 
     free(d);
     free(z);
+    free(public_key);
+    free(private_key);
 
     return rc;
 }
 
 static int kem_encaps(
+    const MlKemParams *params,
     const char *public_key_hex,
     const char *m_hex
 )
@@ -227,21 +308,35 @@ static int kem_encaps(
 
     unsigned char *public_key = NULL;
     unsigned char *m = NULL;
+    unsigned char *ciphertext = NULL;
+    unsigned char *shared_secret = NULL;
 
-    unsigned char ciphertext[
-        WC_ML_KEM_768_CIPHER_TEXT_SIZE
-    ];
-
-    unsigned char shared_secret[
-        WC_ML_KEM_SS_SZ
-    ];
+    word32 public_key_size = 0;
+    word32 private_key_size = 0;
+    word32 ciphertext_size = 0;
+    word32 shared_secret_size = 0;
 
     int initialized = 0;
     int rc = 1;
 
+    rc = init_key(&key, params->type);
+    if (rc != 0) goto cleanup;
+
+    initialized = 1;
+
+    rc = query_sizes(
+        &key,
+        &public_key_size,
+        &private_key_size,
+        &ciphertext_size,
+        &shared_secret_size
+    );
+
+    if (rc != 0) goto cleanup;
+
     public_key = from_hex(
         public_key_hex,
-        WC_ML_KEM_768_PUBLIC_KEY_SIZE
+        public_key_size
     );
 
     m = from_hex(
@@ -249,40 +344,39 @@ static int kem_encaps(
         WC_ML_KEM_ENC_RAND_SZ
     );
 
-    if (public_key == NULL) {
-        fprintf(
-            stderr,
-            "public_key must be exactly 1184 bytes of hex\n"
-        );
+    if (public_key == NULL || m == NULL) {
+        fprintf(stderr, "invalid encapsulation input\n");
+        rc = 1;
         goto cleanup;
     }
 
-    if (m == NULL) {
-        fprintf(
-            stderr,
-            "m must be exactly 32 bytes of hex\n"
-        );
+    ciphertext = (unsigned char *)malloc(
+        ciphertext_size
+    );
+
+    shared_secret = (unsigned char *)malloc(
+        shared_secret_size
+    );
+
+    if (
+        ciphertext == NULL ||
+        shared_secret == NULL
+    ) {
+        fprintf(stderr, "allocation failure\n");
+        rc = 1;
         goto cleanup;
     }
-
-    rc = init_mlkem768(&key);
-
-    if (rc != 0) {
-        goto cleanup;
-    }
-
-    initialized = 1;
 
     rc = wc_MlKemKey_DecodePublicKey(
         &key,
         public_key,
-        WC_ML_KEM_768_PUBLIC_KEY_SIZE
+        public_key_size
     );
 
     if (rc != 0) {
         fprintf(
             stderr,
-            "wc_MlKemKey_DecodePublicKey failed: %d\n",
+            "DecodePublicKey failed: %d\n",
             rc
         );
         goto cleanup;
@@ -299,7 +393,7 @@ static int kem_encaps(
     if (rc != 0) {
         fprintf(
             stderr,
-            "wc_MlKemKey_EncapsulateWithRandom failed: %d\n",
+            "EncapsulateWithRandom failed: %d\n",
             rc
         );
         goto cleanup;
@@ -308,13 +402,13 @@ static int kem_encaps(
     print_hex(
         "ciphertext",
         ciphertext,
-        sizeof(ciphertext)
+        ciphertext_size
     );
 
     print_hex(
         "shared_secret",
         shared_secret,
-        sizeof(shared_secret)
+        shared_secret_size
     );
 
     rc = 0;
@@ -322,25 +416,19 @@ static int kem_encaps(
 cleanup:
 
     if (initialized) {
-        int free_rc = wc_MlKemKey_Free(&key);
-
-        if (free_rc != 0 && rc == 0) {
-            fprintf(
-                stderr,
-                "wc_MlKemKey_Free failed: %d\n",
-                free_rc
-            );
-            rc = free_rc;
-        }
+        (void)wc_MlKemKey_Free(&key);
     }
 
     free(public_key);
     free(m);
+    free(ciphertext);
+    free(shared_secret);
 
     return rc;
 }
 
 static int kem_decaps(
+    const MlKemParams *params,
     const char *secret_key_hex,
     const char *ciphertext_hex
 )
@@ -349,58 +437,70 @@ static int kem_decaps(
 
     unsigned char *secret_key = NULL;
     unsigned char *ciphertext = NULL;
+    unsigned char *shared_secret = NULL;
 
-    unsigned char shared_secret[
-        WC_ML_KEM_SS_SZ
-    ];
+    word32 public_key_size = 0;
+    word32 private_key_size = 0;
+    word32 ciphertext_size = 0;
+    word32 shared_secret_size = 0;
 
     int initialized = 0;
     int rc = 1;
 
+    rc = init_key(&key, params->type);
+    if (rc != 0) goto cleanup;
+
+    initialized = 1;
+
+    rc = query_sizes(
+        &key,
+        &public_key_size,
+        &private_key_size,
+        &ciphertext_size,
+        &shared_secret_size
+    );
+
+    if (rc != 0) goto cleanup;
+
     secret_key = from_hex(
         secret_key_hex,
-        WC_ML_KEM_768_PRIVATE_KEY_SIZE
+        private_key_size
     );
 
     ciphertext = from_hex(
         ciphertext_hex,
-        WC_ML_KEM_768_CIPHER_TEXT_SIZE
+        ciphertext_size
     );
 
-    if (secret_key == NULL) {
-        fprintf(
-            stderr,
-            "secret_key must be exactly 2400 bytes of hex\n"
-        );
+    if (
+        secret_key == NULL ||
+        ciphertext == NULL
+    ) {
+        fprintf(stderr, "invalid decapsulation input\n");
+        rc = 1;
         goto cleanup;
     }
 
-    if (ciphertext == NULL) {
-        fprintf(
-            stderr,
-            "ciphertext must be exactly 1088 bytes of hex\n"
-        );
+    shared_secret = (unsigned char *)malloc(
+        shared_secret_size
+    );
+
+    if (shared_secret == NULL) {
+        fprintf(stderr, "allocation failure\n");
+        rc = 1;
         goto cleanup;
     }
-
-    rc = init_mlkem768(&key);
-
-    if (rc != 0) {
-        goto cleanup;
-    }
-
-    initialized = 1;
 
     rc = wc_MlKemKey_DecodePrivateKey(
         &key,
         secret_key,
-        WC_ML_KEM_768_PRIVATE_KEY_SIZE
+        private_key_size
     );
 
     if (rc != 0) {
         fprintf(
             stderr,
-            "wc_MlKemKey_DecodePrivateKey failed: %d\n",
+            "DecodePrivateKey failed: %d\n",
             rc
         );
         goto cleanup;
@@ -410,13 +510,13 @@ static int kem_decaps(
         &key,
         shared_secret,
         ciphertext,
-        WC_ML_KEM_768_CIPHER_TEXT_SIZE
+        ciphertext_size
     );
 
     if (rc != 0) {
         fprintf(
             stderr,
-            "wc_MlKemKey_Decapsulate failed: %d\n",
+            "Decapsulate failed: %d\n",
             rc
         );
         goto cleanup;
@@ -425,7 +525,7 @@ static int kem_decaps(
     print_hex(
         "shared_secret",
         shared_secret,
-        sizeof(shared_secret)
+        shared_secret_size
     );
 
     rc = 0;
@@ -433,89 +533,57 @@ static int kem_decaps(
 cleanup:
 
     if (initialized) {
-        int free_rc = wc_MlKemKey_Free(&key);
-
-        if (free_rc != 0 && rc == 0) {
-            fprintf(
-                stderr,
-                "wc_MlKemKey_Free failed: %d\n",
-                free_rc
-            );
-            rc = free_rc;
-        }
+        (void)wc_MlKemKey_Free(&key);
     }
 
     free(secret_key);
     free(ciphertext);
+    free(shared_secret);
 
     return rc;
 }
 
 int main(int argc, char **argv)
 {
-    const char *operation;
-    const char *parameter_set;
+    MlKemParams params;
 
     if (argc < 3) {
         fprintf(
             stderr,
-            "usage: wolfssl_bridge OPERATION PARAMETER_SET [ARGS]\n"
+            "usage: wolfssl_bridge OP PARAMETER_SET [ARGS]\n"
         );
         return 64;
     }
 
-    operation = argv[1];
-    parameter_set = argv[2];
-
-    if (strcmp(parameter_set, "ML-KEM-768") != 0) {
-        fprintf(
-            stderr,
-            "unsupported parameter set: %s\n",
-            parameter_set
-        );
+    if (get_params(argv[2], &params) != 0) {
         return 65;
     }
 
-    if (strcmp(operation, "kem-keygen") == 0) {
-        if (argc != 5) {
-            fprintf(
-                stderr,
-                "kem-keygen requires d and z\n"
-            );
-            return 64;
-        }
+    if (strcmp(argv[1], "kem-keygen") == 0) {
+        if (argc != 5) return 64;
 
         return kem_keygen(
+            &params,
             argv[3],
             argv[4]
         );
     }
 
-    if (strcmp(operation, "kem-encaps") == 0) {
-        if (argc != 5) {
-            fprintf(
-                stderr,
-                "kem-encaps requires public_key and m\n"
-            );
-            return 64;
-        }
+    if (strcmp(argv[1], "kem-encaps") == 0) {
+        if (argc != 5) return 64;
 
         return kem_encaps(
+            &params,
             argv[3],
             argv[4]
         );
     }
 
-    if (strcmp(operation, "kem-decaps") == 0) {
-        if (argc != 5) {
-            fprintf(
-                stderr,
-                "kem-decaps requires secret_key and ciphertext\n"
-            );
-            return 64;
-        }
+    if (strcmp(argv[1], "kem-decaps") == 0) {
+        if (argc != 5) return 64;
 
         return kem_decaps(
+            &params,
             argv[3],
             argv[4]
         );
@@ -524,7 +592,7 @@ int main(int argc, char **argv)
     fprintf(
         stderr,
         "unsupported operation: %s\n",
-        operation
+        argv[1]
     );
 
     return 65;
