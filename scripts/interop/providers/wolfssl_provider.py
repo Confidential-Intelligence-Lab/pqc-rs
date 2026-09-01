@@ -14,16 +14,25 @@ ROOT = pathlib.Path(__file__).resolve().parents[3]
 SRC = pathlib.Path(__file__).with_name("wolfssl_bridge.c")
 BIN = ROOT / "target" / "interop" / "wolfssl_bridge"
 
-PARAMETER_SETS = [
+KEM_PARAMETER_SETS = [
     "ML-KEM-512",
     "ML-KEM-768",
     "ML-KEM-1024",
+]
+
+DSA_PARAMETER_SETS = [
+    "ML-DSA-44",
+    "ML-DSA-65",
+    "ML-DSA-87",
 ]
 
 OPERATIONS = [
     "kem-keygen",
     "kem-encaps",
     "kem-decaps",
+    "dsa-keygen",
+    "dsa-sign",
+    "dsa-verify",
 ]
 
 
@@ -39,7 +48,7 @@ def prefix() -> pathlib.Path:
 def ensure_bridge() -> pathlib.Path:
     install_prefix = prefix()
 
-    header = (
+    kem_header = (
         install_prefix
         / "include"
         / "wolfssl"
@@ -47,11 +56,24 @@ def ensure_bridge() -> pathlib.Path:
         / "wc_mlkem.h"
     )
 
+    dsa_header = (
+        install_prefix
+        / "include"
+        / "wolfssl"
+        / "wolfcrypt"
+        / "wc_mldsa.h"
+    )
+
     library = install_prefix / "lib" / "libwolfssl.a"
 
-    if not header.exists():
+    if not kem_header.exists():
         raise RuntimeError(
-            f"wolfSSL ML-KEM header not found: {header}"
+            f"wolfSSL ML-KEM header not found: {kem_header}"
+        )
+
+    if not dsa_header.exists():
+        raise RuntimeError(
+            f"wolfSSL ML-DSA header not found: {dsa_header}"
         )
 
     if not library.exists():
@@ -109,7 +131,9 @@ def run_bridge(
     parameter_set: str,
     inputs: dict[str, Any],
 ) -> dict[str, Any]:
-    if parameter_set not in PARAMETER_SETS:
+    if parameter_set not in (
+        KEM_PARAMETER_SETS + DSA_PARAMETER_SETS
+    ):
         raise ValueError(
             f"unsupported parameter set {parameter_set}"
         )
@@ -141,6 +165,31 @@ def run_bridge(
             [
                 str(inputs["secret_key"]),
                 str(inputs["ciphertext"]),
+            ]
+        )
+
+    elif operation == "dsa-keygen":
+        arguments.append(
+            str(inputs["xi"])
+        )
+
+    elif operation == "dsa-sign":
+        arguments.extend(
+            [
+                str(inputs["secret_key"]),
+                str(inputs["message"]),
+                str(inputs["context"]),
+                str(inputs["randomness"]),
+            ]
+        )
+
+    elif operation == "dsa-verify":
+        arguments.extend(
+            [
+                str(inputs["public_key"]),
+                str(inputs["message"]),
+                str(inputs["context"]),
+                str(inputs["signature"]),
             ]
         )
 
@@ -179,12 +228,23 @@ def capabilities() -> list[dict[str, Any]]:
     return [
         {
             "algorithm": "ML-KEM",
-            "parameter_sets": PARAMETER_SETS,
+            "parameter_sets": KEM_PARAMETER_SETS,
             "operations": [
                 "roundtrip",
-                *OPERATIONS,
+                "kem-keygen",
+                "kem-encaps",
+                "kem-decaps",
             ],
-        }
+        },
+        {
+            "algorithm": "ML-DSA",
+            "parameter_sets": DSA_PARAMETER_SETS,
+            "operations": [
+                "dsa-keygen",
+                "dsa-sign",
+                "dsa-verify",
+            ],
+        },
     ]
 
 
@@ -268,12 +328,12 @@ def execute_legacy(
     operation = str(case["operation"])
     inputs = dict(case.get("inputs", {}))
 
-    if algorithm != "ML-KEM":
+    if algorithm not in ("ML-KEM", "ML-DSA"):
         raise ValueError(
             f"unsupported algorithm {algorithm}"
         )
 
-    if operation == "roundtrip":
+    if algorithm == "ML-KEM" and operation == "roundtrip":
         return kem_roundtrip(
             parameter_set,
             inputs,
