@@ -29,6 +29,14 @@ required = false
 notes = "Adapter reserved for A2.2; enable only after liboqs and the adapter are installed."
 
 [[provider]]
+id = "wolfssl"
+title = "wolfSSL native wolfCrypt"
+enabled = false
+command = ["python3", "scripts/interop/providers/wolfssl_provider.py"]
+required = false
+notes = "Native wolfCrypt ML-KEM provider; initially scoped to deterministic ML-KEM-768 interoperability."
+
+[[provider]]
 id = "botan"
 title = "Botan"
 enabled = false
