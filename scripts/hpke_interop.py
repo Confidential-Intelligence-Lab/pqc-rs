@@ -29,21 +29,26 @@ def call(root: pathlib.Path, provider: str, operation: str, ps: str, inputs: dic
 
 
 def keygen(root: pathlib.Path, provider: str, ps: str, tag: str) -> dict:
-    inputs = {"d": seed(tag + "-d"), "z": seed(tag + "-z")} if provider == "rust" else {}
+    inputs = {
+        "d": seed(tag + "-d"),
+        "z": seed(tag + "-z"),
+    }
     return call(root, provider, "kem-keygen", ps, inputs)
 
 
 def encaps(root: pathlib.Path, provider: str, ps: str, pk: str, tag: str) -> dict:
-    inputs = {"public_key": pk}
-    if provider == "rust":
-        inputs["m"] = seed(tag + "-m")
+    inputs = {
+        "public_key": pk,
+        "m": seed(tag + "-m"),
+    }
     return call(root, provider, "kem-encaps", ps, inputs)
 
 
 def decaps(root: pathlib.Path, provider: str, ps: str, kg: dict, ct: str) -> dict:
-    inputs = {"secret_key": kg["secret_key"], "ciphertext": ct}
-    if provider in {"liboqs", "openssl"}:
-        inputs["public_key"] = kg["public_key"]
+    inputs = {
+        "secret_key": kg["secret_key"],
+        "ciphertext": ct,
+    }
     return call(root, provider, "kem-decaps", ps, inputs)
 
 
