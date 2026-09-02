@@ -57,6 +57,29 @@ and release assurance.
 > and integration testing. Production use requires independent security
 > review and application-specific risk assessment.
 
+
+### Software interoperability
+
+PQC-rs is continuously tested against independent post-quantum cryptographic
+implementations through a provider-neutral interoperability framework.
+
+The current software-provider matrix includes PQC-rs, wolfSSL / wolfCrypt,
+OpenSSL, Open Quantum Safe liboqs, and AWS-LC across ML-KEM and ML-DSA.
+
+For ML-KEM-512, ML-KEM-768, and ML-KEM-1024, the canonical gate tests
+byte-for-byte deterministic parity for key generation, encapsulation,
+ciphertexts, shared secrets, cross-provider decapsulation, and implicit
+rejection.
+
+For ML-DSA-44, ML-DSA-65, and ML-DSA-87, the framework distinguishes exact
+deterministic parity from semantic interoperability when a provider's public
+API does not expose deterministic key generation or caller-controlled signing
+randomness.
+
+See [`docs/interoperability/`](docs/interoperability/) for the provider matrix,
+test methodology, public-API capability boundaries, and claim scope.
+
+
 ## Repository structure
 
     PQC-rs repository

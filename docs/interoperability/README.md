@@ -19,17 +19,43 @@ The current software-provider matrix contains:
 - PQC-rs native Rust implementation;
 - wolfSSL / wolfCrypt;
 - OpenSSL 3.5 or later;
-- Open Quantum Safe liboqs.
+- Open Quantum Safe liboqs;
+- AWS-LC.
 
 All providers expose the same primitive interoperability protocol for:
 
 - ML-KEM-512, ML-KEM-768, and ML-KEM-1024;
 - ML-DSA-44, ML-DSA-65, and ML-DSA-87.
 
+The framework distinguishes exact deterministic parity from semantic
+interoperability. A facility that is not exposed by a provider's tested public
+consumer API is recorded as `unsupported_by_public_api` rather than treated as
+an interoperability failure.
+
+## Capability summary
+
+| Property | PQC-rs | wolfSSL | OpenSSL | liboqs | AWS-LC |
+| --- | --- | --- | --- | --- | --- |
+| ML-KEM 512/768/1024 | yes | yes | yes | yes | yes |
+| Seeded ML-KEM key generation | exact | exact | exact | exact | exact |
+| Deterministic ML-KEM encapsulation | exact | exact | exact | exact | exact |
+| Cross-decapsulation | yes | yes | yes | yes | yes |
+| Implicit rejection | exact | exact | exact | exact | exact |
+| ML-DSA 44/65/87 | yes | yes | yes | yes | yes |
+| Seeded ML-DSA key generation | exact | exact | exact | API gap | exact |
+| Explicit ML-DSA signing randomness | yes | yes | yes | API gap | API gap |
+| Exact explicit-randomness signatures | exact | exact | exact | not tested | not tested |
+| Semantic signature interoperability | yes | yes | yes | yes | yes |
+| Context and negative semantics | yes | yes | yes | yes | yes |
+
+Here, `API gap` means `unsupported_by_public_api` for the tested provider
+interface. It does not imply that the underlying implementation lacks the
+corresponding internal functionality.
+
 ## ML-KEM coverage
 
-The canonical gate requires byte-for-byte agreement across PQC-rs, wolfSSL,
-OpenSSL, and liboqs for all three ML-KEM parameter sets.
+The canonical gate requires byte-for-byte agreement across all five software
+providers for all three ML-KEM parameter sets.
 
 Coverage includes:
 
@@ -38,26 +64,29 @@ Coverage includes:
 - deterministic encapsulation from `m`;
 - exact ciphertext and shared-secret values;
 - cross-provider decapsulation;
-- implicit-rejection behavior for modified ciphertexts.
+- exact implicit-rejection shared secrets for modified ciphertexts.
 
 ## ML-DSA coverage
 
-PQC-rs, wolfSSL, and OpenSSL expose deterministic ML-DSA key generation and
-explicit per-signature randomness through their public APIs.
+PQC-rs, wolfSSL, OpenSSL, and AWS-LC expose deterministic ML-DSA key generation
+through the tested provider interface. The canonical gate therefore requires
+byte-for-byte agreement among those four providers for seeded public-key and
+expanded secret-key generation.
 
-The canonical gate therefore requires exact byte-for-byte agreement between
-those three providers for:
+PQC-rs, wolfSSL, and OpenSSL additionally expose caller-controlled
+per-signature randomness through their tested public interfaces. Exact
+signature parity is therefore required among those three providers.
 
-- seeded key generation;
-- public-key and secret-key encodings;
-- explicit-randomness signing;
-- signature encodings.
+liboqs does not expose deterministic ML-DSA key generation or caller-controlled
+per-signature randomness through its tested public API. AWS-LC exposes seeded
+key generation but does not expose caller-controlled signing randomness through
+its tested public EVP/PQDSA interface. These capability boundaries are recorded
+as `unsupported_by_public_api`.
 
-All four providers, including liboqs, participate in semantic interoperability
-tests covering:
+All five providers participate in semantic interoperability tests covering:
 
 - raw key interchange;
-- bidirectional signature verification;
+- cross-provider signature verification;
 - empty and non-empty contexts;
 - the 255-byte FIPS 204 context boundary;
 - modified-message rejection;
@@ -68,20 +97,16 @@ tests covering:
 - 256-byte context rejection;
 - cross-parameter-set misuse.
 
-liboqs does not expose deterministic ML-DSA key generation or explicit
-per-signature randomness through its public API. The report records these
-capabilities as `unsupported_by_public_api`; they are not treated as failures.
-
 ## Rejection behavior
 
 Providers need not reject malformed inputs at the same software layer.
 
-For example, PQC-rs may reject malformed ML-DSA encodings before verification,
-while another provider may accept the byte sequence as input and return a
-cryptographic verification failure.
+For example, PQC-rs may reject a malformed ML-DSA encoding at an API or
+encoding boundary while another provider may consume the supplied bytes and
+return a cryptographic verification failure.
 
 The interoperability gate records the rejection mode but requires the
-externally relevant property: invalid inputs must not be accepted.
+security-relevant property: invalid inputs must not be accepted.
 
 ## Provider protocol
 
@@ -102,10 +127,16 @@ The repository also contains focused interoperability and protocol-validation
 gates, including:
 
 - the generic provider protocol self-test;
-- provider-specific liboqs and OpenSSL validation;
+- provider-specific regression mechanisms;
 - HPKE interoperability.
 
-These focused gates complement the canonical four-provider parity gate.
+These focused gates complement the canonical five-provider parity gate.
+
+## Provider-specific documentation
+
+- [liboqs interoperability](liboqs.md)
+- [OpenSSL PQC interoperability](OPENSSL_ML_DSA.md)
+- [AWS-LC interoperability](aws-lc.md)
 
 ## Claim boundary
 
