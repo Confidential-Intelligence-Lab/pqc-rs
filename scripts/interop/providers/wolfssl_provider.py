@@ -107,9 +107,24 @@ def ensure_bridge() -> pathlib.Path:
             str(library),
             "-lm",
             "-lpthread",
-            "-o",
-            str(BIN),
         ]
+
+        if sys.platform == "darwin":
+            command.extend(
+                [
+                    "-framework",
+                    "Security",
+                    "-framework",
+                    "CoreFoundation",
+                ]
+            )
+
+        command.extend(
+            [
+                "-o",
+                str(BIN),
+            ]
+        )
 
         completed = subprocess.run(
             command,
