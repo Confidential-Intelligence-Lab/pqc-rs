@@ -55,8 +55,20 @@ def ensure_bridge() -> pathlib.Path:
 
 def run_bridge(operation: str, parameter_set: str, inputs: dict[str, Any]) -> dict[str, Any]:
     arguments = [str(ensure_bridge()), operation, parameter_set]
-    if operation == "kem-encaps":
-        arguments.append(str(inputs["public_key"]))
+    if operation == "kem-keygen":
+        arguments.extend(
+            [
+                str(inputs["d"]),
+                str(inputs["z"]),
+            ]
+        )
+    elif operation == "kem-encaps":
+        arguments.extend(
+            [
+                str(inputs["public_key"]),
+                str(inputs["m"]),
+            ]
+        )
     elif operation == "kem-decaps":
         arguments.extend([str(inputs["secret_key"]), str(inputs["ciphertext"])])
     elif operation == "dsa-sign":
@@ -105,8 +117,22 @@ def capabilities() -> list[dict[str, Any]]:
 
 
 def kem_roundtrip(parameter_set: str) -> dict[str, Any]:
-    keypair = run_bridge("kem-keygen", parameter_set, {})
-    encapsulated = run_bridge("kem-encaps", parameter_set, {"public_key": keypair["public_key"]})
+    keypair = run_bridge(
+        "kem-keygen",
+        parameter_set,
+        {
+            "d": "00" * 32,
+            "z": "01" * 32,
+        },
+    )
+    encapsulated = run_bridge(
+        "kem-encaps",
+        parameter_set,
+        {
+            "public_key": keypair["public_key"],
+            "m": "02" * 32,
+        },
+    )
     decapsulated = run_bridge(
         "kem-decaps",
         parameter_set,

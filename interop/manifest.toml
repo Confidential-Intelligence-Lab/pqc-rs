@@ -26,7 +26,23 @@ title = "Open Quantum Safe liboqs"
 enabled = true
 command = ["python3", "scripts/interop/providers/liboqs_provider.py"]
 required = false
-notes = "Adapter reserved for A2.2; enable only after liboqs and the adapter are installed."
+notes = "Native liboqs provider covering ML-KEM-512/768/1024 and ML-DSA-44/65/87. ML-KEM supports deterministic parity; ML-DSA participates in semantic/raw-object interoperability because liboqs does not expose deterministic ML-DSA keygen or explicit signing randomness through its public API."
+
+[[provider]]
+id = "wolfssl"
+title = "wolfSSL native wolfCrypt"
+enabled = false
+command = ["python3", "scripts/interop/providers/wolfssl_provider.py"]
+required = false
+notes = "Native wolfCrypt provider covering ML-KEM-512/768/1024 and ML-DSA-44/65/87 through the common primitive interoperability contract."
+
+[[provider]]
+id = "openssl"
+title = "OpenSSL 3.5+ default provider"
+enabled = false
+command = ["python3", "scripts/interop/providers/openssl_provider.py"]
+required = false
+notes = "Native OpenSSL provider covering ML-KEM-512/768/1024 and ML-DSA-44/65/87 through the common primitive interoperability contract."
 
 [[provider]]
 id = "botan"
@@ -50,3 +66,13 @@ vectors = ["interop/vectors/liboqs/*.json"]
 providers = ["liboqs"]
 required = false
 comparison = "semantic"
+
+
+[[suite]]
+id = "software-provider-parity"
+title = "Canonical software-provider interoperability parity gate"
+vectors = []
+providers = ["rust", "wolfssl", "openssl", "liboqs"]
+required = false
+comparison = "provider-parity"
+notes = "Executed by cargo xtask interop-cross --strict. Covers exact ML-KEM parity across all four providers, exact ML-DSA parity where deterministic APIs are public, and semantic/negative ML-DSA interoperability across all four providers."

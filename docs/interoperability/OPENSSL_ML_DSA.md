@@ -1,40 +1,105 @@
-# OpenSSL ML-DSA interoperability
+# OpenSSL PQC interoperability
 
-Stage 15A-7 makes bidirectional OpenSSL interoperability a blocking
-publication-assurance gate for Pure ML-DSA.
+PQC-rs includes a native OpenSSL interoperability provider using the OpenSSL 3
+provider-oriented EVP APIs.
 
-## Required matrix
+## Supported algorithms
 
-The gate covers ML-DSA-44, ML-DSA-65, and ML-DSA-87 in both directions:
+The provider covers:
 
-- PQC-rs signs and OpenSSL verifies; and
-- OpenSSL signs and PQC-rs verifies.
+- ML-KEM-512;
+- ML-KEM-768;
+- ML-KEM-1024;
+- ML-DSA-44;
+- ML-DSA-65;
+- ML-DSA-87.
 
-Every direction verifies the authentic signature and rejects the same
-signature under a modified message, modified context, and single-bit signature
-mutation. The complete matrix contains 24 required verification outcomes.
+OpenSSL 3.5 or later is required for the PQC provider functionality used by
+this interoperability layer.
 
-The provider adapter requires OpenSSL 3.5 or later, where ML-DSA key management
-and one-shot signing are available. The report records the provider version,
-parameter set, producer, consumer, mutation, expected result, and observed
-result without recording private keys or signatures.
+## ML-KEM interoperability
+
+OpenSSL exposes the deterministic inputs required to exercise FIPS 203 through
+its EVP provider API.
+
+The PQC-rs interoperability contract maps:
+
+    key-generation seed = d || z
+    encapsulation input = m
+
+The canonical interoperability gate requires byte-for-byte agreement between
+PQC-rs, OpenSSL, wolfSSL, and liboqs for all three ML-KEM parameter sets.
+
+Coverage includes:
+
+- deterministic key generation;
+- exact public-key encoding;
+- exact secret-key encoding;
+- deterministic encapsulation;
+- exact ciphertext;
+- exact shared secret;
+- cross-provider decapsulation;
+- exact implicit-rejection behavior for modified ciphertexts.
+
+## ML-DSA interoperability
+
+OpenSSL exposes the deterministic facilities needed for exact FIPS 204
+comparison:
+
+- seeded key generation;
+- context-bound signing;
+- explicit per-signature test entropy;
+- raw public-key and secret-key import/export.
+
+The canonical parity gate requires byte-for-byte agreement between PQC-rs,
+wolfSSL, and OpenSSL for:
+
+- public keys generated from the same seed;
+- secret keys generated from the same seed;
+- signatures generated from the same message, context, and explicit signing
+  randomness.
+
+OpenSSL also participates in the complete four-provider semantic matrix,
+including:
+
+- raw key interchange;
+- bidirectional signature verification;
+- the 255-byte context boundary;
+- modified-message rejection;
+- modified-context rejection;
+- wrong-public-key rejection;
+- signature mutation rejection;
+- malformed signature handling;
+- 256-byte context rejection;
+- cross-parameter-set rejection.
+
+## Rejection behavior
+
+PQC-rs and OpenSSL need not reject malformed signatures at the same software
+layer.
+
+PQC-rs performs strict encoding checks for some malformed signatures, while
+OpenSSL may consume the supplied byte string and return failed cryptographic
+verification.
+
+The canonical interoperability gate records the rejection mode separately and
+requires the security-relevant outcome: the invalid signature must not be
+accepted.
 
 ## Execution
 
-```bash
-scripts/check-ml-dsa-openssl-interop.sh
-```
+The canonical four-provider interoperability gate is:
 
-The machine-readable and Markdown reports are written under
-`target/stage15a7-openssl-mldsa/`.
+    cargo xtask interop-cross --strict
+
+A focused OpenSSL interoperability runner remains available as a provider-
+specific regression mechanism.
 
 ## Claim boundary
 
-A pass demonstrates byte-compatible Pure ML-DSA signature cross-verification
-between the tested PQC-rs revision and recorded OpenSSL provider for the named
-parameter sets and cases. It also demonstrates the tested negative-verification
-behavior.
+A successful OpenSSL interoperability result demonstrates the tested exact
+ML-KEM, exact deterministic ML-DSA, and semantic/negative interoperability
+properties for the recorded OpenSSL build and PQC-rs revision.
 
-OpenSSL 3.5 does not expose a native HashML-DSA operation. This gate therefore
-does not claim HashML-DSA interoperability, formal proof, FIPS validation,
-Common Criteria certification, or independent security audit.
+It does not constitute FIPS validation, Common Criteria certification, formal
+verification, or an independent security audit.

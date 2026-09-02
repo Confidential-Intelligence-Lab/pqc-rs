@@ -26,16 +26,75 @@ def seed(tag: str) -> str:
 
 def run_case(root: pathlib.Path, algorithm: str, ps: str, producer: str, consumer: str):
     if algorithm == "ML-KEM" and producer == "rust":
-        kg = call(root, "rust", "kem-keygen", ps, {"d": seed(ps + "-openssl-d"), "z": seed(ps + "-openssl-z")})
-        enc = call(root, "openssl", "kem-encaps", ps, {"public_key": kg["public_key"]})
-        dec = call(root, "rust", "kem-decaps", ps, {"secret_key": kg["secret_key"], "ciphertext": enc["ciphertext"]})
-        return enc["shared_secret"] == dec["shared_secret"], len(enc["ciphertext"]) // 2
+        kg = call(
+            root,
+            "rust",
+            "kem-keygen",
+            ps,
+            {
+                "d": seed(ps + "-openssl-d"),
+                "z": seed(ps + "-openssl-z"),
+            },
+        )
+        enc = call(
+            root,
+            "openssl",
+            "kem-encaps",
+            ps,
+            {
+                "public_key": kg["public_key"],
+                "m": seed(ps + "-openssl-m"),
+            },
+        )
+        dec = call(
+            root,
+            "rust",
+            "kem-decaps",
+            ps,
+            {
+                "secret_key": kg["secret_key"],
+                "ciphertext": enc["ciphertext"],
+            },
+        )
+        return (
+            enc["shared_secret"] == dec["shared_secret"],
+            len(enc["ciphertext"]) // 2,
+        )
     if algorithm == "ML-KEM":
-        kg = call(root, "openssl", "kem-keygen", ps, {})
-        enc = call(root, "rust", "kem-encaps", ps, {"public_key": kg["public_key"], "m": seed(ps + "-openssl-m")})
-        dec = call(root, "openssl", "kem-decaps", ps, {"secret_key": kg["secret_key"],
-                   "public_key": kg["public_key"], "ciphertext": enc["ciphertext"]})
-        return enc["shared_secret"] == dec["shared_secret"], len(enc["ciphertext"]) // 2
+        kg = call(
+            root,
+            "openssl",
+            "kem-keygen",
+            ps,
+            {
+                "d": seed(ps + "-openssl-d"),
+                "z": seed(ps + "-openssl-z"),
+            },
+        )
+        enc = call(
+            root,
+            "rust",
+            "kem-encaps",
+            ps,
+            {
+                "public_key": kg["public_key"],
+                "m": seed(ps + "-openssl-m"),
+            },
+        )
+        dec = call(
+            root,
+            "openssl",
+            "kem-decaps",
+            ps,
+            {
+                "secret_key": kg["secret_key"],
+                "ciphertext": enc["ciphertext"],
+            },
+        )
+        return (
+            enc["shared_secret"] == dec["shared_secret"],
+            len(enc["ciphertext"]) // 2,
+        )
     message, context = seed(ps + "-openssl-message"), "41322e34"
     if producer == "rust":
         kg = call(root, "rust", "dsa-keygen", ps, {"xi": seed(ps + "-openssl-xi")})
@@ -44,11 +103,39 @@ def run_case(root: pathlib.Path, algorithm: str, ps: str, producer: str, consume
         ver = call(root, "openssl", "dsa-verify", ps, {"public_key": kg["public_key"], "message": message,
                    "context": context, "signature": sig["signature"]})
     else:
-        kg = call(root, "openssl", "dsa-keygen", ps, {})
-        sig = call(root, "openssl", "dsa-sign", ps, {"secret_key": kg["secret_key"], "public_key": kg["public_key"],
-                   "message": message, "context": context})
-        ver = call(root, "rust", "dsa-verify", ps, {"public_key": kg["public_key"], "message": message,
-                   "context": context, "signature": sig["signature"]})
+        kg = call(
+            root,
+            "openssl",
+            "dsa-keygen",
+            ps,
+            {
+                "xi": seed(ps + "-openssl-xi"),
+            },
+        )
+        sig = call(
+            root,
+            "openssl",
+            "dsa-sign",
+            ps,
+            {
+                "secret_key": kg["secret_key"],
+                "message": message,
+                "context": context,
+                "randomness": "00" * 32,
+            },
+        )
+        ver = call(
+            root,
+            "rust",
+            "dsa-verify",
+            ps,
+            {
+                "public_key": kg["public_key"],
+                "message": message,
+                "context": context,
+                "signature": sig["signature"],
+            },
+        )
     return bool(ver["valid"]), len(sig["signature"]) // 2
 
 def main() -> int:
