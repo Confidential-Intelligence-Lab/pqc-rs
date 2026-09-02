@@ -34,7 +34,15 @@ title = "wolfSSL native wolfCrypt"
 enabled = false
 command = ["python3", "scripts/interop/providers/wolfssl_provider.py"]
 required = false
-notes = "Native wolfCrypt ML-KEM provider; initially scoped to deterministic ML-KEM-768 interoperability."
+notes = "Native wolfCrypt provider covering ML-KEM-512/768/1024 and ML-DSA-44/65/87 through the common primitive interoperability contract."
+
+[[provider]]
+id = "openssl"
+title = "OpenSSL 3.5+ default provider"
+enabled = false
+command = ["python3", "scripts/interop/providers/openssl_provider.py"]
+required = false
+notes = "Native OpenSSL provider covering ML-KEM-512/768/1024 and ML-DSA-44/65/87 through the common primitive interoperability contract."
 
 [[provider]]
 id = "botan"
