@@ -20,11 +20,25 @@ KEM_PARAMETER_SETS = [
     "ML-KEM-1024",
 ]
 
-OPERATIONS = [
+DSA_PARAMETER_SETS = [
+    "ML-DSA-44",
+    "ML-DSA-65",
+    "ML-DSA-87",
+]
+
+KEM_OPERATIONS = [
     "kem-keygen",
     "kem-encaps",
     "kem-decaps",
 ]
+
+DSA_OPERATIONS = [
+    "dsa-keygen",
+    "dsa-sign",
+    "dsa-verify",
+]
+
+OPERATIONS = KEM_OPERATIONS + DSA_OPERATIONS
 
 
 def source_root() -> pathlib.Path:
@@ -127,7 +141,9 @@ def run_bridge(
     parameter_set: str,
     inputs: dict[str, Any],
 ) -> dict[str, Any]:
-    if parameter_set not in KEM_PARAMETER_SETS:
+    if parameter_set not in (
+        KEM_PARAMETER_SETS + DSA_PARAMETER_SETS
+    ):
         raise ValueError(
             f"unsupported parameter set {parameter_set}"
         )
@@ -159,6 +175,30 @@ def run_bridge(
                 str(inputs["ciphertext"]),
             ]
         )
+    elif operation == "dsa-keygen":
+        arguments.append(
+            str(inputs["xi"])
+        )
+    elif operation == "dsa-sign":
+        # AWS-LC supports ML-DSA signing, but its public
+        # EVP/PQDSA API does not expose caller-supplied
+        # signing randomness.
+        arguments.extend(
+            [
+                str(inputs["secret_key"]),
+                str(inputs["message"]),
+                str(inputs.get("context", "")),
+            ]
+        )
+    elif operation == "dsa-verify":
+        arguments.extend(
+            [
+                str(inputs["public_key"]),
+                str(inputs["message"]),
+                str(inputs.get("context", "")),
+                str(inputs["signature"]),
+            ]
+        )
     else:
         raise ValueError(
             f"unsupported operation {operation}"
@@ -183,7 +223,18 @@ def run_bridge(
             continue
 
         key, value = line.split("=", 1)
-        outputs[key] = value
+
+        if key == "valid":
+            if value == "true":
+                outputs[key] = True
+            elif value == "false":
+                outputs[key] = False
+            else:
+                raise RuntimeError(
+                    f"invalid boolean from AWS-LC bridge: {value}"
+                )
+        else:
+            outputs[key] = value
 
     return outputs
 
@@ -195,8 +246,19 @@ def capabilities() -> list[dict[str, Any]]:
         {
             "algorithm": "ML-KEM",
             "parameter_sets": KEM_PARAMETER_SETS,
-            "operations": OPERATIONS,
-        }
+            "operations": KEM_OPERATIONS,
+        },
+        {
+            "algorithm": "ML-DSA",
+            "parameter_sets": DSA_PARAMETER_SETS,
+            "operations": DSA_OPERATIONS,
+            "properties": {
+                "seeded_keygen": "supported",
+                "explicit_signing_randomness":
+                    "unsupported_by_public_api",
+                "cross_verification": "supported",
+            },
+        },
     ]
 
 

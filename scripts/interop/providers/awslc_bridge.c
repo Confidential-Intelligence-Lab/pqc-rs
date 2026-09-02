@@ -5,6 +5,9 @@
 
 #include "crypto/fipsmodule/ml_kem/ml_kem.h"
 
+#include <openssl/evp.h>
+#include <openssl/nid.h>
+
 typedef struct {
     const char *name;
     size_t public_key_size;
@@ -370,10 +373,461 @@ cleanup:
     return rc;
 }
 
+
+typedef struct {
+    const char *name;
+    int nid;
+    size_t public_key_size;
+    size_t secret_key_size;
+    size_t signature_size;
+} MlDsaParams;
+
+static int get_dsa_params(
+    const char *name,
+    MlDsaParams *params)
+{
+    if (strcmp(name, "ML-DSA-44") == 0) {
+        params->name = name;
+        params->nid = NID_MLDSA44;
+        params->public_key_size = 1312U;
+        params->secret_key_size = 2560U;
+        params->signature_size = 2420U;
+        return 0;
+    }
+
+    if (strcmp(name, "ML-DSA-65") == 0) {
+        params->name = name;
+        params->nid = NID_MLDSA65;
+        params->public_key_size = 1952U;
+        params->secret_key_size = 4032U;
+        params->signature_size = 3309U;
+        return 0;
+    }
+
+    if (strcmp(name, "ML-DSA-87") == 0) {
+        params->name = name;
+        params->nid = NID_MLDSA87;
+        params->public_key_size = 2592U;
+        params->secret_key_size = 4896U;
+        params->signature_size = 4627U;
+        return 0;
+    }
+
+    fprintf(
+        stderr,
+        "unsupported ML-DSA parameter set: %s\n",
+        name);
+
+    return -1;
+}
+
+static int set_signature_context(
+    EVP_PKEY_CTX *ctx,
+    const uint8_t *context,
+    size_t context_len)
+{
+    if (context_len > 255U) {
+        fprintf(stderr, "ML-DSA context exceeds 255 bytes\n");
+        return 0;
+    }
+
+    return EVP_PKEY_CTX_set1_signature_context_string(
+        ctx,
+        context_len == 0U ? NULL : context,
+        context_len);
+}
+
+static int dsa_keygen(
+    const MlDsaParams *params,
+    const char *xi_hex)
+{
+    uint8_t *xi = NULL;
+    uint8_t *public_key = NULL;
+    uint8_t *secret_key = NULL;
+
+    size_t public_key_len = 0;
+    size_t secret_key_len = 0;
+
+    EVP_PKEY *pkey = NULL;
+
+    int rc = 1;
+
+    xi = from_hex(xi_hex, 32U);
+
+    if (xi == NULL) {
+        fprintf(stderr, "xi must be exactly 32 bytes\n");
+        goto cleanup;
+    }
+
+    /*
+     * AWS-LC's installed public PQDSA API interprets a 32-byte
+     * ML-DSA private-key input as the FIPS 204 key-generation seed.
+     */
+    pkey = EVP_PKEY_pqdsa_new_raw_private_key(
+        params->nid,
+        xi,
+        32U);
+
+    if (pkey == NULL) {
+        fprintf(stderr, "AWS-LC seeded ML-DSA keygen failed\n");
+        goto cleanup;
+    }
+
+    if (!EVP_PKEY_get_raw_public_key(
+            pkey,
+            NULL,
+            &public_key_len) ||
+        !EVP_PKEY_get_raw_private_key(
+            pkey,
+            NULL,
+            &secret_key_len)) {
+        fprintf(stderr, "AWS-LC ML-DSA key-size query failed\n");
+        goto cleanup;
+    }
+
+    if (public_key_len != params->public_key_size ||
+        secret_key_len != params->secret_key_size) {
+        fprintf(
+            stderr,
+            "AWS-LC returned unexpected ML-DSA key lengths\n");
+        goto cleanup;
+    }
+
+    public_key = malloc(public_key_len);
+    secret_key = malloc(secret_key_len);
+
+    if (public_key == NULL || secret_key == NULL) {
+        fprintf(stderr, "allocation failure\n");
+        goto cleanup;
+    }
+
+    if (!EVP_PKEY_get_raw_public_key(
+            pkey,
+            public_key,
+            &public_key_len) ||
+        !EVP_PKEY_get_raw_private_key(
+            pkey,
+            secret_key,
+            &secret_key_len)) {
+        fprintf(stderr, "AWS-LC ML-DSA key export failed\n");
+        goto cleanup;
+    }
+
+    print_hex(
+        "public_key",
+        public_key,
+        public_key_len);
+
+    print_hex(
+        "secret_key",
+        secret_key,
+        secret_key_len);
+
+    rc = 0;
+
+cleanup:
+    EVP_PKEY_free(pkey);
+
+    free(xi);
+    free(public_key);
+    free(secret_key);
+
+    return rc;
+}
+
+static int dsa_sign(
+    const MlDsaParams *params,
+    const char *secret_key_hex,
+    const char *message_hex,
+    const char *context_hex)
+{
+    uint8_t *secret_key = NULL;
+    uint8_t *message = NULL;
+    uint8_t *context = NULL;
+    uint8_t *signature = NULL;
+
+    size_t message_len;
+    size_t context_len;
+    size_t signature_len = 0;
+
+    EVP_PKEY *pkey = NULL;
+    EVP_MD_CTX *mdctx = NULL;
+    EVP_PKEY_CTX *pctx = NULL;
+
+    int rc = 1;
+
+    secret_key = from_hex(
+        secret_key_hex,
+        params->secret_key_size);
+
+    if (secret_key == NULL) {
+        fprintf(stderr, "invalid ML-DSA secret key\n");
+        goto cleanup;
+    }
+
+    if (message_hex == NULL ||
+        (strlen(message_hex) & 1U) != 0U) {
+        fprintf(stderr, "invalid message encoding\n");
+        goto cleanup;
+    }
+
+    message_len = strlen(message_hex) / 2U;
+    message = from_hex(message_hex, message_len);
+
+    if (message == NULL) {
+        fprintf(stderr, "invalid message\n");
+        goto cleanup;
+    }
+
+    if (context_hex == NULL ||
+        (strlen(context_hex) & 1U) != 0U) {
+        fprintf(stderr, "invalid context encoding\n");
+        goto cleanup;
+    }
+
+    context_len = strlen(context_hex) / 2U;
+
+    if (context_len > 255U) {
+        fprintf(stderr, "ML-DSA context exceeds 255 bytes\n");
+        goto cleanup;
+    }
+
+    context = from_hex(context_hex, context_len);
+
+    if (context == NULL) {
+        fprintf(stderr, "invalid context\n");
+        goto cleanup;
+    }
+
+    pkey = EVP_PKEY_pqdsa_new_raw_private_key(
+        params->nid,
+        secret_key,
+        params->secret_key_size);
+
+    if (pkey == NULL) {
+        fprintf(stderr, "AWS-LC ML-DSA private-key import failed\n");
+        goto cleanup;
+    }
+
+    mdctx = EVP_MD_CTX_new();
+
+    if (mdctx == NULL) {
+        fprintf(stderr, "EVP_MD_CTX_new failed\n");
+        goto cleanup;
+    }
+
+    if (!EVP_DigestSignInit(
+            mdctx,
+            &pctx,
+            NULL,
+            NULL,
+            pkey)) {
+        fprintf(stderr, "EVP_DigestSignInit failed\n");
+        goto cleanup;
+    }
+
+    if (!set_signature_context(
+            pctx,
+            context,
+            context_len)) {
+        fprintf(stderr, "ML-DSA context configuration failed\n");
+        goto cleanup;
+    }
+
+    if (!EVP_DigestSign(
+            mdctx,
+            NULL,
+            &signature_len,
+            message,
+            message_len)) {
+        fprintf(stderr, "ML-DSA signature-size query failed\n");
+        goto cleanup;
+    }
+
+    if (signature_len != params->signature_size) {
+        fprintf(stderr, "AWS-LC returned unexpected signature size\n");
+        goto cleanup;
+    }
+
+    signature = malloc(signature_len);
+
+    if (signature == NULL) {
+        fprintf(stderr, "allocation failure\n");
+        goto cleanup;
+    }
+
+    if (!EVP_DigestSign(
+            mdctx,
+            signature,
+            &signature_len,
+            message,
+            message_len)) {
+        fprintf(stderr, "AWS-LC ML-DSA signing failed\n");
+        goto cleanup;
+    }
+
+    if (signature_len != params->signature_size) {
+        fprintf(stderr, "AWS-LC returned unexpected signature length\n");
+        goto cleanup;
+    }
+
+    print_hex(
+        "signature",
+        signature,
+        signature_len);
+
+    rc = 0;
+
+cleanup:
+    EVP_MD_CTX_free(mdctx);
+    EVP_PKEY_free(pkey);
+
+    free(secret_key);
+    free(message);
+    free(context);
+    free(signature);
+
+    return rc;
+}
+
+static int dsa_verify(
+    const MlDsaParams *params,
+    const char *public_key_hex,
+    const char *message_hex,
+    const char *context_hex,
+    const char *signature_hex)
+{
+    uint8_t *public_key = NULL;
+    uint8_t *message = NULL;
+    uint8_t *context = NULL;
+    uint8_t *signature = NULL;
+
+    size_t message_len;
+    size_t context_len;
+
+    EVP_PKEY *pkey = NULL;
+    EVP_MD_CTX *mdctx = NULL;
+    EVP_PKEY_CTX *pctx = NULL;
+
+    int valid;
+    int rc = 1;
+
+    public_key = from_hex(
+        public_key_hex,
+        params->public_key_size);
+
+    signature = from_hex(
+        signature_hex,
+        params->signature_size);
+
+    if (public_key == NULL || signature == NULL) {
+        /*
+         * Structurally malformed keys/signatures are secure rejection,
+         * not provider execution failure.
+         */
+        printf("valid=false\n");
+        rc = 0;
+        goto cleanup;
+    }
+
+    if (message_hex == NULL ||
+        (strlen(message_hex) & 1U) != 0U) {
+        fprintf(stderr, "invalid message encoding\n");
+        goto cleanup;
+    }
+
+    message_len = strlen(message_hex) / 2U;
+    message = from_hex(message_hex, message_len);
+
+    if (message == NULL) {
+        fprintf(stderr, "invalid message\n");
+        goto cleanup;
+    }
+
+    if (context_hex == NULL ||
+        (strlen(context_hex) & 1U) != 0U) {
+        fprintf(stderr, "invalid context encoding\n");
+        goto cleanup;
+    }
+
+    context_len = strlen(context_hex) / 2U;
+
+    if (context_len > 255U) {
+        fprintf(stderr, "ML-DSA context exceeds 255 bytes\n");
+        goto cleanup;
+    }
+
+    context = from_hex(context_hex, context_len);
+
+    if (context == NULL) {
+        fprintf(stderr, "invalid context\n");
+        goto cleanup;
+    }
+
+    pkey = EVP_PKEY_pqdsa_new_raw_public_key(
+        params->nid,
+        public_key,
+        params->public_key_size);
+
+    if (pkey == NULL) {
+        printf("valid=false\n");
+        rc = 0;
+        goto cleanup;
+    }
+
+    mdctx = EVP_MD_CTX_new();
+
+    if (mdctx == NULL) {
+        fprintf(stderr, "EVP_MD_CTX_new failed\n");
+        goto cleanup;
+    }
+
+    if (!EVP_DigestVerifyInit(
+            mdctx,
+            &pctx,
+            NULL,
+            NULL,
+            pkey)) {
+        fprintf(stderr, "EVP_DigestVerifyInit failed\n");
+        goto cleanup;
+    }
+
+    if (!set_signature_context(
+            pctx,
+            context,
+            context_len)) {
+        fprintf(stderr, "ML-DSA context configuration failed\n");
+        goto cleanup;
+    }
+
+    valid = EVP_DigestVerify(
+        mdctx,
+        signature,
+        params->signature_size,
+        message,
+        message_len);
+
+    printf(
+        "valid=%s\n",
+        valid == 1 ? "true" : "false");
+
+    rc = 0;
+
+cleanup:
+    EVP_MD_CTX_free(mdctx);
+    EVP_PKEY_free(pkey);
+
+    free(public_key);
+    free(message);
+    free(context);
+    free(signature);
+
+    return rc;
+}
+
+
 int main(int argc, char **argv)
 {
-    MlKemParams params;
-
     if (argc < 3) {
         fprintf(
             stderr,
@@ -381,40 +835,82 @@ int main(int argc, char **argv)
         return 64;
     }
 
-    if (get_params(argv[2], &params) != 0) {
-        return 65;
+    if (strncmp(argv[1], "kem-", 4U) == 0) {
+        MlKemParams params;
+
+        if (get_params(argv[2], &params) != 0) {
+            return 65;
+        }
+
+        if (strcmp(argv[1], "kem-keygen") == 0) {
+            if (argc != 5) return 64;
+
+            return kem_keygen(
+                &params,
+                argv[3],
+                argv[4]);
+        }
+
+        if (strcmp(argv[1], "kem-encaps") == 0) {
+            if (argc != 5) return 64;
+
+            return kem_encaps(
+                &params,
+                argv[3],
+                argv[4]);
+        }
+
+        if (strcmp(argv[1], "kem-decaps") == 0) {
+            if (argc != 5) return 64;
+
+            return kem_decaps(
+                &params,
+                argv[3],
+                argv[4]);
+        }
     }
 
-    if (strcmp(argv[1], "kem-keygen") == 0) {
-        if (argc != 5) return 64;
+    if (strncmp(argv[1], "dsa-", 4U) == 0) {
+        MlDsaParams params;
 
-        return kem_keygen(
-            &params,
-            argv[3],
-            argv[4]);
-    }
+        if (get_dsa_params(argv[2], &params) != 0) {
+            return 65;
+        }
 
-    if (strcmp(argv[1], "kem-encaps") == 0) {
-        if (argc != 5) return 64;
+        if (strcmp(argv[1], "dsa-keygen") == 0) {
+            if (argc != 4) return 64;
 
-        return kem_encaps(
-            &params,
-            argv[3],
-            argv[4]);
-    }
+            return dsa_keygen(
+                &params,
+                argv[3]);
+        }
 
-    if (strcmp(argv[1], "kem-decaps") == 0) {
-        if (argc != 5) return 64;
+        if (strcmp(argv[1], "dsa-sign") == 0) {
+            if (argc != 6) return 64;
 
-        return kem_decaps(
-            &params,
-            argv[3],
-            argv[4]);
+            return dsa_sign(
+                &params,
+                argv[3],
+                argv[4],
+                argv[5]);
+        }
+
+        if (strcmp(argv[1], "dsa-verify") == 0) {
+            if (argc != 7) return 64;
+
+            return dsa_verify(
+                &params,
+                argv[3],
+                argv[4],
+                argv[5],
+                argv[6]);
+        }
     }
 
     fprintf(
         stderr,
         "unsupported operation: %s\n",
         argv[1]);
+
     return 66;
 }
