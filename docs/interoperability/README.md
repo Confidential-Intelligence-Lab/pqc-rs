@@ -42,15 +42,56 @@ an interoperability failure.
 | Cross-decapsulation | yes | yes | yes | yes | yes |
 | Implicit rejection | exact | exact | exact | exact | exact |
 | ML-DSA 44/65/87 | yes | yes | yes | yes | yes |
-| Seeded ML-DSA key generation | exact | exact | exact | API gap | exact |
-| Explicit ML-DSA signing randomness | yes | yes | yes | API gap | API gap |
+| Seeded ML-DSA key generation | exact | exact | exact | public API gap | exact |
+| Explicit ML-DSA signing randomness | yes | yes | yes | public API gap | public API gap |
 | Exact explicit-randomness signatures | exact | exact | exact | not tested | not tested |
 | Semantic signature interoperability | yes | yes | yes | yes | yes |
 | Context and negative semantics | yes | yes | yes | yes | yes |
 
-Here, `API gap` means `unsupported_by_public_api` for the tested provider
+Here, `public API gap` means `unsupported_by_public_api` for the tested provider
 interface. It does not imply that the underlying implementation lacks the
 corresponding internal functionality.
+
+## Public API capability gaps
+
+The interoperability framework distinguishes a cryptographic implementation
+capability from the controls exposed by a provider's public consumer API.
+
+A result recorded as:
+
+    unsupported_by_public_api
+
+means that the tested provider interface does not expose an input or operation
+required to perform that particular interoperability experiment. It does not,
+by itself, mean that the underlying cryptographic implementation lacks the
+corresponding functionality.
+
+This distinction matters most for deterministic interoperability tests. Exact
+byte-for-byte comparison requires all inputs that influence an operation to be
+controlled by the test harness. For example, exact ML-DSA signature comparison
+requires the providers to use the same key, message, context, and explicit
+per-signature randomness. If a public API performs randomized signing but does
+not allow the caller to supply that randomness, signatures can be
+cryptographically interoperable without being byte-for-byte identical.
+
+The current matrix contains two such public-API boundaries:
+
+- liboqs does not expose deterministic ML-DSA key generation through the tested
+  public generic signature API and does not expose caller-controlled
+  per-signature randomness;
+- AWS-LC exposes seeded ML-DSA key generation through its public PQDSA
+  interface, but its tested public EVP/PQDSA signing interface does not expose
+  caller-controlled per-signature randomness.
+
+AWS-LC contains lower-level functionality capable of accepting controlled
+signing randomness. The interoperability provider deliberately does not use
+non-public interfaces merely to obtain an exact-parity result.
+
+Accordingly, `unsupported_by_public_api` is not counted as a failed
+interoperability test. The canonical report instead tests the strongest
+property supported by the provider's public interface: exact deterministic
+parity where the required controls are public, and semantic interoperability
+where they are not.
 
 ## ML-KEM coverage
 
