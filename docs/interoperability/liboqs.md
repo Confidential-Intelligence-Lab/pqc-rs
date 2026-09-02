@@ -32,8 +32,8 @@ The PQC-rs provider contract maps these inputs directly as:
     encapsulation seed  = m
 
 The canonical interoperability gate requires byte-for-byte parity between
-PQC-rs, liboqs, wolfSSL, and OpenSSL across ML-KEM-512, ML-KEM-768, and
-ML-KEM-1024.
+PQC-rs, liboqs, wolfSSL, OpenSSL, and AWS-LC across ML-KEM-512,
+ML-KEM-768, and ML-KEM-1024.
 
 Coverage includes:
 
@@ -122,7 +122,7 @@ Use the corresponding `.dylib` path on macOS.
 
 ## Execution
 
-The canonical four-provider interoperability gate is:
+The canonical five-provider interoperability gate is:
 
     cargo xtask interop-cross --strict
 

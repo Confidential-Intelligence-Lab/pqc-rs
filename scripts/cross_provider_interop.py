@@ -42,9 +42,22 @@ PROVIDERS = {
         sys.executable,
         "scripts/interop/providers/liboqs_provider.py",
     ],
+    "awslc": [
+        sys.executable,
+        "scripts/interop/providers/awslc_provider.py",
+    ],
 }
 
-EXACT_DSA_PROVIDERS = [
+# Providers exposing deterministic ML-DSA key generation.
+EXACT_DSA_KEYGEN_PROVIDERS = [
+    "rust",
+    "wolfssl",
+    "openssl",
+    "awslc",
+]
+
+# Providers exposing caller-controlled per-signature randomness.
+EXACT_DSA_SIGN_PROVIDERS = [
     "rust",
     "wolfssl",
     "openssl",
@@ -55,6 +68,7 @@ ALL_PROVIDERS = [
     "wolfssl",
     "openssl",
     "liboqs",
+    "awslc",
 ]
 
 KEM_SIZES = {
@@ -122,6 +136,13 @@ CAPABILITY_MATRIX = {
         "ml_kem_deterministic_keygen": "supported",
         "ml_kem_deterministic_encaps": "supported",
         "ml_dsa_seeded_keygen": "unsupported_by_public_api",
+        "ml_dsa_explicit_signing_randomness": "unsupported_by_public_api",
+        "ml_dsa_cross_verification": "supported",
+    },
+    "awslc": {
+        "ml_kem_deterministic_keygen": "supported",
+        "ml_kem_deterministic_encaps": "supported",
+        "ml_dsa_seeded_keygen": "supported",
         "ml_dsa_explicit_signing_randomness": "unsupported_by_public_api",
         "ml_dsa_cross_verification": "supported",
     },
@@ -647,7 +668,7 @@ def run_ml_dsa_exact(
             dict[str, Any],
         ] = {}
 
-        for provider in EXACT_DSA_PROVIDERS:
+        for provider in EXACT_DSA_KEYGEN_PROVIDERS:
             keypairs[provider] = call(
                 root,
                 provider,
@@ -686,7 +707,7 @@ def run_ml_dsa_exact(
                 else "fail"
             ),
             parameter_set=ps,
-            providers=EXACT_DSA_PROVIDERS,
+            providers=EXACT_DSA_KEYGEN_PROVIDERS,
             liboqs="unsupported_by_public_api",
             public_key_sha256=sha256_hex(
                 reference["public_key"]
@@ -698,7 +719,7 @@ def run_ml_dsa_exact(
 
         signatures: dict[str, str] = {}
 
-        for provider in EXACT_DSA_PROVIDERS:
+        for provider in EXACT_DSA_SIGN_PROVIDERS:
             output = call(
                 root,
                 provider,
@@ -741,8 +762,9 @@ def run_ml_dsa_exact(
                 else "fail"
             ),
             parameter_set=ps,
-            providers=EXACT_DSA_PROVIDERS,
+            providers=EXACT_DSA_SIGN_PROVIDERS,
             liboqs="unsupported_by_public_api",
+            awslc="unsupported_by_public_api",
             signature_sha256=sha256_hex(
                 rust_signature
             ),

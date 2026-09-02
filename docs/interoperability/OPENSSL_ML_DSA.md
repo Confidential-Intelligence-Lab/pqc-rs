@@ -28,7 +28,8 @@ The PQC-rs interoperability contract maps:
     encapsulation input = m
 
 The canonical interoperability gate requires byte-for-byte agreement between
-PQC-rs, OpenSSL, wolfSSL, and liboqs for all three ML-KEM parameter sets.
+PQC-rs, OpenSSL, wolfSSL, liboqs, and AWS-LC for all three ML-KEM
+parameter sets.
 
 Coverage includes:
 
@@ -59,7 +60,7 @@ wolfSSL, and OpenSSL for:
 - signatures generated from the same message, context, and explicit signing
   randomness.
 
-OpenSSL also participates in the complete four-provider semantic matrix,
+OpenSSL also participates in the complete five-provider semantic matrix,
 including:
 
 - raw key interchange;
@@ -88,7 +89,7 @@ accepted.
 
 ## Execution
 
-The canonical four-provider interoperability gate is:
+The canonical five-provider interoperability gate is:
 
     cargo xtask interop-cross --strict
 

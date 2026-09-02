@@ -45,6 +45,14 @@ required = false
 notes = "Native OpenSSL provider covering ML-KEM-512/768/1024 and ML-DSA-44/65/87 through the common primitive interoperability contract."
 
 [[provider]]
+id = "awslc"
+title = "AWS-LC"
+enabled = false
+command = ["python3", "scripts/interop/providers/awslc_provider.py"]
+required = false
+notes = "AWS-LC provider covering ML-KEM-512/768/1024 and ML-DSA-44/65/87. ML-KEM supports deterministic parity. ML-DSA supports exact seeded key-generation parity and semantic signature interoperability; explicit caller-controlled signing randomness is unsupported by the pinned public EVP/PQDSA API."
+
+[[provider]]
 id = "botan"
 title = "Botan"
 enabled = false
@@ -72,7 +80,7 @@ comparison = "semantic"
 id = "software-provider-parity"
 title = "Canonical software-provider interoperability parity gate"
 vectors = []
-providers = ["rust", "wolfssl", "openssl", "liboqs"]
+providers = ["rust", "wolfssl", "openssl", "liboqs", "awslc"]
 required = false
 comparison = "provider-parity"
-notes = "Executed by cargo xtask interop-cross --strict. Covers exact ML-KEM parity across all four providers, exact ML-DSA parity where deterministic APIs are public, and semantic/negative ML-DSA interoperability across all four providers."
+notes = "Executed by cargo xtask interop-cross --strict. Covers exact ML-KEM parity across all five providers, exact ML-DSA seeded key-generation parity where deterministic key-generation APIs are public, exact ML-DSA signature parity where explicit signing randomness is public, and semantic/negative ML-DSA interoperability across all five providers."
