@@ -178,6 +178,49 @@ between PQC-rs and each external software provider:
 The matrix covers ML-KEM-512, ML-KEM-768, and ML-KEM-1024, for a total of
 24 directed HPKE interoperability cases.
 
+### Example: PQC-rs and AWS-LC
+
+The AWS-LC cases illustrate precisely what provider substitution means at the
+HPKE boundary.
+
+In one direction, PQC-rs performs ML-KEM encapsulation and AWS-LC performs
+ML-KEM decapsulation:
+
+    PQC-rs ML-KEM                         AWS-LC ML-KEM
+        encapsulation      ciphertext      decapsulation
+             |  ---------------------------->  |
+             |                                 |
+             +------- same shared secret ------+
+                             |
+                             v
+                      native PQC-rs HPKE
+                      RFC 9180 Base mode
+                      HKDF-SHA256
+                      AES-128-GCM
+                             |
+                             v
+                  secure-channel transcript
+
+The reverse direction is also exercised: AWS-LC performs ML-KEM encapsulation
+and PQC-rs performs ML-KEM decapsulation.
+
+In both directions, the ML-KEM provider changes while the HPKE implementation,
+key schedule, KDF, AEAD, application inputs, and transcript semantics remain
+fixed. The resulting native PQC-rs HPKE transcript is compared against the
+independent Python RFC 9180 reference implementation.
+
+This establishes that PQC-rs HPKE can construct a secure channel from an
+ML-KEM shared secret interoperably established across the PQC-rs and AWS-LC
+implementation boundary.
+
+It does **not** mean that the experiment runs an AWS-LC HPKE implementation as
+one endpoint of the channel. The HPKE layer remains the native PQC-rs
+implementation; AWS-LC substitutes for ML-KEM execution underneath that
+layer. This distinction is intentional: the experiment evaluates
+implementation-provider substitution without changing the secure-channel
+protocol above the provider boundary.
+
+
 For each case, recipient key generation, encapsulation, and decapsulation are
 performed through the selected ML-KEM providers. The resulting 32-byte KEM
 shared secret then crosses a fixed HPKE boundary.
