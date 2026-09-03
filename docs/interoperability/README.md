@@ -162,6 +162,58 @@ Protocol version 1 supports:
 
 Diagnostics belong on standard error.
 
+## HPKE provider substitution
+
+The HPKE interoperability gate extends software-provider substitution above
+the primitive ML-KEM boundary.
+
+The current matrix exercises ML-KEM provider substitution bidirectionally
+between PQC-rs and each external software provider:
+
+- PQC-rs <-> liboqs;
+- PQC-rs <-> OpenSSL;
+- PQC-rs <-> wolfSSL / wolfCrypt;
+- PQC-rs <-> AWS-LC.
+
+The matrix covers ML-KEM-512, ML-KEM-768, and ML-KEM-1024, for a total of
+24 directed HPKE interoperability cases.
+
+For each case, recipient key generation, encapsulation, and decapsulation are
+performed through the selected ML-KEM providers. The resulting 32-byte KEM
+shared secret then crosses a fixed HPKE boundary.
+
+The HPKE layer remains unchanged across provider substitutions:
+
+- native PQC-rs HPKE implementation;
+- RFC 9180 Base mode;
+- HKDF-SHA256;
+- AES-128-GCM;
+- application `info`, AAD, and plaintext semantics;
+- exporter behavior;
+- sender and receiver sequence semantics.
+
+The resulting native Rust transcript is compared against an independent Python
+RFC 9180 reference implementation. Each passing case compares the derived key,
+base nonce, exporter secret, key-schedule context, ciphertext, recovered
+plaintext, exported secret, and sender/receiver sequence numbers.
+
+The canonical HPKE gate is:
+
+    cargo xtask interop-hpke --strict
+
+The current five-provider matrix passes:
+
+    executed=24
+    passed=24
+    failed=0
+
+The same 24/24 result is reproduced by the GitHub Actions HPKE
+interoperability workflow.
+
+This demonstrates KEM execution-provider substitution without redefining the
+HPKE protocol or application-facing secure-channel semantics. It does not
+claim RFC 9180 Auth or AuthPSK interoperability.
+
 ## Additional interoperability gates
 
 The repository also contains focused interoperability and protocol-validation
