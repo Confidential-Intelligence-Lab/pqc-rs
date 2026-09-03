@@ -162,6 +162,101 @@ Protocol version 1 supports:
 
 Diagnostics belong on standard error.
 
+## HPKE provider substitution
+
+The HPKE interoperability gate extends software-provider substitution above
+the primitive ML-KEM boundary.
+
+The current matrix exercises ML-KEM provider substitution bidirectionally
+between PQC-rs and each external software provider:
+
+- PQC-rs <-> liboqs;
+- PQC-rs <-> OpenSSL;
+- PQC-rs <-> wolfSSL / wolfCrypt;
+- PQC-rs <-> AWS-LC.
+
+The matrix covers ML-KEM-512, ML-KEM-768, and ML-KEM-1024, for a total of
+24 directed HPKE interoperability cases.
+
+### Example: PQC-rs and AWS-LC
+
+The AWS-LC cases illustrate precisely what provider substitution means at the
+HPKE boundary.
+
+In one direction, PQC-rs performs ML-KEM encapsulation and AWS-LC performs
+ML-KEM decapsulation:
+
+    PQC-rs ML-KEM                         AWS-LC ML-KEM
+        encapsulation      ciphertext      decapsulation
+             |  ---------------------------->  |
+             |                                 |
+             +------- same shared secret ------+
+                             |
+                             v
+                      native PQC-rs HPKE
+                      RFC 9180 Base mode
+                      HKDF-SHA256
+                      AES-128-GCM
+                             |
+                             v
+                  secure-channel transcript
+
+The reverse direction is also exercised: AWS-LC performs ML-KEM encapsulation
+and PQC-rs performs ML-KEM decapsulation.
+
+In both directions, the ML-KEM provider changes while the HPKE implementation,
+key schedule, KDF, AEAD, application inputs, and transcript semantics remain
+fixed. The resulting native PQC-rs HPKE transcript is compared against the
+independent Python RFC 9180 reference implementation.
+
+This establishes that PQC-rs HPKE can construct a secure channel from an
+ML-KEM shared secret interoperably established across the PQC-rs and AWS-LC
+implementation boundary.
+
+It does **not** mean that the experiment runs an AWS-LC HPKE implementation as
+one endpoint of the channel. The HPKE layer remains the native PQC-rs
+implementation; AWS-LC substitutes for ML-KEM execution underneath that
+layer. This distinction is intentional: the experiment evaluates
+implementation-provider substitution without changing the secure-channel
+protocol above the provider boundary.
+
+
+For each case, recipient key generation, encapsulation, and decapsulation are
+performed through the selected ML-KEM providers. The resulting 32-byte KEM
+shared secret then crosses a fixed HPKE boundary.
+
+The HPKE layer remains unchanged across provider substitutions:
+
+- native PQC-rs HPKE implementation;
+- RFC 9180 Base mode;
+- HKDF-SHA256;
+- AES-128-GCM;
+- application `info`, AAD, and plaintext semantics;
+- exporter behavior;
+- sender and receiver sequence semantics.
+
+The resulting native Rust transcript is compared against an independent Python
+RFC 9180 reference implementation. Each passing case compares the derived key,
+base nonce, exporter secret, key-schedule context, ciphertext, recovered
+plaintext, exported secret, and sender/receiver sequence numbers.
+
+The canonical HPKE gate is:
+
+    cargo xtask interop-hpke --strict
+
+The current five-provider matrix passes:
+
+    executed=24
+    passed=24
+    failed=0
+
+The same 24/24 result is reproduced by the GitHub Actions HPKE
+interoperability workflow.
+
+This demonstrates KEM execution-provider substitution without redefining the
+HPKE protocol or application-facing secure-channel semantics. It does not
+claim RFC 9180 Auth or AuthPSK interoperability.
+
 ## Additional interoperability gates
 
 The repository also contains focused interoperability and protocol-validation

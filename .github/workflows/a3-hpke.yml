@@ -25,11 +25,45 @@ jobs:
             -DOQS_BUILD_ONLY_LIB=ON
           cmake --build "$RUNNER_TEMP/liboqs/build"
           cmake --install "$RUNNER_TEMP/liboqs/build"
+      - name: Build wolfSSL 5.9.2
+        run: |
+          git clone             --depth 1             --branch v5.9.2-stable             https://github.com/wolfSSL/wolfssl.git             "$RUNNER_TEMP/wolfssl"
+
+          cd "$RUNNER_TEMP/wolfssl"
+
+          autoreconf -fi
+
+          ./configure             --prefix="$RUNNER_TEMP/wolfssl-install"             --enable-mlkem             --enable-mldsa             --disable-shared             --enable-static
+
+          make -j2
+          make install
+
+      - name: Build AWS-LC
+        env:
+          AWSLC_COMMIT: add9bcbc8700dc57151e02a627f71df783da49ea
+        run: |
+          git clone             https://github.com/aws/aws-lc.git             "$RUNNER_TEMP/aws-lc"
+
+          cd "$RUNNER_TEMP/aws-lc"
+          git checkout "$AWSLC_COMMIT"
+
+          test "$(git rev-parse HEAD)" = "$AWSLC_COMMIT"
+
+          cmake             -S "$RUNNER_TEMP/aws-lc"             -B "$RUNNER_TEMP/aws-lc/build"             -GNinja             -DCMAKE_BUILD_TYPE=Release             -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/aws-lc-install"             -DBUILD_TESTING=OFF
+
+          cmake --build "$RUNNER_TEMP/aws-lc/build"
+          cmake --install "$RUNNER_TEMP/aws-lc/build"
+
+          test -f "$RUNNER_TEMP/aws-lc-install/lib/libcrypto.a"
+
       - run: python3 -m pip install cryptography
       - run: python3 scripts/validate-a3-1.py
-      - name: Run HPKE interoperability
+      - name: Run five-provider HPKE interoperability
         env:
           OQS_PREFIX: ${{ runner.temp }}/oqs-install
+          WOLFSSL_PREFIX: ${{ runner.temp }}/wolfssl-install
+          AWSLC_PREFIX: ${{ runner.temp }}/aws-lc-install
+          AWSLC_SRC: ${{ runner.temp }}/aws-lc
           LD_LIBRARY_PATH: ${{ runner.temp }}/oqs-install/lib
         run: cargo xtask interop-hpke --strict
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
