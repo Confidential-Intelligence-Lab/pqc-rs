@@ -9,8 +9,25 @@ PROVIDERS = {
     "rust": ["python3", "scripts/interop/providers/rust_provider.py"],
     "liboqs": ["python3", "scripts/interop/providers/liboqs_provider.py"],
     "openssl": ["python3", "scripts/interop/providers/openssl_provider.py"],
+    "wolfssl": ["python3", "scripts/interop/providers/wolfssl_provider.py"],
+    "awslc": ["python3", "scripts/interop/providers/awslc_provider.py"],
 }
-PAIRS = [("rust", "liboqs"), ("liboqs", "rust"), ("rust", "openssl"), ("openssl", "rust")]
+
+EXTERNAL_PROVIDERS = [
+    "liboqs",
+    "openssl",
+    "wolfssl",
+    "awslc",
+]
+
+PAIRS = [
+    pair
+    for provider in EXTERNAL_PROVIDERS
+    for pair in (
+        ("rust", provider),
+        (provider, "rust"),
+    )
+]
 
 
 def seed(tag: str) -> str:
@@ -195,7 +212,7 @@ def main() -> int:
         "summary": {"executed": len(results), "passed": passed, "failed": failed},
         "results": results,
         "findings": findings,
-        "claim_boundary": "A pass demonstrates exact RFC 9180 Base-mode transcript agreement between the native Rust HPKE implementation and an independent reference oracle, while ML-KEM shared secrets cross the native Rust, liboqs, and OpenSSL provider boundaries. It does not claim RFC 9180 Auth or AuthPSK support.",
+        "claim_boundary": "A pass demonstrates exact RFC 9180 Base-mode transcript agreement between the native Rust HPKE implementation and an independent reference oracle while ML-KEM shared secrets cross the PQC-rs, liboqs, OpenSSL, wolfSSL, and AWS-LC software-provider boundaries. Provider substitution is exercised bidirectionally between PQC-rs and each external provider. It does not claim RFC 9180 Auth or AuthPSK support.",
     }
     out = root / args.output
     out.mkdir(parents=True, exist_ok=True)
