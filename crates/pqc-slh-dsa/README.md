@@ -26,9 +26,10 @@ Implemented operations include:
 
 - cryptographic key generation;
 - deterministic key generation from a caller-supplied FIPS 205 seed;
-- deterministic Pure SLH-DSA signing;
-- hedged Pure SLH-DSA signing;
+- deterministic and hedged Pure SLH-DSA signing;
 - Pure SLH-DSA signature verification;
+- deterministic and hedged HashSLH-DSA signing;
+- HashSLH-DSA signature verification with the standardized prehash algorithms;
 - typed import and export of keys and signatures;
 - feature-gated internal interfaces for validation tooling.
 
@@ -102,6 +103,8 @@ The implementation has been tested against pinned NIST ACVP sample vectors:
 | KeyGen | 120 / 120 |
 | External Pure SigGen | 168 / 168 |
 | External Pure SigVer | 168 / 168 |
+| External HashSLH SigGen | Sampled deterministic and hedged cases passed |
+| External HashSLH SigVer | 12 / 12 sampled cases matched |
 
 The crate also contains unit tests covering address encoding, hash
 instantiation, WOTS+, XMSS, FORS, hypertree composition, key generation,

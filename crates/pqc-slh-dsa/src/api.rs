@@ -899,7 +899,7 @@ fn map_slhdsa_error(error: SlhDsaError) -> PqcError {
 
         SlhDsaError::RandomnessFailure => PqcError::RandomnessFailure,
 
-        SlhDsaError::NotImplemented | SlhDsaError::InternalError => PqcError::InternalError,
+        SlhDsaError::InternalError => PqcError::InternalError,
     }
 }
 
