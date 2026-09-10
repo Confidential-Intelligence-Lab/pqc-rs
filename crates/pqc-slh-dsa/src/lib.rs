@@ -60,6 +60,13 @@ mod hash;
 #[doc(hidden)]
 pub mod hash_suite;
 
+#[cfg(feature = "internal-api")]
+#[doc(hidden)]
+pub mod hash_slhdsa;
+
+#[cfg(not(feature = "internal-api"))]
+mod hash_slhdsa;
+
 #[cfg(not(feature = "internal-api"))]
 #[allow(dead_code)]
 mod hash_suite;
@@ -112,4 +119,5 @@ pub use api::{
     SlhDsa, SlhDsaKeyGenSeed, SlhDsaKeyPair, SlhDsaPrivateKey, SlhDsaPublicKey, SlhDsaSignature,
 };
 pub use error::SlhDsaError;
+pub use hash_slhdsa::SlhDsaPreHash;
 pub use params::{SlhDsaHashFamily, SlhDsaParameterSet, SlhDsaParameters};

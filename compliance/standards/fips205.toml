@@ -342,27 +342,46 @@ tags = ["context", "input-validation"]
 id = "FIPS205-10-HASH-SIGN"
 section = "10"
 class = "shall"
-status = "gap"
+status = "mapped"
 title = "HashSLH-DSA external signing applies the approved pre-hash function, identifier encoding, and external framing"
-implementation = []
-tests = []
+implementation = [
+  "crates/pqc-slh-dsa/src/hash_slhdsa.rs",
+  "crates/pqc-slh-dsa/src/api.rs"
+]
+tests = [
+  "crates/pqc-slh-dsa/src/hash_slhdsa.rs",
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-test-harness/src/bin/slhdsa-acvp-hash-siggen.rs"
+]
 owner = "pqc-rs maintainers"
-ci = []
-notes = ["S1-G01: HashSLH-DSA signing is not present in the current public API."]
-tags = ["hashslh-dsa", "prehash", "sign", "gap"]
+ci = ["workspace-tests"]
+evidence = [
+  "NIST ACVP FIPS 205 external HashSLH-DSA deterministic SigGen sample parity",
+  "NIST ACVP FIPS 205 external HashSLH-DSA hedged SigGen sample parity"
+]
+tags = ["hashslh-dsa", "prehash", "sign"]
 
 [[requirement]]
 id = "FIPS205-10-HASH-VERIFY"
 section = "10"
 class = "shall"
-status = "gap"
+status = "mapped"
 title = "HashSLH-DSA external verification applies the approved pre-hash function, identifier encoding, and external framing"
-implementation = []
-tests = []
+implementation = [
+  "crates/pqc-slh-dsa/src/hash_slhdsa.rs",
+  "crates/pqc-slh-dsa/src/api.rs"
+]
+tests = [
+  "crates/pqc-slh-dsa/src/hash_slhdsa.rs",
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-test-harness/src/bin/slhdsa-acvp-hash-sigver.rs"
+]
 owner = "pqc-rs maintainers"
-ci = []
-notes = ["S1-G02: HashSLH-DSA verification is not present in the current public API."]
-tags = ["hashslh-dsa", "prehash", "verify", "gap"]
+ci = ["workspace-tests"]
+evidence = [
+  "NIST ACVP FIPS 205 external HashSLH-DSA SigVer sampled valid/invalid parity"
+]
+tags = ["hashslh-dsa", "prehash", "verify"]
 
 [[requirement]]
 id = "FIPS205-KEY-ENCODING"
@@ -461,6 +480,46 @@ tests = [
 owner = "pqc-rs maintainers"
 references = ["NIST ACVP SLH-DSA JSON Specification"]
 tags = ["acvp", "pure", "sigver"]
+
+
+[[requirement]]
+id = "FIPS205-ACVP-HASH-SIGGEN"
+section = "ACVP"
+class = "validation"
+status = "mapped"
+title = "ACVP HashSLH-DSA signature-generation vector processing"
+implementation = [
+  "crates/pqc-test-harness/src/bin/slhdsa-acvp-hash-siggen.rs"
+]
+tests = [
+  "crates/pqc-test-harness/src/bin/slhdsa-acvp-hash-siggen.rs"
+]
+owner = "pqc-rs maintainers"
+references = ["NIST ACVP SLH-DSA JSON Specification"]
+evidence = [
+  "Deterministic HashSLH-DSA sample parity passed",
+  "Hedged HashSLH-DSA sample parity passed"
+]
+tags = ["acvp", "hashslh-dsa", "siggen"]
+
+[[requirement]]
+id = "FIPS205-ACVP-HASH-SIGVER"
+section = "ACVP"
+class = "validation"
+status = "mapped"
+title = "ACVP HashSLH-DSA signature-verification vector processing"
+implementation = [
+  "crates/pqc-test-harness/src/bin/slhdsa-acvp-hash-sigver.rs"
+]
+tests = [
+  "crates/pqc-test-harness/src/bin/slhdsa-acvp-hash-sigver.rs"
+]
+owner = "pqc-rs maintainers"
+references = ["NIST ACVP SLH-DSA JSON Specification"]
+evidence = [
+  "Sampled valid/invalid HashSLH-DSA SigVer parity passed"
+]
+tags = ["acvp", "hashslh-dsa", "sigver"]
 
 [[requirement]]
 id = "FIPS205-ASSURANCE-SECRET-PROTECTION"
