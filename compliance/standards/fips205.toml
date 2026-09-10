@@ -356,8 +356,7 @@ tests = [
 owner = "pqc-rs maintainers"
 ci = ["workspace-tests"]
 evidence = [
-  "NIST ACVP FIPS 205 external HashSLH-DSA deterministic SigGen sample parity",
-  "NIST ACVP FIPS 205 external HashSLH-DSA hedged SigGen sample parity"
+  "NIST ACVP FIPS 205 external HashSLH-DSA SigGen: 288/288 cases passed; 144 deterministic and 144 hedged"
 ]
 tags = ["hashslh-dsa", "prehash", "sign"]
 
@@ -379,7 +378,7 @@ tests = [
 owner = "pqc-rs maintainers"
 ci = ["workspace-tests"]
 evidence = [
-  "NIST ACVP FIPS 205 external HashSLH-DSA SigVer sampled valid/invalid parity"
+  "NIST ACVP FIPS 205 external HashSLH-DSA SigVer: 168/168 cases matched; 24 expected valid and 144 expected invalid"
 ]
 tags = ["hashslh-dsa", "prehash", "verify"]
 
@@ -497,8 +496,7 @@ tests = [
 owner = "pqc-rs maintainers"
 references = ["NIST ACVP SLH-DSA JSON Specification"]
 evidence = [
-  "Deterministic HashSLH-DSA sample parity passed",
-  "Hedged HashSLH-DSA sample parity passed"
+  "HashSLH-DSA SigGen: 288/288 NIST ACVP cases passed; 144 deterministic and 144 hedged"
 ]
 tags = ["acvp", "hashslh-dsa", "siggen"]
 
@@ -517,7 +515,7 @@ tests = [
 owner = "pqc-rs maintainers"
 references = ["NIST ACVP SLH-DSA JSON Specification"]
 evidence = [
-  "Sampled valid/invalid HashSLH-DSA SigVer parity passed"
+  "HashSLH-DSA SigVer: 168/168 NIST ACVP cases matched; 24 expected valid and 144 expected invalid"
 ]
 tags = ["acvp", "hashslh-dsa", "sigver"]
 

@@ -93,9 +93,19 @@ fn run() -> Result<(), String> {
     let mut deterministic_cases = 0_usize;
     let mut hedged_cases = 0_usize;
 
-    for group in supported_groups {
+    for (group_index, group) in supported_groups.iter().enumerate() {
         let parameter_set = parameter_set(group.parameter_set);
         let implementation = SlhDsa::new(parameter_set);
+
+        println!(
+            "[group {}/{}] tgId={} parameterSet={} deterministic={} cases={}",
+            group_index + 1,
+            supported_groups.len(),
+            group.tg_id,
+            parameter_set.name(),
+            group.deterministic,
+            group.tests.len(),
+        );
 
         for case in &group.tests {
             if executed == selected {
@@ -134,6 +144,8 @@ fn run() -> Result<(), String> {
 
             executed += 1;
         }
+
+        println!("  completed: {executed}/{selected} cases");
 
         if executed == selected {
             break;

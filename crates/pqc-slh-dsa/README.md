@@ -103,8 +103,8 @@ The implementation has been tested against pinned NIST ACVP sample vectors:
 | KeyGen | 120 / 120 |
 | External Pure SigGen | 168 / 168 |
 | External Pure SigVer | 168 / 168 |
-| External HashSLH SigGen | Sampled deterministic and hedged cases passed |
-| External HashSLH SigVer | 12 / 12 sampled cases matched |
+| External HashSLH SigGen | 288 / 288 |
+| External HashSLH SigVer | 168 / 168 |
 
 The crate also contains unit tests covering address encoding, hash
 instantiation, WOTS+, XMSS, FORS, hypertree composition, key generation,
