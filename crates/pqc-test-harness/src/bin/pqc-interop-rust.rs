@@ -11,7 +11,7 @@ use pqc_ml_kem::{
     MlKemParameterSet,
 };
 use pqc_slh_dsa::{
-    SlhDsa, SlhDsaKeyGenSeed, SlhDsaParameterSet, SlhDsaPrivateKey, SlhDsaPublicKey,
+    SlhDsa, SlhDsaKeyGenSeed, SlhDsaParameterSet, SlhDsaPreHash, SlhDsaPrivateKey, SlhDsaPublicKey,
     SlhDsaSignature,
 };
 use serde_json::{json, Value};
@@ -63,6 +63,24 @@ fn slh_param(name: &str) -> Result<SlhDsaParameterSet, String> {
     }
 }
 
+fn slh_prehash(name: &str) -> Result<SlhDsaPreHash, String> {
+    match name {
+        "SHA2-224" => Ok(SlhDsaPreHash::Sha2_224),
+        "SHA2-256" => Ok(SlhDsaPreHash::Sha2_256),
+        "SHA2-384" => Ok(SlhDsaPreHash::Sha2_384),
+        "SHA2-512" => Ok(SlhDsaPreHash::Sha2_512),
+        "SHA2-512/224" => Ok(SlhDsaPreHash::Sha2_512_224),
+        "SHA2-512/256" => Ok(SlhDsaPreHash::Sha2_512_256),
+        "SHA3-224" => Ok(SlhDsaPreHash::Sha3_224),
+        "SHA3-256" => Ok(SlhDsaPreHash::Sha3_256),
+        "SHA3-384" => Ok(SlhDsaPreHash::Sha3_384),
+        "SHA3-512" => Ok(SlhDsaPreHash::Sha3_512),
+        "SHAKE-128" => Ok(SlhDsaPreHash::Shake128),
+        "SHAKE-256" => Ok(SlhDsaPreHash::Shake256),
+        _ => Err(format!("unsupported SLH-DSA prehash {name}")),
+    }
+}
+
 fn capabilities() -> Value {
     json!([
         {
@@ -91,7 +109,7 @@ fn capabilities() -> Value {
                 "SLH-DSA-SHAKE-256s",
                 "SLH-DSA-SHAKE-256f"
             ],
-            "operations": ["slh-keygen", "slh-sign", "slh-verify"]
+            "operations": ["slh-keygen", "slh-sign", "slh-verify", "slh-hash-sign", "slh-hash-verify"]
         }
     ])
 }
@@ -199,6 +217,53 @@ fn execute(req: &Value) -> Result<Value, String> {
                 "signature": hex::encode(signature.as_bytes())
             }))
         }
+        "slh-hash-sign" => {
+            let parameter_set = slh_param(ps)?;
+            let implementation = SlhDsa::new(parameter_set);
+            let secret_key_bytes = hex_field(inputs, "secret_key")?;
+            let message = hex_field(inputs, "message")?;
+            let context = hex_field(inputs, "context")?;
+            let prehash_name = inputs
+                .get("prehash")
+                .and_then(Value::as_str)
+                .ok_or("missing prehash")?;
+            let prehash = slh_prehash(prehash_name)?;
+
+            let secret_key = SlhDsaPrivateKey::from_bytes(parameter_set, &secret_key_bytes)
+                .map_err(|e| format!("{e:?}"))?;
+
+            let signature = implementation
+                .hash_sign_deterministic(&secret_key, &message, &context, prehash)
+                .map_err(|e| format!("{e:?}"))?;
+
+            Ok(json!({
+                "signature": hex::encode(signature.as_bytes())
+            }))
+        }
+        "slh-hash-verify" => {
+            let parameter_set = slh_param(ps)?;
+            let implementation = SlhDsa::new(parameter_set);
+            let public_key_bytes = hex_field(inputs, "public_key")?;
+            let message = hex_field(inputs, "message")?;
+            let context = hex_field(inputs, "context")?;
+            let signature_bytes = hex_field(inputs, "signature")?;
+            let prehash_name = inputs
+                .get("prehash")
+                .and_then(Value::as_str)
+                .ok_or("missing prehash")?;
+            let prehash = slh_prehash(prehash_name)?;
+
+            let public_key = SlhDsaPublicKey::from_bytes(parameter_set, &public_key_bytes)
+                .map_err(|e| format!("{e:?}"))?;
+            let signature = SlhDsaSignature::from_bytes(parameter_set, &signature_bytes)
+                .map_err(|e| format!("{e:?}"))?;
+
+            let valid = implementation
+                .hash_verify(&public_key, &message, &context, prehash, &signature)
+                .map_err(|e| format!("{e:?}"))?;
+
+            Ok(json!({"valid": valid}))
+        }
         "slh-verify" => {
             let parameter_set = slh_param(ps)?;
             let implementation = SlhDsa::new(parameter_set);
@@ -246,7 +311,9 @@ fn main() {
         return;
     }
 
-    match execute(&req) {
+    let execute_request = req.get("case").unwrap_or(&req);
+
+    match execute(execute_request) {
         Ok(outputs) => println!("{}", json!({"ok": true, "outputs": outputs})),
         Err(error) => {
             println!("{}", json!({"ok": false, "error": error}));

@@ -73,15 +73,16 @@ def run_bridge(operation: str, parameter_set: str, inputs: dict[str, Any]) -> di
         arguments.append(str(inputs["public_key"]))
     elif operation == "kem-decaps":
         arguments.extend([str(inputs["secret_key"]), str(inputs["ciphertext"])])
-    elif operation in ("dsa-sign", "slh-sign"):
+    elif operation in ("dsa-sign", "slh-sign", "slh-hash-sign"):
         arguments.extend(
             [
                 str(inputs["secret_key"]),
                 str(inputs["message"]),
                 str(inputs.get("context", "")),
             ]
+            + ([str(inputs["prehash"])] if operation == "slh-hash-sign" else [])
         )
-    elif operation in ("dsa-verify", "slh-verify"):
+    elif operation in ("dsa-verify", "slh-verify", "slh-hash-verify"):
         arguments.extend(
             [
                 str(inputs["public_key"]),
@@ -89,6 +90,7 @@ def run_bridge(operation: str, parameter_set: str, inputs: dict[str, Any]) -> di
                 str(inputs.get("context", "")),
                 str(inputs["signature"]),
             ]
+            + ([str(inputs["prehash"])] if operation == "slh-hash-verify" else [])
         )
 
     completed = subprocess.run(arguments, capture_output=True, text=True)
@@ -118,7 +120,7 @@ def capabilities() -> list[dict[str, Any]]:
         {
             "algorithm": "SLH-DSA",
             "parameter_sets": SLH_PARAMETER_SETS,
-            "operations": ["slh-keygen", "slh-sign", "slh-verify"],
+            "operations": ["slh-keygen", "slh-sign", "slh-verify", "slh-hash-sign", "slh-hash-verify"],
         },
     ]
 
@@ -207,6 +209,11 @@ def main() -> int:
                         "dsa-keygen",
                         "dsa-sign",
                         "dsa-verify",
+                    "slh-keygen",
+                    "slh-sign",
+                    "slh-verify",
+                    "slh-hash-sign",
+                    "slh-hash-verify",
                     ],
                 },
             }

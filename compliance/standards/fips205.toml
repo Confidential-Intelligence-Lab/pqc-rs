@@ -533,3 +533,46 @@ tests = []
 owner = "pqc-rs maintainers"
 notes = ["Detailed zeroization, secret-lifetime, and compiler-level assurance are deferred to S6."]
 tags = ["secret-lifetime", "zeroization", "assurance"]
+
+[[requirement]]
+id = "FIPS205-INTEROP-PURE"
+section = "interoperability"
+class = "validation"
+status = "mapped"
+title = "Pure SLH-DSA interoperates bidirectionally with an independent implementation"
+implementation = [
+  "crates/pqc-test-harness/src/bin/pqc-interop-rust.rs",
+  "scripts/interop/providers/liboqs_provider.py",
+  "scripts/interop/providers/liboqs_bridge.c",
+  "scripts/cross_provider_interop.py"
+]
+tests = [
+  "scripts/cross_provider_interop.py"
+]
+owner = "pqc-rs maintainers"
+evidence = [
+  "Pure SLH-DSA: 24/24 directed PQC-rs/liboqs interoperability cases passed across all 12 FIPS 205 parameter sets"
+]
+tags = ["interop", "pure", "liboqs", "slh-dsa"]
+
+[[requirement]]
+id = "FIPS205-INTEROP-HASHSLH"
+section = "interoperability"
+class = "validation"
+status = "mapped"
+title = "HashSLH-DSA interoperates bidirectionally with an independent implementation"
+implementation = [
+  "crates/pqc-test-harness/src/bin/pqc-interop-rust.rs",
+  "scripts/interop/providers/liboqs_provider.py",
+  "scripts/interop/providers/liboqs_bridge.c",
+  "scripts/cross_provider_interop.py"
+]
+tests = [
+  "scripts/cross_provider_interop.py"
+]
+owner = "pqc-rs maintainers"
+evidence = [
+  "HashSLH-DSA: 24/24 representative directed PQC-rs/liboqs interoperability cases passed",
+  "Coverage spans all 12 FIPS 205 parameter sets and all 12 supported prehash algorithms, one orthogonal pairing each; this is not the full Cartesian product"
+]
+tags = ["interop", "hashslh-dsa", "liboqs", "prehash"]
