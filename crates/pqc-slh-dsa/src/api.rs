@@ -258,12 +258,12 @@ impl SlhDsa {
     where
         R: CryptoRng + RngCore,
     {
-        let mut bytes = vec![0_u8; self.keygen_seed_bytes()];
+        let bytes = random_secret_vec(self.keygen_seed_bytes(), rng)?;
 
-        rng.try_fill_bytes(&mut bytes)
-            .map_err(|_| SlhDsaError::RandomnessFailure)?;
-
-        SlhDsaKeyGenSeed::from_bytes(self.parameter_set, &bytes)
+        Ok(SlhDsaKeyGenSeed {
+            parameter_set: self.parameter_set,
+            bytes,
+        })
     }
 
     /// Generate a deterministic Pure SLH-DSA signature.
@@ -315,14 +315,15 @@ impl SlhDsa {
         self.ensure_context_length(context)?;
 
         let parameters = self.parameter_set.parameters();
-        let mut optional_randomness = vec![0_u8; parameters.n];
-
-        rng.try_fill_bytes(&mut optional_randomness)
-            .map_err(|_| SlhDsaError::RandomnessFailure)?;
+        let optional_randomness = random_secret_vec(parameters.n, rng)?;
 
         let encoded_message = Self::encode_external_message(message, context)?;
 
-        self.sign_with_randomness(private_key, &encoded_message, &optional_randomness)
+        self.sign_with_randomness(
+            private_key,
+            &encoded_message,
+            optional_randomness.as_bytes(),
+        )
     }
 
     /// Generate a deterministic HashSLH-DSA signature.
@@ -373,14 +374,15 @@ impl SlhDsa {
         self.ensure_context_length(context)?;
 
         let parameters = self.parameter_set.parameters();
-        let mut optional_randomness = vec![0_u8; parameters.n];
-
-        rng.try_fill_bytes(&mut optional_randomness)
-            .map_err(|_| SlhDsaError::RandomnessFailure)?;
+        let optional_randomness = random_secret_vec(parameters.n, rng)?;
 
         let encoded_message = hash_message_prime(message, context, prehash)?;
 
-        self.sign_with_randomness(private_key, &encoded_message, &optional_randomness)
+        self.sign_with_randomness(
+            private_key,
+            &encoded_message,
+            optional_randomness.as_bytes(),
+        )
     }
 
     /// Sign a FIPS 205 internal-interface message deterministically.
@@ -426,12 +428,9 @@ impl SlhDsa {
         self.ensure_private_key_parameter_set(private_key)?;
 
         let parameters = self.parameter_set.parameters();
-        let mut optional_randomness = vec![0_u8; parameters.n];
+        let optional_randomness = random_secret_vec(parameters.n, rng)?;
 
-        rng.try_fill_bytes(&mut optional_randomness)
-            .map_err(|_| SlhDsaError::RandomnessFailure)?;
-
-        self.sign_with_randomness(private_key, message, &optional_randomness)
+        self.sign_with_randomness(private_key, message, optional_randomness.as_bytes())
     }
 
     fn sign_with_randomness(
@@ -828,6 +827,16 @@ impl SlhDsa {
             private_key: SlhDsaPrivateKey::from_bytes(self.parameter_set, &private_key_bytes)?,
         })
     }
+}
+
+fn random_secret_vec<R>(length: usize, rng: &mut R) -> Result<SecretVec, SlhDsaError>
+where
+    R: CryptoRng + RngCore,
+{
+    let mut output = SecretVec::new(vec![0_u8; length]);
+    rng.try_fill_bytes(output.as_mut_bytes())
+        .map_err(|_| SlhDsaError::RandomnessFailure)?;
+    Ok(output)
 }
 
 impl SignatureScheme for SlhDsa {
