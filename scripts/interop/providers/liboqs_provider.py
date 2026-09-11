@@ -15,6 +15,20 @@ BIN = ROOT / "target" / "interop" / "liboqs_bridge"
 
 KEM_PARAMETER_SETS = ["ML-KEM-512", "ML-KEM-768", "ML-KEM-1024"]
 DSA_PARAMETER_SETS = ["ML-DSA-44", "ML-DSA-65", "ML-DSA-87"]
+SLH_PARAMETER_SETS = [
+    "SLH-DSA-SHA2-128s",
+    "SLH-DSA-SHA2-128f",
+    "SLH-DSA-SHA2-192s",
+    "SLH-DSA-SHA2-192f",
+    "SLH-DSA-SHA2-256s",
+    "SLH-DSA-SHA2-256f",
+    "SLH-DSA-SHAKE-128s",
+    "SLH-DSA-SHAKE-128f",
+    "SLH-DSA-SHAKE-192s",
+    "SLH-DSA-SHAKE-192f",
+    "SLH-DSA-SHAKE-256s",
+    "SLH-DSA-SHAKE-256f",
+]
 
 
 def prefix() -> pathlib.Path:
@@ -59,7 +73,7 @@ def run_bridge(operation: str, parameter_set: str, inputs: dict[str, Any]) -> di
         arguments.append(str(inputs["public_key"]))
     elif operation == "kem-decaps":
         arguments.extend([str(inputs["secret_key"]), str(inputs["ciphertext"])])
-    elif operation == "dsa-sign":
+    elif operation in ("dsa-sign", "slh-sign"):
         arguments.extend(
             [
                 str(inputs["secret_key"]),
@@ -67,7 +81,7 @@ def run_bridge(operation: str, parameter_set: str, inputs: dict[str, Any]) -> di
                 str(inputs.get("context", "")),
             ]
         )
-    elif operation == "dsa-verify":
+    elif operation in ("dsa-verify", "slh-verify"):
         arguments.extend(
             [
                 str(inputs["public_key"]),
@@ -100,6 +114,11 @@ def capabilities() -> list[dict[str, Any]]:
             "algorithm": "ML-DSA",
             "parameter_sets": DSA_PARAMETER_SETS,
             "operations": ["roundtrip", "dsa-keygen", "dsa-sign", "dsa-verify"],
+        },
+        {
+            "algorithm": "SLH-DSA",
+            "parameter_sets": SLH_PARAMETER_SETS,
+            "operations": ["slh-keygen", "slh-sign", "slh-verify"],
         },
     ]
 
