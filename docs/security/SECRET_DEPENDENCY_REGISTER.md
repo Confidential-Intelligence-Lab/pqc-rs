@@ -16,8 +16,8 @@ This register records the security classification of control-flow and memory-acc
 | `CT-MLDSA-ETA-SAMPLING` | secret-key generation seed material | Documented transcript/randomness-driven algorithmic work | Secret-dependent branch, loop bound, error path, allocation, or address | `variable-time-accepted` |
 | `CT-MLDSA-SIGN` | signing key; secret polynomials; ephemeral masking values | Documented transcript/randomness-driven algorithmic work | Secret-dependent branch, loop bound, error path, allocation, or address | `variable-time-accepted` |
 | `CT-MLDSA-VERIFY` | None recorded | Public input and public result | Secret-dependent branch, loop bound, error path, allocation, or address | `verified` |
-| `CT-SLHDSA-PRF` | SK.seed | Public parameters, fixed loop indices, implementation control | Secret-dependent branch, loop bound, error path, allocation, or address | `reviewed` |
-| `CT-SLHDSA-PRF-MSG` | SK.prf; optional randomness | Public parameters, fixed loop indices, implementation control | Secret-dependent branch, loop bound, error path, allocation, or address | `reviewed` |
+| `CT-SLHDSA-PRF` | SK.seed | Public parameters, fixed loop indices, implementation control | Secret-dependent branch, loop bound, error path, allocation, or address | `verified` |
+| `CT-SLHDSA-PRF-MSG` | SK.prf; optional randomness | Public parameters, fixed loop indices, implementation control | Secret-dependent branch, loop bound, error path, allocation, or address | `verified` |
 | `CT-SLHDSA-WOTS-SIGN` | SK.seed; WOTS+ secret-key elements derived from SK.seed | Public input and public result | Secret-dependent branch, loop bound, error path, allocation, or address | `reviewed` |
 | `CT-SLHDSA-FORS-SIGN` | SK.seed; FORS secret values derived from SK.seed | Public input and public result | Secret-dependent branch, loop bound, error path, allocation, or address | `reviewed` |
 | `CT-SLHDSA-XMSS-SIGN` | SK.seed; WOTS+ secret-key elements derived from SK.seed | Public input and public result | Secret-dependent branch, loop bound, error path, allocation, or address | `reviewed` |

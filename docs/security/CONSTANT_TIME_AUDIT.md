@@ -21,9 +21,9 @@ This audit consolidates the repository's source review, timing screens, rejectio
 | Class: `algorithmic-variable-time` | 3 |
 | Class: `constant-time-required` | 9 |
 | Class: `public-variable-time` | 7 |
-| Status: `reviewed` | 13 |
+| Status: `reviewed` | 11 |
 | Status: `variable-time-accepted` | 3 |
-| Status: `verified` | 3 |
+| Status: `verified` | 5 |
 
 ## Target register
 
@@ -39,8 +39,8 @@ This audit consolidates the repository's source review, timing screens, rejectio
 | `CT-MLDSA-ETA-SAMPLING` | pqc-ml-dsa | `algorithmic-variable-time` | `variable-time-accepted` | `crates/pqc-ml-dsa/src/sample.rs` |
 | `CT-MLDSA-SIGN` | pqc-ml-dsa | `algorithmic-variable-time` | `variable-time-accepted` | `crates/pqc-ml-dsa/src/signature.rs` |
 | `CT-MLDSA-VERIFY` | pqc-ml-dsa | `public-variable-time` | `verified` | `crates/pqc-ml-dsa/src/verification.rs` |
-| `CT-SLHDSA-PRF` | pqc-slh-dsa | `constant-time-required` | `reviewed` | `crates/pqc-slh-dsa/src/hash.rs` |
-| `CT-SLHDSA-PRF-MSG` | pqc-slh-dsa | `constant-time-required` | `reviewed` | `crates/pqc-slh-dsa/src/hash.rs` |
+| `CT-SLHDSA-PRF` | pqc-slh-dsa | `constant-time-required` | `verified` | `crates/pqc-slh-dsa/src/hash.rs` |
+| `CT-SLHDSA-PRF-MSG` | pqc-slh-dsa | `constant-time-required` | `verified` | `crates/pqc-slh-dsa/src/hash.rs` |
 | `CT-SLHDSA-WOTS-SIGN` | pqc-slh-dsa | `public-variable-time` | `reviewed` | `crates/pqc-slh-dsa/src/wots.rs` |
 | `CT-SLHDSA-FORS-SIGN` | pqc-slh-dsa | `public-variable-time` | `reviewed` | `crates/pqc-slh-dsa/src/fors.rs` |
 | `CT-SLHDSA-XMSS-SIGN` | pqc-slh-dsa | `public-variable-time` | `reviewed` | `crates/pqc-slh-dsa/src/xmss.rs` |
@@ -169,25 +169,25 @@ This audit consolidates the repository's source review, timing screens, rejectio
 ### CT-SLHDSA-PRF — pqc-slh-dsa
 
 - Classification: `constant-time-required`
-- Status: `reviewed`
+- Status: `verified`
 - Symbols: `pub fn prf(`
 - Secret inputs: SK.seed
 - Public inputs: PK.seed; address; parameter set
 - Requirements: no secret-dependent control flow; no secret-indexed memory; fixed hash operation for selected public parameter set
-- Validation: source review; secret-dependency audit; optimized machine-code audit; fixed-vs-varying timing screen
-- Evidence: `docs/security/CONSTANT_TIME_ENGINEERING.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_MACHINE_CODE_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_TIMING_AUDIT.md`
+- Validation: source review; secret-dependency audit; optimized machine-code audit; fixed-vs-varying timing screen; Linux dynamic secret-taint audit
+- Evidence: `docs/security/CONSTANT_TIME_ENGINEERING.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_MACHINE_CODE_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_TIMING_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_TAINT_AUDIT.md`
 - Notes: Parameter-set selection and input-length validation are public. SK.seed is absorbed as hash input and must not affect control flow or memory addressing.
 
 ### CT-SLHDSA-PRF-MSG — pqc-slh-dsa
 
 - Classification: `constant-time-required`
-- Status: `reviewed`
+- Status: `verified`
 - Symbols: `pub fn prf_msg(`
 - Secret inputs: SK.prf; optional randomness
 - Public inputs: message; parameter set
 - Requirements: no secret-dependent control flow; no secret-indexed memory; fixed PRF operation for selected public parameter set and message length
-- Validation: source review; secret-dependency audit; optimized machine-code audit; fixed-vs-varying timing screen
-- Evidence: `docs/security/CONSTANT_TIME_ENGINEERING.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_MACHINE_CODE_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_TIMING_AUDIT.md`
+- Validation: source review; secret-dependency audit; optimized machine-code audit; fixed-vs-varying timing screen; Linux dynamic secret-taint audit
+- Evidence: `docs/security/CONSTANT_TIME_ENGINEERING.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_MACHINE_CODE_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_TIMING_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_TAINT_AUDIT.md`
 - Notes: The SHA-256 versus SHA-512 choice is determined by the public parameter set. Secret key and optional-randomness bytes are consumed only as PRF inputs.
 
 ### CT-SLHDSA-WOTS-SIGN — pqc-slh-dsa
