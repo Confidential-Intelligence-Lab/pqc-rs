@@ -22,6 +22,24 @@ jobs:
       - run: cargo +nightly miri setup
       - run: ./scripts/run-miri.sh
 
+  slhdsa-bounded-miri:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: dtolnay/rust-toolchain@4fd1da8b0805d2d2e936788875a7d65dbd677dc2 # nightly
+        with:
+          components: miri, rust-src
+
+      - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+
+      - run: cargo +nightly miri setup
+
+      - name: Run bounded SLH-DSA Miri campaign
+        run: ./scripts/run-slhdsa-s6-miri.sh
+
   address-sanitizer:
     runs-on: ubuntu-latest
     timeout-minutes: 45
