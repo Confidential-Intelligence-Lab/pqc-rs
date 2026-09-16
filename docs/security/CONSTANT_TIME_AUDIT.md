@@ -174,8 +174,8 @@ This audit consolidates the repository's source review, timing screens, rejectio
 - Secret inputs: SK.seed
 - Public inputs: PK.seed; address; parameter set
 - Requirements: no secret-dependent control flow; no secret-indexed memory; fixed hash operation for selected public parameter set
-- Validation: source review; secret-dependency audit; optimized machine-code audit
-- Evidence: `docs/security/CONSTANT_TIME_ENGINEERING.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_MACHINE_CODE_AUDIT.md`
+- Validation: source review; secret-dependency audit; optimized machine-code audit; fixed-vs-varying timing screen
+- Evidence: `docs/security/CONSTANT_TIME_ENGINEERING.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_MACHINE_CODE_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_TIMING_AUDIT.md`
 - Notes: Parameter-set selection and input-length validation are public. SK.seed is absorbed as hash input and must not affect control flow or memory addressing.
 
 ### CT-SLHDSA-PRF-MSG — pqc-slh-dsa
@@ -186,8 +186,8 @@ This audit consolidates the repository's source review, timing screens, rejectio
 - Secret inputs: SK.prf; optional randomness
 - Public inputs: message; parameter set
 - Requirements: no secret-dependent control flow; no secret-indexed memory; fixed PRF operation for selected public parameter set and message length
-- Validation: source review; secret-dependency audit; optimized machine-code audit
-- Evidence: `docs/security/CONSTANT_TIME_ENGINEERING.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_MACHINE_CODE_AUDIT.md`
+- Validation: source review; secret-dependency audit; optimized machine-code audit; fixed-vs-varying timing screen
+- Evidence: `docs/security/CONSTANT_TIME_ENGINEERING.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_MACHINE_CODE_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_TIMING_AUDIT.md`
 - Notes: The SHA-256 versus SHA-512 choice is determined by the public parameter set. Secret key and optional-randomness bytes are consumed only as PRF inputs.
 
 ### CT-SLHDSA-WOTS-SIGN — pqc-slh-dsa

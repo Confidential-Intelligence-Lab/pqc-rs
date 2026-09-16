@@ -151,8 +151,8 @@ status = "reviewed"
 secret_inputs = ["SK.seed"]
 public_inputs = ["PK.seed", "address", "parameter set"]
 requirements = ["no secret-dependent control flow", "no secret-indexed memory", "fixed hash operation for selected public parameter set"]
-evidence = ["docs/security/CONSTANT_TIME_ENGINEERING.md", "audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md", "audit/slh-dsa-s6/SLH_DSA_MACHINE_CODE_AUDIT.md"]
-validation = ["source review", "secret-dependency audit", "optimized machine-code audit"]
+evidence = ["docs/security/CONSTANT_TIME_ENGINEERING.md", "audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md", "audit/slh-dsa-s6/SLH_DSA_MACHINE_CODE_AUDIT.md", "audit/slh-dsa-s6/SLH_DSA_TIMING_AUDIT.md"]
+validation = ["source review", "secret-dependency audit", "optimized machine-code audit", "fixed-vs-varying timing screen"]
 notes = "Parameter-set selection and input-length validation are public. SK.seed is absorbed as hash input and must not affect control flow or memory addressing."
 
 [[target]]
@@ -165,8 +165,8 @@ status = "reviewed"
 secret_inputs = ["SK.prf", "optional randomness"]
 public_inputs = ["message", "parameter set"]
 requirements = ["no secret-dependent control flow", "no secret-indexed memory", "fixed PRF operation for selected public parameter set and message length"]
-evidence = ["docs/security/CONSTANT_TIME_ENGINEERING.md", "audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md", "audit/slh-dsa-s6/SLH_DSA_MACHINE_CODE_AUDIT.md"]
-validation = ["source review", "secret-dependency audit", "optimized machine-code audit"]
+evidence = ["docs/security/CONSTANT_TIME_ENGINEERING.md", "audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md", "audit/slh-dsa-s6/SLH_DSA_MACHINE_CODE_AUDIT.md", "audit/slh-dsa-s6/SLH_DSA_TIMING_AUDIT.md"]
+validation = ["source review", "secret-dependency audit", "optimized machine-code audit", "fixed-vs-varying timing screen"]
 notes = "The SHA-256 versus SHA-512 choice is determined by the public parameter set. Secret key and optional-randomness bytes are consumed only as PRF inputs."
 
 [[target]]
