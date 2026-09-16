@@ -46,11 +46,14 @@ corpus:      119 entries at campaign completion
 crashes:     0
 panics:      0
 
-The persisted corpus subsequently contained 127 files totaling approximately
-508 KiB.
+The local coverage-derived corpus subsequently contained 127 files totaling
+approximately 508 KiB. SHA-named coverage-derived corpus entries are ignored by
+repository policy and are not treated as source artifacts.
 
-A subsequent corpus-seeded run loaded all 127 persisted inputs and initialized
-at higher coverage than the empty-corpus campaign.
+The repository retains a small deterministic bootstrap corpus covering both
+the malformed-decoder and exact-length deep-verification modes. A subsequent
+local corpus-seeded run loaded the coverage-derived corpus and initialized at
+higher coverage than the empty-corpus campaign.
 
 The campaign reached SLH-DSA signature decoding, exact-length expansion,
 SHA-2/SHAKE verification code, and MGF1-related hashing paths.
