@@ -484,6 +484,7 @@ dependencies = [
  "pqc-rs-hpke",
  "pqc-rs-ml-dsa",
  "pqc-rs-ml-kem",
+ "pqc-rs-slh-dsa",
  "pqc-rs-test-harness",
  "serde_json",
 ]
@@ -499,7 +500,7 @@ dependencies = [
 
 [[package]]
 name = "pqc-rs-hpke"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "aes-gcm",
  "chacha20poly1305",
@@ -528,7 +529,7 @@ dependencies = [
 
 [[package]]
 name = "pqc-rs-ml-kem"
-version = "0.4.0"
+version = "0.4.1"
 dependencies = [
  "pqc-rs-core",
  "rand_core",
@@ -538,14 +539,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "pqc-rs-slh-dsa"
+version = "0.4.0"
+dependencies = [
+ "pqc-rs-core",
+ "rand_core",
+ "sha2",
+ "sha3",
+]
+
+[[package]]
 name = "pqc-rs-test-harness"
 version = "0.4.0"
 dependencies = [
+ "cc",
  "hex",
  "pqc-rs-core",
  "pqc-rs-hpke",
  "pqc-rs-ml-dsa",
  "pqc-rs-ml-kem",
+ "pqc-rs-slh-dsa",
  "rand_core",
  "serde",
  "serde_json",
