@@ -31,3 +31,6 @@ sha3 = { workspace = true }
 
 [lib]
 name = "pqc_test_harness"
+
+[build-dependencies]
+cc = { workspace = true }
