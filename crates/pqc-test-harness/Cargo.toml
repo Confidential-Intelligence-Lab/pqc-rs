@@ -12,6 +12,7 @@ keywords = ["post-quantum", "cryptography", "testing", "pqc", "rust"]
 
 [features]
 default = ["std"]
+valgrind-secret-taint = []
 std = ["pqc-core/std", "pqc-ml-kem/std"]
 alloc = ["pqc-core/alloc", "pqc-ml-kem/alloc"]
 acvp = ["pqc-core/acvp"]

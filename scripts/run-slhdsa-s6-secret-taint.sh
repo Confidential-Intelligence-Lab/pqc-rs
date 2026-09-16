@@ -16,6 +16,7 @@ fi
 
 cargo build \
   -p pqc-rs-test-harness \
+  --features valgrind-secret-taint \
   --bin slhdsa-s6-secret-taint
 
 BINARY="target/debug/slhdsa-s6-secret-taint"

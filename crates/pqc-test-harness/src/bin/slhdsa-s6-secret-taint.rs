@@ -7,34 +7,35 @@ use pqc_slh_dsa::{
     hash::{Sha2TweakableHash, ShakeTweakableHash},
 };
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", feature = "valgrind-secret-taint"))]
+#[link(name = "pqc_valgrind_secret", kind = "static")]
 unsafe extern "C" {
     fn pqc_valgrind_make_secret(ptr: *mut core::ffi::c_void, len: usize);
     fn pqc_valgrind_make_public(ptr: *mut core::ffi::c_void, len: usize);
     fn pqc_valgrind_running() -> core::ffi::c_int;
 }
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", feature = "valgrind-secret-taint"))]
 fn make_secret(bytes: &mut [u8]) {
     unsafe {
         pqc_valgrind_make_secret(bytes.as_mut_ptr().cast(), bytes.len());
     }
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(not(all(target_os = "linux", feature = "valgrind-secret-taint")))]
 fn make_secret(_bytes: &mut [u8]) {}
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", feature = "valgrind-secret-taint"))]
 fn make_public(bytes: &mut [u8]) {
     unsafe {
         pqc_valgrind_make_public(bytes.as_mut_ptr().cast(), bytes.len());
     }
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(not(all(target_os = "linux", feature = "valgrind-secret-taint")))]
 fn make_public(_bytes: &mut [u8]) {}
 
-#[cfg(target_os = "linux")]
+#[cfg(all(target_os = "linux", feature = "valgrind-secret-taint"))]
 fn running_on_valgrind() -> bool {
     unsafe { pqc_valgrind_running() != 0 }
 }
@@ -59,7 +60,12 @@ fn run() -> Result<(), String> {
         ));
     }
 
-    #[cfg(target_os = "linux")]
+    #[cfg(all(target_os = "linux", not(feature = "valgrind-secret-taint")))]
+    return Err(
+        "Linux secret-taint execution requires --features valgrind-secret-taint".to_owned(),
+    );
+
+    #[cfg(all(target_os = "linux", feature = "valgrind-secret-taint"))]
     if !running_on_valgrind() {
         return Err("Linux secret-taint audit must run under Valgrind".to_owned());
     }
