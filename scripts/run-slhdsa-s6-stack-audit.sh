@@ -53,4 +53,21 @@ then
   exit 1
 fi
 
+echo
+echo "===== SLH-DSA RECOVERED STACK-SIZE RECORDS ====="
+
+grep -E -A4 -B4 \
+  'pqc_slh_dsa.*fors.*node|pqc_slh_dsa.*xmss.*node' \
+  "${OUT_DIR}/stack-sizes.txt"
+
+echo
+echo "===== SLH-DSA RELATED SYMBOLS ====="
+
+grep -E \
+  'pqc_slh_dsa.*(fors|xmss).*node' \
+  "${OUT_DIR}/symbols.txt" \
+  || true
+
+echo
+
 echo "SLH-DSA stack-size audit complete."
