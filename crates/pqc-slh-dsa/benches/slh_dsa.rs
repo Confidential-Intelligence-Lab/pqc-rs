@@ -1,5 +1,6 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use pqc_slh_dsa::{SlhDsa, SlhDsaKeyGenSeed, SlhDsaParameterSet, SlhDsaPreHash};
+use std::time::Duration;
 
 const MESSAGE: &[u8] = b"pqc-rfc9958-rs SLH-DSA performance baseline";
 const CONTEXT: &[u8] = b"benchmark";
@@ -29,6 +30,7 @@ fn seed_for(parameter_set: SlhDsaParameterSet, fill: u8) -> SlhDsaKeyGenSeed {
 fn bench_keygen(c: &mut Criterion) {
     let mut group = c.benchmark_group("slh_dsa/keygen");
     group.sample_size(10);
+    group.measurement_time(Duration::from_secs(10));
 
     for (parameter_set, name, fill) in CASES {
         let slh_dsa = SlhDsa::new(parameter_set);
@@ -49,6 +51,7 @@ fn bench_keygen(c: &mut Criterion) {
 fn bench_pure_sign(c: &mut Criterion) {
     let mut group = c.benchmark_group("slh_dsa/pure_sign");
     group.sample_size(10);
+    group.measurement_time(Duration::from_secs(20));
 
     for (parameter_set, name, fill) in CASES {
         let slh_dsa = SlhDsa::new(parameter_set);
@@ -117,6 +120,7 @@ fn bench_pure_verify(c: &mut Criterion) {
 fn bench_hash_sign(c: &mut Criterion) {
     let mut group = c.benchmark_group("slh_dsa/hash_sign");
     group.sample_size(10);
+    group.measurement_time(Duration::from_secs(20));
 
     for (parameter_set, name, fill) in CASES {
         let slh_dsa = SlhDsa::new(parameter_set);
