@@ -1,0 +1,2161 @@
+
+===== crates/pqc-slh-dsa/src/api.rs =====
+   28:         bytes: &[u8],
+   30:         if bytes.len() != parameter_set.parameters().keygen_seed_bytes {
+   46:     pub fn as_bytes(&self) -> &[u8] {
+   52: #[derive(Clone, Eq, PartialEq)]
+   62:         encoded: &[u8],
+   64:         if encoded.len() != parameter_set.parameters().public_key_bytes {
+   80:     pub fn as_bytes(&self) -> &[u8] {
+   90: impl fmt::Debug for SlhDsaPublicKey {
+  110:         encoded: &[u8],
+  112:         if encoded.len() != parameter_set.parameters().private_key_bytes {
+  128:     pub fn as_bytes(&self) -> &[u8] {
+  134: #[derive(Clone, Eq, PartialEq)]
+  144:         encoded: &[u8],
+  146:         if encoded.len() != parameter_set.parameters().signature_bytes {
+  162:     pub fn as_bytes(&self) -> &[u8] {
+  172: impl fmt::Debug for SlhDsaSignature {
+  206: #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+  255:     /// retained for deterministic reprovisioning through
+  256:     /// [`Self::keygen_from_seed`].
+  280:         message: &[u8],
+  281:         context: &[u8],
+  289:         if encoded_key.len() != parameters.private_key_bytes {
+  293:         let public_seed = &encoded_key[2 * parameters.n..3 * parameters.n];
+  307:         message: &[u8],
+  308:         context: &[u8],
+  340:         message: &[u8],
+  341:         context: &[u8],
+  350:         if encoded_key.len() != parameters.private_key_bytes {
+  354:         let public_seed = &encoded_key[2 * parameters.n..3 * parameters.n];
+  365:         message: &[u8],
+  366:         context: &[u8],
+  390:     /// This entry point exists for conformance validation. Unlike the public
+  393:     #[cfg(feature = "internal-api")]
+  394:     #[doc(hidden)]
+  398:         message: &[u8],
+  405:         if encoded_key.len() != parameters.private_key_bytes {
+  409:         let public_seed = &encoded_key[2 * parameters.n..3 * parameters.n];
+  416:     /// This entry point exists for conformance validation.
+  417:     #[cfg(feature = "internal-api")]
+  418:     #[doc(hidden)]
+  422:         message: &[u8],
+  439:         encoded_message: &[u8],
+  440:         optional_randomness: &[u8],
+  445:         if encoded_key.len() != parameters.private_key_bytes {
+  449:         if optional_randomness.len() != parameters.n {
+  453:         let secret_seed = &encoded_key[..parameters.n];
+  454:         let secret_prf = &encoded_key[parameters.n..2 * parameters.n];
+  455:         let public_seed = &encoded_key[2 * parameters.n..3 * parameters.n];
+  456:         let public_root = &encoded_key[3 * parameters.n..4 * parameters.n];
+  459:         let mut randomizer = vec![0_u8; parameters.n];
+  470:         let mut digest = vec![0_u8; parameters.m];
+  500:         if hypertree_end != parameters.signature_bytes {
+  504:         let mut encoded_signature = vec![0_u8; parameters.signature_bytes];
+  506:         encoded_signature[..parameters.n].copy_from_slice(&randomizer);
+  520:             &mut encoded_signature[fors_start..fors_end],
+  524:         let mut fors_public_key = vec![0_u8; parameters.n];
+  528:             &encoded_signature[fors_start..fors_end],
+  544:             &mut encoded_signature[fors_end..hypertree_end],
+  555:         if private_key.parameter_set() == self.parameter_set {
+  562:     fn ensure_context_length(&self, context: &[u8]) -> Result<(), SlhDsaError> {
+  563:         if context.len() <= u8::MAX as usize {
+  570:     fn encode_external_message(message: &[u8], context: &[u8]) -> Result<Vec<u8>, SlhDsaError> {
+  592:         message: &[u8],
+  593:         context: &[u8],
+  611:         message: &[u8],
+  612:         context: &[u8],
+  625:     /// This entry point exists for conformance validation and passes the
+  627:     #[cfg(feature = "internal-api")]
+  628:     #[doc(hidden)]
+  632:         message: &[u8],
+  641:         encoded_message: &[u8],
+  644:         if public_key.parameter_set() != self.parameter_set
+  654:         if encoded_public_key.len() != parameters.public_key_bytes {
+  658:         if encoded_signature.len() != parameters.signature_bytes {
+  662:         let public_seed = &encoded_public_key[..parameters.n];
+  663:         let public_root = &encoded_public_key[parameters.n..2 * parameters.n];
+  665:         let randomizer = &encoded_signature[..parameters.n];
+  666:         let mut digest = vec![0_u8; parameters.m];
+  696:         if hypertree_end != encoded_signature.len() {
+  700:         let fors_signature = &encoded_signature[fors_start..fors_end];
+  702:         let hypertree_signature = &encoded_signature[fors_end..hypertree_end];
+  709:         let mut fors_public_key = vec![0_u8; parameters.n];
+  722:         let mut reconstructed_root = vec![0_u8; parameters.n];
+  753:         if seed.parameter_set() != self.parameter_set {
+  760:         if seed_bytes.len() != parameters.keygen_seed_bytes {
+  772:         if public_seed_end != seed_bytes.len() {
+  776:         let secret_seed = &seed_bytes[..secret_seed_end];
+  777:         let secret_prf = &seed_bytes[secret_seed_end..secret_prf_end];
+  778:         let public_seed = &seed_bytes[secret_prf_end..public_seed_end];
+  794:         let mut public_root = vec![0_u8; parameters.n];
+  812:         if private_key_bytes.len() != parameters.private_key_bytes {
+  821:         if public_key_bytes.len() != parameters.public_key_bytes {
+  836:     let mut output = SecretVec::new(vec![0_u8; length]);
+  842: impl SignatureScheme for SlhDsa {
+  858:         message: &[u8],
+  859:         context: &[u8],
+  865:         if context.len() > 255 {
+  878:         message: &[u8],
+  879:         context: &[u8],
+  882:         if context.len() > 255 {
+  889:         match SlhDsa::verify(self, public_key, message, context, signature)
+  899:     match error {
+  915: #[cfg(test)]
+  920:     #[derive(Clone)]
+  931:     impl RngCore for DeterministicRng {
+  933:             let mut bytes = [0_u8; 4];
+  939:             let mut bytes = [0_u8; 8];
+  944:         fn fill_bytes(&mut self, destination: &mut [u8]) {
+  949:         fn try_fill_bytes(&mut self, destination: &mut [u8]) -> Result<(), RandError> {
+  950:             for byte in destination {
+  959:     impl CryptoRng for DeterministicRng {}
+  963:     impl RngCore for FailingRng {
+  972:         fn fill_bytes(&mut self, destination: &mut [u8]) {
+  976:         fn try_fill_bytes(&mut self, _destination: &mut [u8]) -> Result<(), RandError> {
+  983:     impl CryptoRng for FailingRng {}
+  985:     #[test]
+  992:             &vec![0_u8; parameters.keygen_seed_bytes]
+  997:             &vec![0_u8; parameters.public_key_bytes]
+ 1002:             &vec![0_u8; parameters.private_key_bytes]
+ 1007:             &vec![0_u8; parameters.signature_bytes]
+ 1012:     #[test]
+ 1034:     #[test]
+ 1044:     #[test]
+ 1047:             SlhDsaKeyGenSeed::from_bytes(SlhDsaParameterSet::Shake128s, &[0_u8; 48]).unwrap();
+ 1057:     #[test]
+ 1061:         let seed_bytes = vec![0x21_u8; parameters.keygen_seed_bytes];
+ 1076:     #[test]
+ 1081:         let mut seed_bytes = vec![0_u8; parameters.keygen_seed_bytes];
+ 1082:         seed_bytes[..parameters.n].fill(0x11);
+ 1083:         seed_bytes[parameters.n..2 * parameters.n].fill(0x22);
+ 1084:         seed_bytes[2 * parameters.n..3 * parameters.n].fill(0x33);
+ 1093:         assert_eq!(&private_key[..parameters.n], &[0x11_u8; 16]);
+ 1094:         assert_eq!(&private_key[parameters.n..2 * parameters.n], &[0x22_u8; 16]);
+ 1096:             &private_key[2 * parameters.n..3 * parameters.n],
+ 1097:             &[0x33_u8; 16]
+ 1099:         assert_eq!(&public_key[..parameters.n], &[0x33_u8; 16]);
+ 1102:     #[test]
+ 1106:         let seed_bytes = vec![0x57_u8; parameters.keygen_seed_bytes];
+ 1114:         assert_eq!(&private_key[2 * parameters.n..4 * parameters.n], public_key);
+ 1117:     #[test]
+ 1121:         let seed_bytes = vec![0x79_u8; parameters.keygen_seed_bytes];
+ 1138:     #[test]
+ 1143:         let mut seed_bytes = vec![0_u8; parameters.keygen_seed_bytes];
+ 1144:         seed_bytes[..parameters.n].fill(0x91);
+ 1145:         seed_bytes[parameters.n..2 * parameters.n].fill(0xa2);
+ 1146:         seed_bytes[2 * parameters.n..3 * parameters.n].fill(0xb3);
+ 1160:         let mut expected_root = vec![0_u8; parameters.n];
+ 1164:             &seed_bytes[..parameters.n],
+ 1165:             &seed_bytes[2 * parameters.n..3 * parameters.n],
+ 1172:             &key_pair.public_key().as_bytes()[parameters.n..],
+ 1177:     #[test]
+ 1194:         for parameter_set in parameter_sets {
+ 1197:             // Keep this cross-parameter structural test inexpensive while
+ 1203:             let seed_bytes = vec![0x5a_u8; parameters.keygen_seed_bytes];
+ 1204:             let secret_seed = &seed_bytes[..parameters.n];
+ 1205:             let public_seed = &seed_bytes[2 * parameters.n..3 * parameters.n];
+ 1214:             let mut root = vec![0_u8; parameters.n];
+ 1222:     #[test]
+ 1234:     #[test]
+ 1248:     #[test]
+ 1271:     #[test]
+ 1291:     #[test]
+ 1302:     #[test]
+ 1313:     #[test]
+ 1330:         for (offset, parameter_set) in parameter_sets.into_iter().enumerate() {
+ 1357:     #[test]
+ 1370:     #[test]
+ 1375:         let context = [0_u8; 256];
+ 1385:     #[test]
+ 1406:     #[test]
+ 1423:     #[test]
+ 1437:         let secret_prf = &private_key[parameters.n..2 * parameters.n];
+ 1438:         let public_seed = &private_key[2 * parameters.n..3 * parameters.n];
+ 1446:         let mut expected = vec![0_u8; parameters.n];
+ 1452:         assert_eq!(&signature.as_bytes()[..parameters.n], expected);
+ 1455:     #[test]
+ 1472:     #[test]
+ 1489:     #[test]
+ 1503:     #[test]
+ 1508:         let context = [0_u8; 256];
+ 1519:     #[test]
+ 1534:     #[test]
+ 1557:     #[test]
+ 1586:     #[test]
+ 1615:     #[test]
+ 1631:         let secret_prf = &private_key[parameters.n..2 * parameters.n];
+ 1644:         let mut expected = vec![0_u8; parameters.n];
+ 1655:         assert_eq!(&signature.as_bytes()[..parameters.n], expected);
+ 1658:     #[test]
+ 1676:     #[test]
+ 1694:     #[test]
+ 1713:     #[test]
+ 1734:     #[test]
+ 1755:     #[test]
+ 1767:         modified[modified_index] ^= 1;
+ 1782:     #[test]
+ 1810:     #[test]
+ 1817:             &vec![0_u8; SlhDsaParameterSet::Sha2_128f.parameters().signature_bytes],
+ 1829:     #[test]
+ 1837:             &vec![0_u8; SlhDsaParameterSet::Sha2_128f.parameters().signature_bytes],
+ 1854:     #[test]
+ 1866:                 .verify(key_pair.public_key(), b"message", &[0_u8; 256], &signature,)
+ 1872:     #[test]
+ 1888:     #[cfg(feature = "internal-api")]
+ 1889:     #[test]
+ 1906:     #[cfg(feature = "internal-api")]
+ 1907:     #[test]
+ 1925:     #[cfg(feature = "internal-api")]
+ 1926:     #[test]
+ 1943:     #[cfg(feature = "internal-api")]
+ 1944:     #[test]
+ 1961:     #[cfg(feature = "internal-api")]
+ 1962:     #[test]
+ 1974:     #[test]
+ 1999:     #[test]
+ 2026:     #[test]
+ 2051:     #[test]
+ 2076:     #[test]
+ 2101:     #[test]
+ 2110:                 &[0_u8; 256],
+
+===== crates/pqc-slh-dsa/src/hash.rs =====
+   14: #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+   47: impl fmt::Display for HashError {
+   49:         match self {
+   79: impl From<Mgf1Error> for HashError {
+   85: /// SHAKE-based tweakable-hash implementation for SLH-DSA.
+   88: /// for the SHAKE parameter sets.
+   89: #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+  112:         public_seed: &[u8],
+  113:         secret_seed: &[u8],
+  115:         output: &mut [u8],
+  121:         shake256_into(&[public_seed, address.as_bytes(), secret_seed], output);
+  135:         secret_prf: &[u8],
+  136:         optional_randomness: &[u8],
+  137:         message: &[u8],
+  138:         output: &mut [u8],
+  144:         shake256_into(&[secret_prf, optional_randomness, message], output);
+  158:         randomizer: &[u8],
+  159:         public_seed: &[u8],
+  160:         public_root: &[u8],
+  161:         message: &[u8],
+  162:         output: &mut [u8],
+  168:         shake256_into(&[randomizer, public_seed, public_root, message], output);
+  180:         public_seed: &[u8],
+  182:         message: &[u8],
+  183:         output: &mut [u8],
+  189:         shake256_into(&[public_seed, address.as_bytes(), message], output);
+  201:         public_seed: &[u8],
+  203:         left: &[u8],
+  204:         right: &[u8],
+  205:         output: &mut [u8],
+  212:         shake256_into(&[public_seed, address.as_bytes(), left, right], output);
+  224:         public_seed: &[u8],
+  226:         message: &[u8],
+  227:         output: &mut [u8],
+  232:         shake256_into(&[public_seed, address.as_bytes(), message], output);
+  237:     fn validate_fixed_input(self, input: &[u8], input_name: &'static str) -> Result<(), HashError> {
+  238:         if input.len() != self.output_bytes {
+  249:     fn validate_output(self, output: &[u8]) -> Result<(), HashError> {
+  250:         if output.len() != self.output_bytes {
+  261: /// SHA2-based tweakable-hash implementation for SLH-DSA.
+  263: /// FIPS 205 uses the compressed 22-byte address encoding for all SHA2
+  266: #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+  289:         public_seed: &[u8],
+  290:         secret_seed: &[u8],
+  292:         output: &mut [u8],
+  299:         let padding = [0_u8; 64];
+  306:                 &padding[..padding_bytes],
+  324:         secret_prf: &[u8],
+  325:         optional_randomness: &[u8],
+  326:         message: &[u8],
+  327:         output: &mut [u8],
+  334:         if self.output_bytes == 16 {
+  335:             hmac_sha256_truncated(secret_prf, &[optional_randomness, message], output);
+  337:             hmac_sha512_truncated(secret_prf, &[optional_randomness, message], output);
+  352:         randomizer: &[u8],
+  353:         public_seed: &[u8],
+  354:         public_root: &[u8],
+  355:         message: &[u8],
+  356:         output: &mut [u8],
+  363:         if self.output_bytes == 16 {
+  371:             let mut seed = [0_u8; 64];
+  374:             seed[..self.output_bytes].copy_from_slice(randomizer);
+  375:             seed[self.output_bytes..2 * self.output_bytes].copy_from_slice(public_seed);
+  376:             seed[2 * self.output_bytes..seed_bytes].copy_from_slice(&digest);
+  378:             mgf1_sha256(&seed[..seed_bytes], output)?;
+  387:             let mut seed = [0_u8; 128];
+  390:             seed[..self.output_bytes].copy_from_slice(randomizer);
+  391:             seed[self.output_bytes..2 * self.output_bytes].copy_from_slice(public_seed);
+  392:             seed[2 * self.output_bytes..seed_bytes].copy_from_slice(&digest);
+  394:             mgf1_sha512(&seed[..seed_bytes], output)?;
+  407:         public_seed: &[u8],
+  409:         message: &[u8],
+  410:         output: &mut [u8],
+  417:         let padding = [0_u8; 64];
+  422:             &[public_seed, &padding[..padding_bytes], &compressed, message],
+  432:         public_seed: &[u8],
+  434:         left: &[u8],
+  435:         right: &[u8],
+  436:         output: &mut [u8],
+  444:         self.hash_variable(public_seed, address, &[left, right], output);
+  452:         public_seed: &[u8],
+  454:         message: &[u8],
+  455:         output: &mut [u8],
+  461:         self.hash_variable(public_seed, address, &[message], output);
+  468:         public_seed: &[u8],
+  470:         message_parts: &[&[u8]],
+  471:         output: &mut [u8],
+  475:         if self.output_bytes == 16 {
+  476:             let padding = [0_u8; 64];
+  481:             Sha2Digest::update(&mut hasher, &padding[..padding_bytes]);
+  484:             for part in message_parts {
+  489:             output.copy_from_slice(&digest[..output.len()]);
+  491:             let padding = [0_u8; 128];
+  496:             Sha2Digest::update(&mut hasher, &padding[..padding_bytes]);
+  499:             for part in message_parts {
+  504:             output.copy_from_slice(&digest[..output.len()]);
+  509:         if !matches!(self.output_bytes, 16 | 24 | 32) {
+  518:     fn validate_fixed_input(self, input: &[u8], input_name: &'static str) -> Result<(), HashError> {
+  519:         if input.len() != self.output_bytes {
+  530:     fn validate_output(self, output: &[u8]) -> Result<(), HashError> {
+  531:         if output.len() != self.output_bytes {
+  542: fn hmac_sha256_truncated(key: &[u8], inputs: &[&[u8]], output: &mut [u8]) {
+  545:     let mut inner_pad = [0x36_u8; BLOCK_BYTES];
+  546:     let mut outer_pad = [0x5c_u8; BLOCK_BYTES];
+  548:     for (index, byte) in key.iter().enumerate() {
+  549:         inner_pad[index] ^= byte;
+  550:         outer_pad[index] ^= byte;
+  556:     for input in inputs {
+  567:     output.copy_from_slice(&digest[..output.len()]);
+  570: fn hmac_sha512_truncated(key: &[u8], inputs: &[&[u8]], output: &mut [u8]) {
+  573:     let mut inner_pad = [0x36_u8; BLOCK_BYTES];
+  574:     let mut outer_pad = [0x5c_u8; BLOCK_BYTES];
+  576:     for (index, byte) in key.iter().enumerate() {
+  577:         inner_pad[index] ^= byte;
+  578:         outer_pad[index] ^= byte;
+  584:     for input in inputs {
+  595:     output.copy_from_slice(&digest[..output.len()]);
+  598: fn sha256_truncated(inputs: &[&[u8]], output: &mut [u8]) {
+  601:     for input in inputs {
+  606:     output.copy_from_slice(&digest[..output.len()]);
+  610: #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+  622: impl fmt::Display for Mgf1Error {
+  624:         match self {
+  632:                      four-byte counter for a {digest_bytes}-byte digest"
+  641: /// MGF1 evaluates SHA-256 over `seed || I2OSP(counter, 4)` for consecutive
+  644: pub fn mgf1_sha256(seed: &[u8], output: &mut [u8]) -> Result<(), Mgf1Error> {
+  650: /// MGF1 evaluates SHA-512 over `seed || I2OSP(counter, 4)` for consecutive
+  653: pub fn mgf1_sha512(seed: &[u8], output: &mut [u8]) -> Result<(), Mgf1Error> {
+  657: fn mgf1<D>(seed: &[u8], output: &mut [u8]) -> Result<(), Mgf1Error>
+  666:     while let Some(chunk) = chunks.next() {
+  672:         chunk.copy_from_slice(&block[..chunk.len()]);
+  674:         if chunks.peek().is_some() {
+  685: fn shake256_into(inputs: &[&[u8]], output: &mut [u8]) {
+  688:     for input in inputs {
+  696: #[cfg(test)]
+  712:     fn reference_shake(inputs: &[&[u8]], output: &mut [u8]) {
+  715:         for input in inputs {
+  723:     #[test]
+  730:     #[test]
+  733:         let public_seed = [0x11_u8; 16];
+  734:         let secret_seed = [0x22_u8; 16];
+  736:         let mut actual = [0_u8; 16];
+  737:         let mut expected = [0_u8; 16];
+  743:             &[&public_seed, address.as_bytes(), &secret_seed],
+  750:     #[test]
+  753:         let public_seed = [0x33_u8; 24];
+  754:         let message = [0x44_u8; 24];
+  756:         let mut actual = [0_u8; 24];
+  757:         let mut expected = [0_u8; 24];
+  762:         reference_shake(&[&public_seed, address.as_bytes(), &message], &mut expected);
+  767:     #[test]
+  770:         let public_seed = [0x55_u8; 32];
+  771:         let left = [0x66_u8; 32];
+  772:         let right = [0x77_u8; 32];
+  774:         let mut actual = [0_u8; 32];
+  775:         let mut expected = [0_u8; 32];
+  781:             &[&public_seed, address.as_bytes(), &left, &right],
+  788:     #[test]
+  791:         let public_seed = [0x88_u8; 16];
+  792:         let message = [0x99_u8; 48];
+  794:         let mut actual = [0_u8; 16];
+  795:         let mut expected = [0_u8; 16];
+  800:         reference_shake(&[&public_seed, address.as_bytes(), &message], &mut expected);
+  805:     #[test]
+  808:         let public_seed = [0xaa_u8; 16];
+  809:         let message = [0xbb_u8; 16];
+  812:         let mut first = [0_u8; 16];
+  813:         let mut second = [0_u8; 16];
+  827:     #[test]
+  831:         let mut output = [0_u8; 16];
+  834:             hash.f(&[0_u8; 15], &address, &[0_u8; 16], &mut output),
+  843:             hash.f(&[0_u8; 16], &address, &[0_u8; 15], &mut output),
+  852:     #[test]
+  856:         let mut output = [0_u8; 15];
+  859:             hash.f(&[0_u8; 16], &address, &[0_u8; 16], &mut output),
+  868: #[cfg(test)]
+  872:     #[test]
+  874:         let mut output = [0_u8; 50];
+  889:     #[test]
+  891:         let mut output = [0_u8; 80];
+  908:     #[test]
+  916:     #[test]
+  918:         let mut sha256_output = [0_u8; 32];
+  919:         let mut sha512_output = [0_u8; 32];
+  927:     #[test]
+  929:         let mut first = [0_u8; 65];
+  930:         let mut second = [0_u8; 65];
+  939: #[cfg(test)]
+  955:     fn reference_sha256(inputs: &[&[u8]], output: &mut [u8]) {
+  958:         for input in inputs {
+  963:         output.copy_from_slice(&digest[..output.len()]);
+  966:     fn reference_sha512(inputs: &[&[u8]], output: &mut [u8]) {
+  969:         for input in inputs {
+  974:         output.copy_from_slice(&digest[..output.len()]);
+  977:     #[test]
+  984:     #[test]
+  987:         let public_seed = [0x11_u8; 16];
+  988:         let secret_seed = [0x22_u8; 16];
+  991:         let padding = [0_u8; 48];
+  992:         let mut actual = [0_u8; 16];
+  993:         let mut expected = [0_u8; 16];
+  999:             &[&public_seed, &padding, &compressed, &secret_seed],
+ 1006:     #[test]
+ 1009:         let public_seed = [0x33_u8; 24];
+ 1010:         let message = [0x44_u8; 24];
+ 1013:         let padding = [0_u8; 40];
+ 1014:         let mut actual = [0_u8; 24];
+ 1015:         let mut expected = [0_u8; 24];
+ 1021:             &[&public_seed, &padding, &compressed, &message],
+ 1028:     #[test]
+ 1031:         let public_seed = [0x55_u8; 16];
+ 1032:         let left = [0x66_u8; 16];
+ 1033:         let right = [0x77_u8; 16];
+ 1036:         let padding = [0_u8; 48];
+ 1037:         let mut actual = [0_u8; 16];
+ 1038:         let mut expected = [0_u8; 16];
+ 1044:             &[&public_seed, &padding, &compressed, &left, &right],
+ 1051:     #[test]
+ 1054:         let public_seed = [0x88_u8; 24];
+ 1055:         let left = [0x99_u8; 24];
+ 1056:         let right = [0xaa_u8; 24];
+ 1059:         let padding = [0_u8; 104];
+ 1060:         let mut actual = [0_u8; 24];
+ 1061:         let mut expected = [0_u8; 24];
+ 1067:             &[&public_seed, &padding, &compressed, &left, &right],
+ 1074:     #[test]
+ 1077:         let public_seed = [0xbb_u8; 32];
+ 1078:         let message = [0xcc_u8; 96];
+ 1081:         let padding = [0_u8; 96];
+ 1082:         let mut actual = [0_u8; 32];
+ 1083:         let mut expected = [0_u8; 32];
+ 1089:             &[&public_seed, &padding, &compressed, &message],
+ 1096:     #[test]
+ 1100:         let mut output = [0_u8; 20];
+ 1103:             hash.f(&[0_u8; 20], &address, &[0_u8; 20], &mut output),
+ 1109: #[cfg(test)]
+ 1113:     fn reference_hmac_sha256(key: &[u8], inputs: &[&[u8]], output: &mut [u8]) {
+ 1116:         let mut inner_pad = [0x36_u8; BLOCK_BYTES];
+ 1117:         let mut outer_pad = [0x5c_u8; BLOCK_BYTES];
+ 1119:         for (index, byte) in key.iter().enumerate() {
+ 1120:             inner_pad[index] ^= byte;
+ 1121:             outer_pad[index] ^= byte;
+ 1127:         for input in inputs {
+ 1138:         output.copy_from_slice(&digest[..output.len()]);
+ 1141:     fn reference_hmac_sha512(key: &[u8], inputs: &[&[u8]], output: &mut [u8]) {
+ 1144:         let mut inner_pad = [0x36_u8; BLOCK_BYTES];
+ 1145:         let mut outer_pad = [0x5c_u8; BLOCK_BYTES];
+ 1147:         for (index, byte) in key.iter().enumerate() {
+ 1148:             inner_pad[index] ^= byte;
+ 1149:             outer_pad[index] ^= byte;
+ 1155:         for input in inputs {
+ 1166:         output.copy_from_slice(&digest[..output.len()]);
+ 1169:     #[test]
+ 1172:         let secret_prf = [0x11_u8; 16];
+ 1173:         let optional_randomness = [0x22_u8; 16];
+ 1175:         let mut actual = [0_u8; 16];
+ 1176:         let mut expected = [0_u8; 16];
+ 1181:         shake256_into(&[&secret_prf, &optional_randomness, message], &mut expected);
+ 1186:     #[test]
+ 1189:         let secret_prf = [0x33_u8; 32];
+ 1190:         let optional_randomness = [0x44_u8; 32];
+ 1191:         let message = [0x55_u8; 97];
+ 1192:         let mut first = [0_u8; 32];
+ 1193:         let mut second = [0_u8; 32];
+ 1198:         shake256_into(&[&secret_prf, &optional_randomness, &message], &mut second);
+ 1203:     #[test]
+ 1206:         let secret_prf = [0x66_u8; 16];
+ 1207:         let optional_randomness = [0x77_u8; 16];
+ 1209:         let mut actual = [0_u8; 16];
+ 1210:         let mut expected = [0_u8; 16];
+ 1215:         reference_hmac_sha256(&secret_prf, &[&optional_randomness, message], &mut expected);
+ 1220:     #[test]
+ 1223:         let secret_prf = [0x88_u8; 24];
+ 1224:         let optional_randomness = [0x99_u8; 24];
+ 1226:         let mut actual = [0_u8; 24];
+ 1227:         let mut expected = [0_u8; 24];
+ 1232:         reference_hmac_sha512(&secret_prf, &[&optional_randomness, message], &mut expected);
+ 1237:     #[test]
+ 1240:         let secret_prf = [0xaa_u8; 32];
+ 1241:         let optional_randomness = [0xbb_u8; 32];
+ 1242:         let message = [0xcc_u8; 129];
+ 1243:         let mut actual = [0_u8; 32];
+ 1244:         let mut expected = [0_u8; 32];
+ 1251:             &[&optional_randomness, &message],
+ 1258:     #[test]
+ 1262:         let mut output = [0_u8; 16];
+ 1265:             shake.prf_msg(&[0_u8; 15], &[0_u8; 16], b"", &mut output),
+ 1274:             sha2.prf_msg(&[0_u8; 16], &[0_u8; 15], b"", &mut output),
+ 1284: #[cfg(test)]
+ 1288:     fn reference_mgf1_sha256(seed: &[u8], output: &mut [u8]) {
+ 1289:         for (counter, chunk) in output.chunks_mut(32).enumerate() {
+ 1295:             chunk.copy_from_slice(&digest[..chunk.len()]);
+ 1299:     fn reference_mgf1_sha512(seed: &[u8], output: &mut [u8]) {
+ 1300:         for (counter, chunk) in output.chunks_mut(64).enumerate() {
+ 1306:             chunk.copy_from_slice(&digest[..chunk.len()]);
+ 1310:     #[test]
+ 1313:         let randomizer = [0x11_u8; 16];
+ 1314:         let public_seed = [0x22_u8; 16];
+ 1315:         let public_root = [0x33_u8; 16];
+ 1317:         let mut actual = [0_u8; 30];
+ 1318:         let mut expected = [0_u8; 30];
+ 1330:             &[&randomizer, &public_seed, &public_root, message],
+ 1337:     #[test]
+ 1339:         for digest_bytes in [30_usize, 34, 39, 42, 47, 49] {
+ 1341:             let randomizer = [0x44_u8; 32];
+ 1342:             let public_seed = [0x55_u8; 32];
+ 1343:             let public_root = [0x66_u8; 32];
+ 1344:             let message = [0x77_u8; 73];
+ 1345:             let mut output = [0_u8; 49];
+ 1352:                 &mut output[..digest_bytes],
+ 1356:             assert!(output[..digest_bytes].iter().any(|byte| *byte != 0));
+ 1360:     #[test]
+ 1363:         let randomizer = [0x10_u8; 16];
+ 1364:         let public_seed = [0x20_u8; 16];
+ 1365:         let public_root = [0x30_u8; 16];
+ 1367:         let mut actual = [0_u8; 34];
+ 1368:         let mut expected = [0_u8; 34];
+ 1386:         let mut seed = [0_u8; 64];
+ 1387:         seed[..16].copy_from_slice(&randomizer);
+ 1388:         seed[16..32].copy_from_slice(&public_seed);
+ 1389:         seed[32..64].copy_from_slice(&digest);
+ 1396:     #[test]
+ 1399:         let randomizer = [0x40_u8; 24];
+ 1400:         let public_seed = [0x50_u8; 24];
+ 1401:         let public_root = [0x60_u8; 24];
+ 1403:         let mut actual = [0_u8; 42];
+ 1404:         let mut expected = [0_u8; 42];
+ 1422:         let mut seed = [0_u8; 112];
+ 1423:         seed[..24].copy_from_slice(&randomizer);
+ 1424:         seed[24..48].copy_from_slice(&public_seed);
+ 1425:         seed[48..112].copy_from_slice(&digest);
+ 1432:     #[test]
+ 1435:         let randomizer = [0x70_u8; 32];
+ 1436:         let public_seed = [0x80_u8; 32];
+ 1437:         let public_root = [0x90_u8; 32];
+ 1438:         let message = [0xa0_u8; 129];
+ 1439:         let mut actual = [0_u8; 49];
+ 1440:         let mut expected = [0_u8; 49];
+ 1458:         let mut seed = [0_u8; 128];
+ 1459:         seed[..32].copy_from_slice(&randomizer);
+ 1460:         seed[32..64].copy_from_slice(&public_seed);
+ 1461:         seed[64..128].copy_from_slice(&digest);
+ 1468:     #[test]
+ 1471:         let mut output = [0_u8; 30];
+ 1474:             hash.h_msg(&[0_u8; 15], &[0_u8; 16], &[0_u8; 16], b"", &mut output,),
+ 1483:             hash.h_msg(&[0_u8; 16], &[0_u8; 15], &[0_u8; 16], b"", &mut output,),
+ 1492:             hash.h_msg(&[0_u8; 16], &[0_u8; 16], &[0_u8; 15], b"", &mut output,),
+
+===== crates/pqc-slh-dsa/src/wots.rs =====
+   20: /// Base-two logarithm of [`WOTS_W`].
+   27: #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+   93: impl fmt::Display for WotsError {
+   95:         match self {
+  148: impl From<ConversionError> for WotsError {
+  154: impl From<HashError> for WotsError {
+  185:     while value > 0 {
+  220:     public_seed: &[u8],
+  222:     start_value: &[u8],
+  225:     output: &mut [u8],
+  227:     if start_value.len() != parameters.n {
+  234:     if output.len() != parameters.n {
+  245:     if end > WOTS_W - 1 {
+  249:     let mut current = [0_u8; 32];
+  250:     current[..parameters.n].copy_from_slice(start_value);
+  255:     for hash_step in start..end {
+  258:         let mut next = [0_u8; 32];
+  262:             &current[..parameters.n],
+  263:             &mut next[..parameters.n],
+  266:         current[..parameters.n].copy_from_slice(&next[..parameters.n]);
+  269:     output.copy_from_slice(&current[..parameters.n]);
+  276: /// This implements the FIPS 205 `wots_skGen` operation for one chain index.
+  280:     secret_seed: &[u8],
+  281:     public_seed: &[u8],
+  284:     output: &mut [u8],
+  288:     if chain_index >= chain_count {
+  315:     secret_seed: &[u8],
+  316:     public_seed: &[u8],
+  319:     output: &mut [u8],
+  321:     let mut secret_value = [0_u8; 32];
+  329:         &mut secret_value[..parameters.n],
+  344:         &secret_value[..parameters.n],
+  357:     secret_seed: &[u8],
+  358:     public_seed: &[u8],
+  360:     output: &mut [u8],
+  362:     if output.len() != parameters.n {
+  374:     let mut endpoints = [0_u8; MAX_WOTS_LEN * 32];
+  376:     for chain_index in 0..chain_count {
+  390:             &mut endpoints[start..end],
+  403:         &endpoints[..endpoint_bytes],
+  412: /// A signature contains one `n`-byte value for each of the `len` WOTS+
+  424: /// zero through `chain_lengths[i]` applications of `F`.
+  427:     secret_seed: &[u8],
+  428:     public_seed: &[u8],
+  429:     message: &[u8],
+  431:     signature: &mut [u8],
+  435:     if signature.len() != expected {
+  443:     let mut lengths = [0_u32; MAX_WOTS_LEN];
+  445:     chain_lengths(parameters, message, &mut lengths[..chain_count])?;
+  449:     for (chain_index, steps) in lengths[..chain_count].iter().copied().enumerate() {
+  458:         let mut secret_value = [0_u8; 32];
+  466:             &mut secret_value[..parameters.n],
+  480:             &secret_value[..parameters.n],
+  483:             &mut signature[signature_start..signature_end],
+  494: /// `WOTS_W - 1 - chain_lengths[i]` steps. The recovered endpoints are then
+  498:     signature: &[u8],
+  499:     message: &[u8],
+  500:     public_seed: &[u8],
+  502:     output: &mut [u8],
+  506:     if signature.len() != expected_signature_bytes {
+  513:     if output.len() != parameters.n {
+  525:     let mut lengths = [0_u32; MAX_WOTS_LEN];
+  526:     let mut endpoints = [0_u8; MAX_WOTS_LEN * 32];
+  528:     chain_lengths(parameters, message, &mut lengths[..chain_count])?;
+  532:     for (chain_index, start) in lengths[..chain_count].iter().copied().enumerate() {
+  557:             &signature[element_start..element_end],
+  560:             &mut endpoints[element_start..element_end],
+  571:         &endpoints[..endpoint_bytes],
+  581:     message: &[u8],
+  582:     output: &mut [u32],
+  584:     if message.len() != parameters.n {
+  593:     if output.len() != expected {
+  605: /// Compute the integer WOTS+ checksum for a sequence of message digits.
+  610: pub fn checksum(parameters: &SlhDsaParameters, message_digits: &[u32]) -> Result<u64, WotsError> {
+  613:     if message_digits.len() != expected {
+  637:     message_digits: &[u32],
+  638:     output: &mut [u32],
+  642:     if output.len() != expected {
+  660:     if encoded_bytes > size_of::<u64>() {
+  667:     base_2b(&encoded[start..], WOTS_LOG_W, output)?;
+  678:     message: &[u8],
+  679:     output: &mut [u32],
+  687:     if output.len() != expected {
+  694:     let (message_output, checksum_output) = output.split_at_mut(message_digit_count);
+  702: #[cfg(test)]
+  707:     const PARAMETER_SETS: [SlhDsaParameterSet; 12] = [
+  731:     #[test]
+  734:         let public_seed = [0x11_u8; 16];
+  735:         let start_value = [0x22_u8; 16];
+  736:         let mut output = [0_u8; 16];
+  752:     #[test]
+  755:         let public_seed = [0x31_u8; 16];
+  756:         let start_value = [0x42_u8; 16];
+  761:         let mut chained = [0_u8; 16];
+  777:         for hash_step in 2..5 {
+  779:             let mut next = [0_u8; 16];
+  791:     #[test]
+  794:         let public_seed = [0_u8; 16];
+  795:         let start_value = [0_u8; 16];
+  796:         let mut output = [0_u8; 16];
+  815:     #[test]
+  818:         let secret_seed = [0x51_u8; 16];
+  819:         let public_seed = [0x62_u8; 16];
+  822:         let mut generated = [0_u8; 16];
+  839:         let mut expected = [0_u8; 16];
+  848:     #[test]
+  851:         let secret_seed = [0x71_u8; 16];
+  852:         let public_seed = [0x82_u8; 16];
+  855:         let mut first = [0_u8; 16];
+  856:         let mut second = [0_u8; 16];
+  881:     #[test]
+  884:         let secret_seed = [0x91_u8; 16];
+  885:         let public_seed = [0xa2_u8; 16];
+  888:         let mut generated = [0_u8; 16];
+  900:         let mut secret = [0_u8; 16];
+  917:         let mut expected = [0_u8; 16];
+  933:     #[test]
+  936:         let secret_seed = [0xb1_u8; 16];
+  937:         let public_seed = [0xc2_u8; 16];
+  940:         let mut generated = [0_u8; 16];
+  952:         let mut endpoints = [0_u8; MAX_WOTS_LEN * 32];
+  954:         for chain_index in 0..chain_count {
+  964:                 &mut endpoints[start..end],
+  973:         let mut expected = [0_u8; 16];
+  979:                 &endpoints[..chain_count * parameters.n],
+  987:     #[test]
+  989:         for parameter_set in PARAMETER_SETS {
+  991:             let secret_seed = [0xd1_u8; 32];
+  992:             let public_seed = [0xe2_u8; 32];
+  995:             let mut first = [0_u8; 32];
+  996:             let mut second = [0_u8; 32];
+ 1000:                 &secret_seed[..parameters.n],
+ 1001:                 &public_seed[..parameters.n],
+ 1003:                 &mut first[..parameters.n],
+ 1009:                 &secret_seed[..parameters.n],
+ 1010:                 &public_seed[..parameters.n],
+ 1012:                 &mut second[..parameters.n],
+ 1016:             assert_eq!(&first[..parameters.n], &second[..parameters.n]);
+ 1020:     #[test]
+ 1023:         let secret_seed = [0xf1_u8; 16];
+ 1024:         let public_seed = [0x12_u8; 16];
+ 1026:         let mut first = [0_u8; 16];
+ 1027:         let mut second = [0_u8; 16];
+ 1050:     #[test]
+ 1052:         for parameter_set in PARAMETER_SETS {
+ 1062:     #[test]
+ 1065:         let secret_seed = [0_u8; 16];
+ 1066:         let public_seed = [0_u8; 16];
+ 1067:         let message = [0_u8; 16];
+ 1069:         let mut signature = [0_u8; MAX_WOTS_LEN * 32];
+ 1078:                 &mut signature[..expected - 1],
+ 1087:     #[test]
+ 1090:         let secret_seed = [0_u8; 16];
+ 1091:         let public_seed = [0_u8; 16];
+ 1092:         let message = [0_u8; 15];
+ 1094:         let mut signature = [0_u8; MAX_WOTS_LEN * 32];
+ 1103:                 &mut signature[..signature_length],
+ 1112:     #[test]
+ 1115:         let secret_seed = [0x21_u8; 16];
+ 1116:         let public_seed = [0x43_u8; 16];
+ 1117:         let message = [0xa5_u8; 16];
+ 1122:         let mut signature = [0_u8; MAX_WOTS_LEN * 32];
+ 1130:             &mut signature[..signature_length],
+ 1134:         let mut lengths = [0_u32; MAX_WOTS_LEN];
+ 1135:         chain_lengths(&parameters, &message, &mut lengths[..chain_count]).unwrap();
+ 1137:         for (chain_index, steps) in lengths[..chain_count].iter().copied().enumerate() {
+ 1138:             let mut secret_value = [0_u8; 16];
+ 1155:             let mut expected = [0_u8; 16];
+ 1172:                 &signature[start..end],
+ 1179:     #[test]
+ 1182:         let secret_seed = [0x65_u8; 32];
+ 1183:         let public_seed = [0x87_u8; 32];
+ 1184:         let message = [0xa9_u8; 32];
+ 1188:         let mut first = [0_u8; MAX_WOTS_LEN * 32];
+ 1189:         let mut second = [0_u8; MAX_WOTS_LEN * 32];
+ 1193:             &secret_seed[..parameters.n],
+ 1194:             &public_seed[..parameters.n],
+ 1195:             &message[..parameters.n],
+ 1197:             &mut first[..signature_length],
+ 1203:             &secret_seed[..parameters.n],
+ 1204:             &public_seed[..parameters.n],
+ 1205:             &message[..parameters.n],
+ 1207:             &mut second[..signature_length],
+ 1211:         assert_eq!(&first[..signature_length], &second[..signature_length]);
+ 1214:     #[test]
+ 1217:         let secret_seed = [0xcb_u8; 16];
+ 1218:         let public_seed = [0xed_u8; 16];
+ 1219:         let first_message = [0x00_u8; 16];
+ 1220:         let second_message = [0xff_u8; 16];
+ 1224:         let mut first = [0_u8; MAX_WOTS_LEN * 32];
+ 1225:         let mut second = [0_u8; MAX_WOTS_LEN * 32];
+ 1233:             &mut first[..signature_length],
+ 1243:             &mut second[..signature_length],
+ 1247:         assert_ne!(&first[..signature_length], &second[..signature_length]);
+ 1250:     #[test]
+ 1253:         let secret_seed = [0x19_u8; 16];
+ 1254:         let public_seed = [0x2a_u8; 16];
+ 1255:         let message = [0x3b_u8; 16];
+ 1258:         let mut first = [0_u8; MAX_WOTS_LEN * 32];
+ 1259:         let mut second = [0_u8; MAX_WOTS_LEN * 32];
+ 1267:             &mut first[..signature_length],
+ 1277:             &mut second[..signature_length],
+ 1281:         assert_ne!(&first[..signature_length], &second[..signature_length]);
+ 1284:     #[test]
+ 1286:         let secret_seed = [0x4c_u8; 32];
+ 1287:         let public_seed = [0x5d_u8; 32];
+ 1288:         let message = [0x6e_u8; 32];
+ 1290:         let mut signature = [0_u8; MAX_WOTS_LEN * 32];
+ 1292:         for parameter_set in PARAMETER_SETS {
+ 1298:                 &secret_seed[..parameters.n],
+ 1299:                 &public_seed[..parameters.n],
+ 1300:                 &message[..parameters.n],
+ 1302:                 &mut signature[..signature_length],
+ 1308:     #[test]
+ 1312:         let signature = [0_u8; MAX_WOTS_LEN * 32];
+ 1313:         let message = [0_u8; 16];
+ 1314:         let public_seed = [0_u8; 16];
+ 1315:         let mut output = [0_u8; 16];
+ 1320:                 &signature[..signature_length - 1],
+ 1333:     #[test]
+ 1337:         let signature = [0_u8; MAX_WOTS_LEN * 32];
+ 1338:         let message = [0_u8; 15];
+ 1339:         let public_seed = [0_u8; 16];
+ 1340:         let mut output = [0_u8; 16];
+ 1345:                 &signature[..signature_length],
+ 1358:     #[test]
+ 1362:         let signature = [0_u8; MAX_WOTS_LEN * 32];
+ 1363:         let message = [0_u8; 16];
+ 1364:         let public_seed = [0_u8; 16];
+ 1365:         let mut output = [0_u8; 15];
+ 1370:                 &signature[..signature_length],
+ 1383:     #[test]
+ 1385:         for parameter_set in [
+ 1392:             let secret_seed = [0x31_u8; 32];
+ 1393:             let public_seed = [0x72_u8; 32];
+ 1394:             let message = [0xa5_u8; 32];
+ 1398:             let mut signature = [0_u8; MAX_WOTS_LEN * 32];
+ 1402:                 &secret_seed[..parameters.n],
+ 1403:                 &public_seed[..parameters.n],
+ 1404:                 &message[..parameters.n],
+ 1406:                 &mut signature[..signature_length],
+ 1410:             let mut reconstructed = [0_u8; 32];
+ 1414:                 &signature[..signature_length],
+ 1415:                 &message[..parameters.n],
+ 1416:                 &public_seed[..parameters.n],
+ 1418:                 &mut reconstructed[..parameters.n],
+ 1422:             let mut expected = [0_u8; 32];
+ 1426:                 &secret_seed[..parameters.n],
+ 1427:                 &public_seed[..parameters.n],
+ 1429:                 &mut expected[..parameters.n],
+ 1434:                 &reconstructed[..parameters.n],
+ 1435:                 &expected[..parameters.n],
+ 1441:     #[test]
+ 1444:         let secret_seed = [0x41_u8; 16];
+ 1445:         let public_seed = [0x63_u8; 16];
+ 1446:         let message = [0x85_u8; 16];
+ 1451:         let mut signature = [0_u8; MAX_WOTS_LEN * 32];
+ 1459:             &mut signature[..signature_length],
+ 1463:         let mut lengths = [0_u32; MAX_WOTS_LEN];
+ 1464:         chain_lengths(&parameters, &message, &mut lengths[..chain_count]).unwrap();
+ 1466:         for (chain_index, start) in lengths[..chain_count].iter().copied().enumerate() {
+ 1475:             let mut reconstructed_endpoint = [0_u8; 16];
+ 1481:                 &signature[element_start..element_end],
+ 1488:             let mut direct_endpoint = [0_u8; 16];
+ 1507:     #[test]
+ 1510:         let secret_seed = [0x97_u8; 16];
+ 1511:         let public_seed = [0xb9_u8; 16];
+ 1512:         let message = [0xdb_u8; 16];
+ 1516:         let mut signature = [0_u8; MAX_WOTS_LEN * 32];
+ 1524:             &mut signature[..signature_length],
+ 1528:         let mut original = [0_u8; 16];
+ 1532:             &signature[..signature_length],
+ 1540:         signature[0] ^= 1;
+ 1542:         let mut modified = [0_u8; 16];
+ 1546:             &signature[..signature_length],
+ 1557:     #[test]
+ 1560:         let secret_seed = [0x1c_u8; 16];
+ 1561:         let public_seed = [0x2d_u8; 16];
+ 1562:         let message = [0x3e_u8; 16];
+ 1566:         let mut signature = [0_u8; MAX_WOTS_LEN * 32];
+ 1574:             &mut signature[..signature_length],
+ 1578:         let mut first = [0_u8; 16];
+ 1579:         let mut second = [0_u8; 16];
+ 1583:             &signature[..signature_length],
+ 1593:             &signature[..signature_length],
+ 1604:     #[test]
+ 1606:         let secret_seed = [0x4f_u8; 32];
+ 1607:         let public_seed = [0x60_u8; 32];
+ 1608:         let message = [0x71_u8; 32];
+ 1611:         let mut signature = [0_u8; MAX_WOTS_LEN * 32];
+ 1612:         let mut reconstructed = [0_u8; 32];
+ 1613:         let mut expected = [0_u8; 32];
+ 1615:         for parameter_set in PARAMETER_SETS {
+ 1621:                 &secret_seed[..parameters.n],
+ 1622:                 &public_seed[..parameters.n],
+ 1623:                 &message[..parameters.n],
+ 1625:                 &mut signature[..signature_length],
+ 1631:                 &signature[..signature_length],
+ 1632:                 &message[..parameters.n],
+ 1633:                 &public_seed[..parameters.n],
+ 1635:                 &mut reconstructed[..parameters.n],
+ 1641:                 &secret_seed[..parameters.n],
+ 1642:                 &public_seed[..parameters.n],
+ 1644:                 &mut expected[..parameters.n],
+ 1649:                 &reconstructed[..parameters.n],
+ 1650:                 &expected[..parameters.n],
+ 1656:     #[test]
+ 1673:         for (parameter_set, expected_len_1, expected_len_2, expected_len) in expected {
+ 1682:     #[test]
+ 1684:         for parameter_set in PARAMETER_SETS {
+ 1694:     #[test]
+ 1696:         for parameter_set in PARAMETER_SETS {
+ 1701:     #[test]
+ 1706:         let mut output = [0_u32; 4];
+ 1708:         message_digits(&parameters, &[0xab, 0x4d], &mut output).unwrap();
+ 1710:         assert_eq!(output, [10, 11, 4, 13]);
+ 1713:     #[test]
+ 1716:         let mut output = [0_u32; 32];
+ 1719:             message_digits(&parameters, &[0_u8; 15], &mut output),
+ 1727:     #[test]
+ 1730:         let message = [0_u8; 16];
+ 1731:         let mut output = [0_u32; 31];
+ 1742:     #[test]
+ 1747:         let digits = [10, 11, 4, 13];
+ 1752:     #[test]
+ 1755:         let digits = [0_u32; 32];
+ 1760:     #[test]
+ 1763:         let digits = [15_u32; 32];
+ 1768:     #[test]
+ 1771:         let mut digits = [0_u32; 32];
+ 1772:         digits[7] = WOTS_W;
+ 1780:     #[test]
+ 1783:         let digits = [0_u32; 32];
+ 1784:         let mut output = [0_u32; 3];
+ 1790:         // 0x1e00 -> [1, 14, 0].
+ 1791:         assert_eq!(output, [1, 14, 0]);
+ 1794:     #[test]
+ 1799:         let mut output = [0_u32; 6];
+ 1801:         chain_lengths(&parameters, &[0xab, 0x4d], &mut output).unwrap();
+ 1803:         assert_eq!(&output[..4], &[10, 11, 4, 13]);
+ 1804:         assert_eq!(&output[4..], &[1, 6]);
+ 1807:     #[test]
+ 1809:         for parameter_set in PARAMETER_SETS {
+ 1811:             let message = [0xa5_u8; 32];
+ 1812:             let mut output = [0_u32; MAX_WOTS_LEN];
+ 1817:                 &message[..parameters.n],
+ 1818:                 &mut output[..output_length],
+ 1822:             assert!(output[..output_length].iter().all(|digit| *digit < WOTS_W));
+ 1826:     #[test]
+ 1829:         let message = [0_u8; 16];
+ 1830:         let mut output = [0_u32; 34];
+
+===== crates/pqc-slh-dsa/src/fors.rs =====
+    1: //! Deterministic preprocessing and secret-value generation for FORS.
+   14: #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+  116: impl fmt::Display for ForsError {
+  118:         match self {
+  199: impl From<ConversionError> for ForsError {
+  205: impl From<HashError> for ForsError {
+  216: #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+  244: #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+  275:     digest: &[u8],
+  276:     indices: &mut [u32],
+  278:     if parameters.a > u32::BITS as usize {
+  286:     if digest.len() != expected_digest_bytes {
+  293:     if indices.len() != parameters.k {
+  307:     if parameters.a > u32::BITS as usize {
+  328:     if tree >= parameters.k {
+  337:     if u64::from(leaf) >= leaf_count {
+  357:     secret_seed: &[u8],
+  358:     public_seed: &[u8],
+  362:     output: &mut [u8],
+  378:     secret_seed: &[u8],
+  379:     public_seed: &[u8],
+  382:     output: &mut [u8],
+  405: /// [`Address::set_type_and_clear`] clears all type-dependent words.
+  408:     secret_seed: &[u8],
+  409:     public_seed: &[u8],
+  413:     output: &mut [u8],
+  415:     let mut secret_value_bytes = [0_u8; 32];
+  424:         &mut secret_value_bytes[..parameters.n],
+  436:         &secret_value_bytes[..parameters.n],
+  446:     secret_seed: &[u8],
+  447:     public_seed: &[u8],
+  450:     output: &mut [u8],
+  476:     public_seed: &[u8],
+  479:     left: &[u8],
+  480:     right: &[u8],
+  481:     output: &mut [u8],
+  496:     if height as usize > parameters.a {
+  524:     if u64::from(position.index) >= node_count {
+  540: /// [`parent_node`].
+  543:     secret_seed: &[u8],
+  544:     public_seed: &[u8],
+  547:     output: &mut [u8],
+  551:     if position.height == 0 {
+  577:     let mut left = [0_u8; 32];
+  578:     let mut right = [0_u8; 32];
+  590:         &mut left[..parameters.n],
+  603:         &mut right[..parameters.n],
+  611:         &left[..parameters.n],
+  612:         &right[..parameters.n],
+  619: /// A FORS authentication path contains one `n`-byte sibling node for each of
+  628: /// Generate the authentication path for a selected FORS leaf.
+  637:     secret_seed: &[u8],
+  638:     public_seed: &[u8],
+  641:     output: &mut [u8],
+  645:     if output.len() != expected {
+  656:     for level in 0..parameters.a {
+  697:             &mut output[start..end],
+  711:     secret_seed: &[u8],
+  712:     public_seed: &[u8],
+  715:     output: &mut [u8],
+  770:     digest: &[u8],
+  771:     secret_seed: &[u8],
+  772:     public_seed: &[u8],
+  775:     signature: &mut [u8],
+  779:     if signature.len() != expected_signature_bytes {
+  786:     if parameters.k > MAX_FORS_TREES {
+  790:     let mut indices = [0_u32; MAX_FORS_TREES];
+  791:     message_to_indices(parameters, digest, &mut indices[..parameters.k])?;
+  799:     for (tree, leaf) in indices[..parameters.k].iter().copied().enumerate() {
+  824:             &mut signature[tree_start..secret_end],
+  833:             &mut signature[secret_end..tree_end],
+  856:     tree_signature: &[u8],
+  857:     public_seed: &[u8],
+  860:     output: &mut [u8],
+  864:     if tree_signature.len() != expected {
+  871:     let mut node_value = [0_u8; 32];
+  872:     let mut sibling = [0_u8; 32];
+  873:     let mut parent = [0_u8; 32];
+  886:         &tree_signature[..parameters.n],
+  887:         &mut node_value[..parameters.n],
+  890:     for level in 0..parameters.a {
+  904:         sibling[..parameters.n]
+  905:             .copy_from_slice(&tree_signature[authentication_start..authentication_end]);
+  923:         if selected_node_is_left {
+  929:                 &node_value[..parameters.n],
+  930:                 &sibling[..parameters.n],
+  931:                 &mut parent[..parameters.n],
+  939:                 &sibling[..parameters.n],
+  940:                 &node_value[..parameters.n],
+  941:                 &mut parent[..parameters.n],
+  945:         node_value[..parameters.n].copy_from_slice(&parent[..parameters.n]);
+  948:     output.copy_from_slice(&node_value[..parameters.n]);
+  960:     signature: &[u8],
+  961:     digest: &[u8],
+  962:     public_seed: &[u8],
+  965:     output: &mut [u8],
+  969:     if signature.len() != expected_signature_bytes {
+  976:     if parameters.k > MAX_FORS_TREES {
+  985:     let mut indices = [0_u32; MAX_FORS_TREES];
+  986:     let mut roots = [0_u8; MAX_FORS_TREES * 32];
+  988:     message_to_indices(parameters, digest, &mut indices[..parameters.k])?;
+  992:     for (tree, leaf) in indices[..parameters.k].iter().copied().enumerate() {
+ 1011:             &signature[signature_start..signature_end],
+ 1019:             &mut roots[root_start..root_end],
+ 1027:     HashSuite::new(parameters).t_l(public_seed, &roots_address, &roots[..roots_bytes], output)?;
+ 1032: #[cfg(test)]
+ 1037:     const PARAMETER_SETS: [SlhDsaParameterSet; 12] = [
+ 1061:     #[test]
+ 1063:         for parameter_set in PARAMETER_SETS {
+ 1073:     #[test]
+ 1075:         for parameter_set in PARAMETER_SETS {
+ 1077:             let digest = [0xff_u8; 40];
+ 1078:             let mut indices = [0_u32; 35];
+ 1082:                 &digest[..digest_bytes(&parameters).unwrap()],
+ 1083:                 &mut indices[..parameters.k],
+ 1089:             assert!(indices[..parameters.k]
+ 1095:     #[test]
+ 1101:         let digest = [0xab, 0xcd, 0xef];
+ 1102:         let mut indices = [0_u32; 2];
+ 1106:         assert_eq!(indices, [0xabc, 0xdef]);
+ 1109:     #[test]
+ 1113:         let digest = [0_u8; 40];
+ 1114:         let mut indices = [0_u32; 35];
+ 1119:                 &digest[..expected - 1],
+ 1120:                 &mut indices[..parameters.k],
+ 1129:     #[test]
+ 1132:         let digest = [0_u8; 40];
+ 1134:         let mut indices = [0_u32; 35];
+ 1139:                 &digest[..expected_digest_bytes],
+ 1140:                 &mut indices[..parameters.k - 1],
+ 1149:     #[test]
+ 1164:     #[test]
+ 1177:     #[test]
+ 1188:     #[test]
+ 1201:     #[test]
+ 1215:     #[test]
+ 1218:         let secret_seed = [0x11_u8; 32];
+ 1219:         let public_seed = [0x22_u8; 32];
+ 1222:         let mut generated = [0_u8; 32];
+ 1223:         let mut expected = [0_u8; 32];
+ 1227:             &secret_seed[..parameters.n],
+ 1228:             &public_seed[..parameters.n],
+ 1232:             &mut generated[..parameters.n],
+ 1243:                 &public_seed[..parameters.n],
+ 1244:                 &secret_seed[..parameters.n],
+ 1246:                 &mut expected[..parameters.n],
+ 1250:         assert_eq!(&generated[..parameters.n], &expected[..parameters.n]);
+ 1253:     #[test]
+ 1256:         let secret_seed = [0x31_u8; 32];
+ 1257:         let public_seed = [0x42_u8; 32];
+ 1262:         let mut selected = [0_u8; 32];
+ 1263:         let mut direct = [0_u8; 32];
+ 1267:             &secret_seed[..parameters.n],
+ 1268:             &public_seed[..parameters.n],
+ 1275:             &mut selected[..parameters.n],
+ 1281:             &secret_seed[..parameters.n],
+ 1282:             &public_seed[..parameters.n],
+ 1286:             &mut direct[..parameters.n],
+ 1290:         assert_eq!(&selected[..parameters.n], &direct[..parameters.n]);
+ 1293:     #[test]
+ 1296:         let secret_seed = [0_u8; 16];
+ 1297:         let public_seed = [0_u8; 15];
+ 1299:         let mut output = [0_u8; 16];
+ 1318:     #[test]
+ 1320:         for parameter_set in [
+ 1327:             let secret_seed = [0x31_u8; 32];
+ 1328:             let public_seed = [0x57_u8; 32];
+ 1333:             let mut actual = [0_u8; 32];
+ 1336:                 &secret_seed[..parameters.n],
+ 1337:                 &public_seed[..parameters.n],
+ 1341:                 &mut actual[..parameters.n],
+ 1345:             let mut secret = [0_u8; 32];
+ 1348:                 &secret_seed[..parameters.n],
+ 1349:                 &public_seed[..parameters.n],
+ 1353:                 &mut secret[..parameters.n],
+ 1363:             let mut expected = [0_u8; 32];
+ 1366:                     &public_seed[..parameters.n],
+ 1368:                     &secret[..parameters.n],
+ 1369:                     &mut expected[..parameters.n],
+ 1374:                 &actual[..parameters.n],
+ 1375:                 &expected[..parameters.n],
+ 1381:     #[test]
+ 1384:         let secret_seed = [0x42_u8; 32];
+ 1385:         let public_seed = [0x24_u8; 32];
+ 1394:         let mut selected = [0_u8; 32];
+ 1397:             &secret_seed[..parameters.n],
+ 1398:             &public_seed[..parameters.n],
+ 1401:             &mut selected[..parameters.n],
+ 1405:         let mut direct = [0_u8; 32];
+ 1408:             &secret_seed[..parameters.n],
+ 1409:             &public_seed[..parameters.n],
+ 1413:             &mut direct[..parameters.n],
+ 1417:         assert_eq!(&selected[..parameters.n], &direct[..parameters.n]);
+ 1420:     #[test]
+ 1423:         let secret_seed = [0_u8; 32];
+ 1424:         let public_seed = [0_u8; 32];
+ 1431:         let mut output = [0_u8; 32];
+ 1436:                 &secret_seed[..parameters.n],
+ 1437:                 &public_seed[..parameters.n],
+ 1440:                 &mut output[..parameters.n],
+ 1449:     #[test]
+ 1453:         let secret_seed = [0_u8; 32];
+ 1454:         let public_seed = [0_u8; 32];
+ 1461:         let mut output = [0_u8; 32];
+ 1466:                 &secret_seed[..parameters.n],
+ 1467:                 &public_seed[..parameters.n],
+ 1470:                 &mut output[..parameters.n],
+ 1479:     #[test]
+ 1482:         let secret_seed = [0_u8; 32];
+ 1483:         let public_seed = [0_u8; 32];
+ 1485:         let mut output = [0_u8; 32];
+ 1490:                 &secret_seed[..parameters.n],
+ 1491:                 &public_seed[..parameters.n],
+ 1495:                 &mut output[..parameters.n - 1],
+ 1501:     #[test]
+ 1503:         let secret_seed = [0xa5_u8; 32];
+ 1504:         let public_seed = [0x5a_u8; 32];
+ 1507:         for parameter_set in PARAMETER_SETS {
+ 1509:             let mut output = [0_u8; 32];
+ 1513:                 &secret_seed[..parameters.n],
+ 1514:                 &public_seed[..parameters.n],
+ 1521:                 &mut output[..parameters.n],
+ 1526:                 &output[..parameters.n],
+ 1527:                 &[0_u8; 32][..parameters.n],
+ 1532:     #[test]
+ 1534:         for parameter_set in [
+ 1541:             let public_seed = [0x39_u8; 32];
+ 1542:             let left = [0x51_u8; 32];
+ 1543:             let right = [0xa7_u8; 32];
+ 1549:             let mut actual = [0_u8; 32];
+ 1552:                 &public_seed[..parameters.n],
+ 1559:                 &left[..parameters.n],
+ 1560:                 &right[..parameters.n],
+ 1561:                 &mut actual[..parameters.n],
+ 1571:             let mut expected = [0_u8; 32];
+ 1574:                     &public_seed[..parameters.n],
+ 1576:                     &left[..parameters.n],
+ 1577:                     &right[..parameters.n],
+ 1578:                     &mut expected[..parameters.n],
+ 1583:                 &actual[..parameters.n],
+ 1584:                 &expected[..parameters.n],
+ 1590:     #[test]
+ 1593:         let public_seed = [0x63_u8; 32];
+ 1594:         let left = [0x18_u8; 32];
+ 1595:         let right = [0x81_u8; 32];
+ 1598:         let mut baseline = [0_u8; 32];
+ 1601:             &public_seed[..parameters.n],
+ 1608:             &left[..parameters.n],
+ 1609:             &right[..parameters.n],
+ 1610:             &mut baseline[..parameters.n],
+ 1614:         let mut different_height = [0_u8; 32];
+ 1617:             &public_seed[..parameters.n],
+ 1624:             &left[..parameters.n],
+ 1625:             &right[..parameters.n],
+ 1626:             &mut different_height[..parameters.n],
+ 1630:         let mut different_index = [0_u8; 32];
+ 1633:             &public_seed[..parameters.n],
+ 1640:             &left[..parameters.n],
+ 1641:             &right[..parameters.n],
+ 1642:             &mut different_index[..parameters.n],
+ 1646:         assert_ne!(&baseline[..parameters.n], &different_height[..parameters.n]);
+ 1647:         assert_ne!(&baseline[..parameters.n], &different_index[..parameters.n]);
+ 1650:     #[test]
+ 1653:         let public_seed = [0xc3_u8; 32];
+ 1654:         let left = [0x2d_u8; 32];
+ 1655:         let right = [0xd2_u8; 32];
+ 1658:         let mut first = [0_u8; 32];
+ 1661:             &public_seed[..parameters.n],
+ 1668:             &left[..parameters.n],
+ 1669:             &right[..parameters.n],
+ 1670:             &mut first[..parameters.n],
+ 1674:         let mut second = [0_u8; 32];
+ 1677:             &public_seed[..parameters.n],
+ 1684:             &left[..parameters.n],
+ 1685:             &right[..parameters.n],
+ 1686:             &mut second[..parameters.n],
+ 1690:         assert_ne!(&first[..parameters.n], &second[..parameters.n]);
+ 1693:     #[test]
+ 1696:         let public_seed = [0_u8; 32];
+ 1697:         let left = [0_u8; 32];
+ 1698:         let right = [0_u8; 32];
+ 1700:         let mut output = [0_u8; 32];
+ 1705:                 &public_seed[..parameters.n],
+ 1712:                 &left[..parameters.n - 1],
+ 1713:                 &right[..parameters.n],
+ 1714:                 &mut output[..parameters.n],
+ 1722:                 &public_seed[..parameters.n],
+ 1729:                 &left[..parameters.n],
+ 1730:                 &right[..parameters.n],
+ 1731:                 &mut output[..parameters.n - 1],
+ 1737:     #[test]
+ 1739:         let public_seed = [0x96_u8; 32];
+ 1740:         let left = [0x3c_u8; 32];
+ 1741:         let right = [0xc3_u8; 32];
+ 1744:         for parameter_set in PARAMETER_SETS {
+ 1746:             let mut output = [0_u8; 32];
+ 1750:                 &public_seed[..parameters.n],
+ 1757:                 &left[..parameters.n],
+ 1758:                 &right[..parameters.n],
+ 1759:                 &mut output[..parameters.n],
+ 1764:                 &output[..parameters.n],
+ 1765:                 &[0_u8; 32][..parameters.n],
+ 1770:     #[test]
+ 1773:         let secret_seed = [0x12_u8; 32];
+ 1774:         let public_seed = [0x34_u8; 32];
+ 1782:         let mut actual = [0_u8; 32];
+ 1785:             &secret_seed[..parameters.n],
+ 1786:             &public_seed[..parameters.n],
+ 1789:             &mut actual[..parameters.n],
+ 1793:         let mut expected = [0_u8; 32];
+ 1796:             &secret_seed[..parameters.n],
+ 1797:             &public_seed[..parameters.n],
+ 1801:             &mut expected[..parameters.n],
+ 1805:         assert_eq!(&actual[..parameters.n], &expected[..parameters.n]);
+ 1808:     #[test]
+ 1810:         for parameter_set in [
+ 1817:             let secret_seed = [0x56_u8; 32];
+ 1818:             let public_seed = [0x78_u8; 32];
+ 1826:             let mut actual = [0_u8; 32];
+ 1829:                 &secret_seed[..parameters.n],
+ 1830:                 &public_seed[..parameters.n],
+ 1833:                 &mut actual[..parameters.n],
+ 1837:             let mut left = [0_u8; 32];
+ 1840:                 &secret_seed[..parameters.n],
+ 1841:                 &public_seed[..parameters.n],
+ 1845:                 &mut left[..parameters.n],
+ 1849:             let mut right = [0_u8; 32];
+ 1852:                 &secret_seed[..parameters.n],
+ 1853:                 &public_seed[..parameters.n],
+ 1857:                 &mut right[..parameters.n],
+ 1861:             let mut expected = [0_u8; 32];
+ 1864:                 &public_seed[..parameters.n],
+ 1867:                 &left[..parameters.n],
+ 1868:                 &right[..parameters.n],
+ 1869:                 &mut expected[..parameters.n],
+ 1874:                 &actual[..parameters.n],
+ 1875:                 &expected[..parameters.n],
+ 1881:     #[test]
+ 1884:         let secret_seed = [0x9a_u8; 32];
+ 1885:         let public_seed = [0xbc_u8; 32];
+ 1893:         let mut actual = [0_u8; 32];
+ 1896:             &secret_seed[..parameters.n],
+ 1897:             &public_seed[..parameters.n],
+ 1900:             &mut actual[..parameters.n],
+ 1906:         let mut left = [0_u8; 32];
+ 1909:             &secret_seed[..parameters.n],
+ 1910:             &public_seed[..parameters.n],
+ 1917:             &mut left[..parameters.n],
+ 1921:         let mut right = [0_u8; 32];
+ 1924:             &secret_seed[..parameters.n],
+ 1925:             &public_seed[..parameters.n],
+ 1932:             &mut right[..parameters.n],
+ 1936:         let mut expected = [0_u8; 32];
+ 1939:             &public_seed[..parameters.n],
+ 1942:             &left[..parameters.n],
+ 1943:             &right[..parameters.n],
+ 1944:             &mut expected[..parameters.n],
+ 1948:         assert_eq!(&actual[..parameters.n], &expected[..parameters.n]);
+ 1951:     #[test]
+ 1954:         let secret_seed = [0_u8; 32];
+ 1955:         let public_seed = [0_u8; 32];
+ 1957:         let mut output = [0_u8; 32];
+ 1964:                 &secret_seed[..parameters.n],
+ 1965:                 &public_seed[..parameters.n],
+ 1972:                 &mut output[..parameters.n],
+ 1981:     #[test]
+ 1984:         let secret_seed = [0_u8; 32];
+ 1985:         let public_seed = [0_u8; 32];
+ 1987:         let mut output = [0_u8; 32];
+ 1996:                 &secret_seed[..parameters.n],
+ 1997:                 &public_seed[..parameters.n],
+ 2004:                 &mut output[..parameters.n],
+ 2014:     #[test]
+ 2016:         for parameter_set in PARAMETER_SETS {
+ 2026:     #[test]
+ 2029:         let secret_seed = [0_u8; 32];
+ 2030:         let public_seed = [0_u8; 32];
+ 2038:         let mut output = [0_u8; 512];
+ 2043:                 &secret_seed[..parameters.n],
+ 2044:                 &public_seed[..parameters.n],
+ 2047:                 &mut output[..expected - 1],
+ 2056:     #[test]
+ 2059:         let secret_seed = [0x21_u8; 32];
+ 2060:         let public_seed = [0x43_u8; 32];
+ 2069:         let mut path = [0_u8; 512];
+ 2073:             &secret_seed[..parameters.n],
+ 2074:             &public_seed[..parameters.n],
+ 2077:             &mut path[..path_length],
+ 2081:         for level in 0..parameters.a {
+ 2087:             let mut expected = [0_u8; 32];
+ 2090:                 &secret_seed[..parameters.n],
+ 2091:                 &public_seed[..parameters.n],
+ 2098:                 &mut expected[..parameters.n],
+ 2106:                 &path[start..end],
+ 2107:                 &expected[..parameters.n],
+ 2113:     #[test]
+ 2115:         let secret_seed = [0x65_u8; 32];
+ 2116:         let public_seed = [0x87_u8; 32];
+ 2118:         let mut path = [0_u8; 512];
+ 2120:         for parameter_set in PARAMETER_SETS {
+ 2127:                 &secret_seed[..parameters.n],
+ 2128:                 &public_seed[..parameters.n],
+ 2135:                 &mut path[..path_length],
+ 2141:     #[test]
+ 2143:         for parameter_set in [
+ 2149:             let secret_seed = [0xa9_u8; 32];
+ 2150:             let public_seed = [0xcb_u8; 32];
+ 2158:             let mut actual = [0_u8; 32];
+ 2161:                 &secret_seed[..parameters.n],
+ 2162:                 &public_seed[..parameters.n],
+ 2165:                 &mut actual[..parameters.n],
+ 2169:             let mut expected = [0_u8; 32];
+ 2172:                 &secret_seed[..parameters.n],
+ 2173:                 &public_seed[..parameters.n],
+ 2180:                 &mut expected[..parameters.n],
+ 2185:                 &actual[..parameters.n],
+ 2186:                 &expected[..parameters.n],
+ 2192:     #[test]
+ 2195:         let secret_seed = [0xed_u8; 32];
+ 2196:         let public_seed = [0x0f_u8; 32];
+ 2199:         let mut first = [0_u8; 32];
+ 2202:             &secret_seed[..parameters.n],
+ 2203:             &public_seed[..parameters.n],
+ 2210:             &mut first[..parameters.n],
+ 2214:         let mut second = [0_u8; 32];
+ 2217:             &secret_seed[..parameters.n],
+ 2218:             &public_seed[..parameters.n],
+ 2225:             &mut second[..parameters.n],
+ 2229:         assert_ne!(&first[..parameters.n], &second[..parameters.n]);
+ 2232:     #[test]
+ 2234:         for parameter_set in PARAMETER_SETS {
+ 2244:     #[test]
+ 2247:         let digest = [0_u8; 40];
+ 2248:         let secret_seed = [0_u8; 32];
+ 2249:         let public_seed = [0_u8; 32];
+ 2253:         let mut signature = [0_u8; 12_000];
+ 2258:                 &digest[..digest_length],
+ 2259:                 &secret_seed[..parameters.n],
+ 2260:                 &public_seed[..parameters.n],
+ 2263:                 &mut signature[..expected - 1],
+ 2272:     #[test]
+ 2275:         let digest = [0_u8; 40];
+ 2276:         let secret_seed = [0_u8; 32];
+ 2277:         let public_seed = [0_u8; 32];
+ 2281:         let mut signature = [0_u8; 12_000];
+ 2286:                 &digest[..digest_length - 1],
+ 2287:                 &secret_seed[..parameters.n],
+ 2288:                 &public_seed[..parameters.n],
+ 2291:                 &mut signature[..signature_length],
+ 2300:     #[test]
+ 2303:         let digest = [0xa5_u8; 40];
+ 2304:         let secret_seed = [0x31_u8; 32];
+ 2305:         let public_seed = [0x72_u8; 32];
+ 2314:         let mut signature = [0_u8; 12_000];
+ 2317:             &digest[..digest_length],
+ 2318:             &secret_seed[..parameters.n],
+ 2319:             &public_seed[..parameters.n],
+ 2322:             &mut signature[..signature_length],
+ 2326:         let mut indices = [0_u32; MAX_FORS_TREES];
+ 2329:             &digest[..digest_length],
+ 2330:             &mut indices[..parameters.k],
+ 2334:         for (tree, leaf) in indices[..parameters.k].iter().copied().enumerate() {
+ 2345:             let mut expected_secret = [0_u8; 32];
+ 2348:                 &secret_seed[..parameters.n],
+ 2349:                 &public_seed[..parameters.n],
+ 2352:                 &mut expected_secret[..parameters.n],
+ 2357:                 &signature[tree_start..secret_end],
+ 2358:                 &expected_secret[..parameters.n],
+ 2359:                 "secret-value mismatch for tree {tree}"
+ 2362:             let mut expected_authentication = [0_u8; 512];
+ 2365:                 &secret_seed[..parameters.n],
+ 2366:                 &public_seed[..parameters.n],
+ 2369:                 &mut expected_authentication[..authentication_length],
+ 2374:                 &signature[secret_end..tree_end],
+ 2375:                 &expected_authentication[..authentication_length],
+ 2376:                 "authentication-path mismatch for tree {tree}"
+ 2381:     #[test]
+ 2384:         let digest = [0x19_u8; 40];
+ 2385:         let secret_seed = [0x2a_u8; 32];
+ 2386:         let public_seed = [0x3b_u8; 32];
+ 2392:         let mut first = [0_u8; 12_000];
+ 2395:             &digest[..digest_length],
+ 2396:             &secret_seed[..parameters.n],
+ 2397:             &public_seed[..parameters.n],
+ 2400:             &mut first[..signature_length],
+ 2404:         let mut second = [0_u8; 12_000];
+ 2407:             &digest[..digest_length],
+ 2408:             &secret_seed[..parameters.n],
+ 2409:             &public_seed[..parameters.n],
+ 2412:             &mut second[..signature_length],
+ 2416:         assert_eq!(&first[..signature_length], &second[..signature_length]);
+ 2419:     #[test]
+ 2421:         let digest = [0xd4_u8; 40];
+ 2422:         let secret_seed = [0xe5_u8; 32];
+ 2423:         let public_seed = [0xf6_u8; 32];
+ 2425:         let mut signature = [0_u8; 12_000];
+ 2427:         for parameter_set in PARAMETER_SETS {
+ 2434:                 &digest[..digest_length],
+ 2435:                 &secret_seed[..parameters.n],
+ 2436:                 &public_seed[..parameters.n],
+ 2439:                 &mut signature[..signature_length],
+ 2452:     #[test]
+ 2454:         for parameter_set in PARAMETER_SETS {
+ 2464:     #[test]
+ 2467:         let public_seed = [0x11_u8; 32];
+ 2470:         let tree_signature = [0_u8; 512];
+ 2471:         let mut root = [0_u8; 32];
+ 2476:                 &tree_signature[..expected - 1],
+ 2477:                 &public_seed[..parameters.n],
+ 2484:                 &mut root[..parameters.n],
+ 2493:     #[test]
+ 2496:         let digest = [0xa6_u8; 8];
+ 2497:         let secret_seed = [0x21_u8; 32];
+ 2498:         let public_seed = [0x43_u8; 32];
+ 2506:         let mut signature = [0_u8; 1024];
+ 2509:             &digest[..digest_length],
+ 2510:             &secret_seed[..parameters.n],
+ 2511:             &public_seed[..parameters.n],
+ 2514:             &mut signature[..signature_length],
+ 2518:         let mut indices = [0_u32; MAX_FORS_TREES];
+ 2521:             &digest[..digest_length],
+ 2522:             &mut indices[..parameters.k],
+ 2526:         for (tree, leaf) in indices[..parameters.k].iter().copied().enumerate() {
+ 2536:             let mut reconstructed = [0_u8; 32];
+ 2539:                 &signature[start..end],
+ 2540:                 &public_seed[..parameters.n],
+ 2543:                 &mut reconstructed[..parameters.n],
+ 2547:             let mut expected = [0_u8; 32];
+ 2550:                 &secret_seed[..parameters.n],
+ 2551:                 &public_seed[..parameters.n],
+ 2554:                 &mut expected[..parameters.n],
+ 2559:                 &reconstructed[..parameters.n],
+ 2560:                 &expected[..parameters.n],
+ 2561:                 "root mismatch for tree {tree}"
+ 2566:     #[test]
+ 2569:         let digest = [0x5a_u8; 8];
+ 2570:         let secret_seed = [0x31_u8; 32];
+ 2571:         let public_seed = [0x72_u8; 32];
+ 2579:         let mut signature = [0_u8; 1024];
+ 2582:             &digest[..digest_length],
+ 2583:             &secret_seed[..parameters.n],
+ 2584:             &public_seed[..parameters.n],
+ 2587:             &mut signature[..signature_length],
+ 2591:         let mut actual = [0_u8; 32];
+ 2594:             &signature[..signature_length],
+ 2595:             &digest[..digest_length],
+ 2596:             &public_seed[..parameters.n],
+ 2599:             &mut actual[..parameters.n],
+ 2603:         let mut indices = [0_u32; MAX_FORS_TREES];
+ 2606:             &digest[..digest_length],
+ 2607:             &mut indices[..parameters.k],
+ 2611:         let mut roots = [0_u8; MAX_FORS_TREES * 32];
+ 2613:         for (tree, leaf) in indices[..parameters.k].iter().copied().enumerate() {
+ 2619:                 &secret_seed[..parameters.n],
+ 2620:                 &public_seed[..parameters.n],
+ 2627:                 &mut roots[start..end],
+ 2636:         let mut expected = [0_u8; 32];
+ 2639:                 &public_seed[..parameters.n],
+ 2641:                 &roots[..roots_length],
+ 2642:                 &mut expected[..parameters.n],
+ 2646:         assert_eq!(&actual[..parameters.n], &expected[..parameters.n]);
+ 2649:     #[test]
+ 2652:         let digest = [0_u8; 8];
+ 2653:         let public_seed = [0_u8; 32];
+ 2657:         let signature = [0_u8; 1024];
+ 2658:         let mut public_key = [0_u8; 32];
+ 2663:                 &signature[..expected - 1],
+ 2664:                 &digest[..digest_length],
+ 2665:                 &public_seed[..parameters.n],
+ 2668:                 &mut public_key[..parameters.n],
+ 2677:     #[test]
+ 2680:         let digest = [0xc3_u8; 8];
+ 2681:         let secret_seed = [0x45_u8; 32];
+ 2682:         let public_seed = [0x67_u8; 32];
+ 2689:         let mut signature = [0_u8; 1024];
+ 2692:             &digest[..digest_length],
+ 2693:             &secret_seed[..parameters.n],
+ 2694:             &public_seed[..parameters.n],
+ 2697:             &mut signature[..signature_length],
+ 2701:         let mut original = [0_u8; 32];
+ 2704:             &signature[..signature_length],
+ 2705:             &digest[..digest_length],
+ 2706:             &public_seed[..parameters.n],
+ 2709:             &mut original[..parameters.n],
+ 2713:         signature[0] ^= 1;
+ 2715:         let mut modified = [0_u8; 32];
+ 2718:             &signature[..signature_length],
+ 2719:             &digest[..digest_length],
+ 2720:             &public_seed[..parameters.n],
+ 2723:             &mut modified[..parameters.n],
+ 2727:         assert_ne!(&original[..parameters.n], &modified[..parameters.n]);
+
+===== crates/pqc-slh-dsa/src/xmss.rs =====
+    1: //! eXtended Merkle Signature Scheme primitives for SLH-DSA.
+   18: #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+   28: #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+   39:     /// The supplied node height is invalid for parent-node hashing.
+  103: impl fmt::Display for XmssError {
+  105:         match self {
+  168: impl From<WotsError> for XmssError {
+  174: impl From<HashError> for XmssError {
+  194:     secret_seed: &[u8],
+  195:     public_seed: &[u8],
+  198:     output: &mut [u8],
+  202:     if u64::from(leaf_index) >= leaf_count {
+  224:     public_seed: &[u8],
+  227:     left: &[u8],
+  228:     right: &[u8],
+  229:     output: &mut [u8],
+  231:     if position.height == 0 {
+  237:     for value in [left, right, output] {
+  238:         if value.len() != parameters.n {
+  261: /// [`parent_node`].
+  264:     secret_seed: &[u8],
+  265:     public_seed: &[u8],
+  268:     output: &mut [u8],
+  270:     if output.len() != parameters.n {
+  279:     if height > parameters.hp {
+  295:     if u64::from(position.index) >= node_count {
+  303:     if position.height == 0 {
+  328:     let mut left = [0_u8; 32];
+  329:     let mut right = [0_u8; 32];
+  340:         &mut left[..parameters.n],
+  352:         &mut right[..parameters.n],
+  360:         &left[..parameters.n],
+  361:         &right[..parameters.n],
+  368: /// An authentication path contains one `n`-byte sibling node for every level
+  377: /// Generate the authentication path for one XMSS leaf.
+  384:     secret_seed: &[u8],
+  385:     public_seed: &[u8],
+  388:     output: &mut [u8],
+  392:     if u64::from(leaf_index) >= leaf_count {
+  401:     if output.len() != expected {
+  408:     for level in 0..parameters.hp {
+  434:             &mut output[start..end],
+  446:     secret_seed: &[u8],
+  447:     public_seed: &[u8],
+  449:     output: &mut [u8],
+  483:     secret_seed: &[u8],
+  484:     public_seed: &[u8],
+  485:     message: &[u8],
+  488:     signature: &mut [u8],
+  492:     if signature.len() != expected {
+  501:     if u64::from(leaf_index) >= leaf_count {
+  509:     let (wots_signature, authentication_path_output) = signature.split_at_mut(wots_signature_bytes);
+  542:     signature: &[u8],
+  543:     message: &[u8],
+  544:     public_seed: &[u8],
+  547:     output: &mut [u8],
+  551:     if signature.len() != expected {
+  558:     if output.len() != parameters.n {
+  567:     if u64::from(leaf_index) >= leaf_count {
+  575:     let (wots_signature, authentication_path_input) = signature.split_at(wots_signature_bytes);
+  580:     let mut current = [0_u8; 32];
+  588:         &mut current[..parameters.n],
+  591:     for level in 0..parameters.hp {
+  612:         let sibling = &authentication_path_input[path_start..path_end];
+  615:         let mut parent = [0_u8; 32];
+  617:         let (left, right) = if current_is_right_child {
+  618:             (sibling, &current[..parameters.n])
+  620:             (&current[..parameters.n], sibling)
+  633:             &mut parent[..parameters.n],
+  636:         current[..parameters.n].copy_from_slice(&parent[..parameters.n]);
+  639:     output.copy_from_slice(&current[..parameters.n]);
+  644: #[cfg(test)]
+  649:     const PARAMETER_SETS: [SlhDsaParameterSet; 12] = [
+  672:     #[test]
+  674:         for parameter_set in PARAMETER_SETS {
+  681:     #[test]
+  684:         let secret_seed = [0_u8; 16];
+  685:         let public_seed = [0_u8; 16];
+  687:         let mut output = [0_u8; 16];
+  705:     #[test]
+  708:         let secret_seed = [0x21_u8; 16];
+  709:         let public_seed = [0x43_u8; 16];
+  713:         let mut actual = [0_u8; 16];
+  728:         let mut expected = [0_u8; 16];
+  742:     #[test]
+  745:         let secret_seed = [0x65_u8; 16];
+  746:         let public_seed = [0x87_u8; 16];
+  749:         let mut first = [0_u8; 16];
+  750:         let mut second = [0_u8; 16];
+  775:     #[test]
+  777:         let secret_seed = [0xa9_u8; 32];
+  778:         let public_seed = [0xcb_u8; 32];
+  780:         let mut output = [0_u8; 32];
+  782:         for parameter_set in PARAMETER_SETS {
+  787:                 &secret_seed[..parameters.n],
+  788:                 &public_seed[..parameters.n],
+  791:                 &mut output[..parameters.n],
+  797:     #[test]
+  800:         let public_seed = [0_u8; 16];
+  801:         let left = [0_u8; 16];
+  802:         let right = [0_u8; 16];
+  803:         let mut output = [0_u8; 16];
+  822:     #[test]
+  825:         let public_seed = [0_u8; 16];
+  826:         let left = [0_u8; 15];
+  827:         let right = [0_u8; 16];
+  828:         let mut output = [0_u8; 16];
+  850:     #[test]
+  853:         let public_seed = [0x21_u8; 16];
+  854:         let left = [0x43_u8; 16];
+  855:         let right = [0x65_u8; 16];
+  862:         let mut actual = [0_u8; 16];
+  880:         let mut expected = [0_u8; 16];
+  895:     #[test]
+  898:         let public_seed = [0x87_u8; 16];
+  899:         let left = [0xa9_u8; 16];
+  900:         let right = [0xcb_u8; 16];
+  903:         let mut first = [0_u8; 16];
+  904:         let mut second = [0_u8; 16];
+  937:     #[test]
+  940:         let public_seed = [0xed_u8; 16];
+  941:         let left = [0x0f_u8; 16];
+  942:         let right = [0x31_u8; 16];
+  952:         let mut first = [0_u8; 16];
+  953:         let mut second = [0_u8; 16];
+  986:     #[test]
+  988:         let public_seed = [0x53_u8; 32];
+  989:         let left = [0x75_u8; 32];
+  990:         let right = [0x97_u8; 32];
+  992:         let mut output = [0_u8; 32];
+  994:         for parameter_set in PARAMETER_SETS {
+  999:                 &public_seed[..parameters.n],
+ 1005:                 &left[..parameters.n],
+ 1006:                 &right[..parameters.n],
+ 1007:                 &mut output[..parameters.n],
+ 1013:     #[test]
+ 1016:         let secret_seed = [0x11_u8; 16];
+ 1017:         let public_seed = [0x22_u8; 16];
+ 1020:         let mut actual = [0_u8; 16];
+ 1035:         let mut expected = [0_u8; 16];
+ 1050:     #[test]
+ 1053:         let secret_seed = [0x33_u8; 16];
+ 1054:         let public_seed = [0x44_u8; 16];
+ 1057:         let mut actual = [0_u8; 16];
+ 1072:         let mut left = [0_u8; 16];
+ 1073:         let mut right = [0_u8; 16];
+ 1095:         let mut expected = [0_u8; 16];
+ 1114:     #[test]
+ 1117:         let secret_seed = [0x55_u8; 16];
+ 1118:         let public_seed = [0x66_u8; 16];
+ 1121:         let mut actual = [0_u8; 16];
+ 1136:         let mut left = [0_u8; 16];
+ 1137:         let mut right = [0_u8; 16];
+ 1165:         let mut expected = [0_u8; 16];
+ 1184:     #[test]
+ 1187:         let secret_seed = [0_u8; 16];
+ 1188:         let public_seed = [0_u8; 16];
+ 1190:         let mut output = [0_u8; 16];
+ 1208:     #[test]
+ 1211:         let secret_seed = [0_u8; 16];
+ 1212:         let public_seed = [0_u8; 16];
+ 1216:         let mut output = [0_u8; 16];
+ 1235:     #[test]
+ 1237:         let secret_seed = [0x77_u8; 32];
+ 1238:         let public_seed = [0x88_u8; 32];
+ 1240:         let mut output = [0_u8; 32];
+ 1242:         for parameter_set in PARAMETER_SETS {
+ 1245:             // Keep this cross-parameter test inexpensive while exercising the
+ 1251:                 &secret_seed[..parameters.n],
+ 1252:                 &public_seed[..parameters.n],
+ 1258:                 &mut output[..parameters.n],
+ 1264:     #[test]
+ 1266:         for parameter_set in PARAMETER_SETS {
+ 1276:     #[test]
+ 1279:         let secret_seed = [0_u8; 16];
+ 1280:         let public_seed = [0_u8; 16];
+ 1282:         let mut output = [0_u8; 512];
+ 1291:                 &mut output[..expected - 1],
+ 1300:     #[test]
+ 1303:         let secret_seed = [0_u8; 16];
+ 1304:         let public_seed = [0_u8; 16];
+ 1308:         let mut output = [0_u8; 512];
+ 1317:                 &mut output[..path_length],
+ 1326:     #[test]
+ 1330:         // Keep the independent reconstruction inexpensive while exercising
+ 1334:         let secret_seed = [0x21_u8; 16];
+ 1335:         let public_seed = [0x43_u8; 16];
+ 1340:         let mut path = [0_u8; 512];
+ 1348:             &mut path[..path_length],
+ 1352:         for level in 0..parameters.hp {
+ 1356:             let mut expected = [0_u8; 16];
+ 1375:                 &path[start..end],
+ 1382:     #[test]
+ 1387:         let secret_seed = [0x65_u8; 16];
+ 1388:         let public_seed = [0x87_u8; 16];
+ 1392:         let mut first = [0_u8; 512];
+ 1393:         let mut second = [0_u8; 512];
+ 1401:             &mut first[..path_length],
+ 1411:             &mut second[..path_length],
+ 1415:         let mut leaf_two = [0_u8; 16];
+ 1416:         let mut leaf_three = [0_u8; 16];
+ 1438:         assert_eq!(&first[..parameters.n], &leaf_three);
+ 1439:         assert_eq!(&second[..parameters.n], &leaf_two);
+ 1442:             &first[parameters.n..path_length],
+ 1443:             &second[parameters.n..path_length]
+ 1447:     #[test]
+ 1452:         let secret_seed = [0xa9_u8; 16];
+ 1453:         let public_seed = [0xcb_u8; 16];
+ 1462:         let mut first = [0_u8; 512];
+ 1463:         let mut second = [0_u8; 512];
+ 1471:             &mut first[..path_length],
+ 1481:             &mut second[..path_length],
+ 1485:         assert_ne!(&first[..path_length], &second[..path_length]);
+ 1488:     #[test]
+ 1490:         let secret_seed = [0xed_u8; 32];
+ 1491:         let public_seed = [0x0f_u8; 32];
+ 1493:         let mut output = [0_u8; 512];
+ 1495:         for parameter_set in PARAMETER_SETS {
+ 1506:                 &secret_seed[..parameters.n],
+ 1507:                 &public_seed[..parameters.n],
+ 1510:                 &mut output[..path_length],
+ 1516:     #[test]
+ 1521:         let secret_seed = [0x21_u8; 16];
+ 1522:         let public_seed = [0x43_u8; 16];
+ 1525:         let mut actual = [0_u8; 16];
+ 1536:         let mut expected = [0_u8; 16];
+ 1554:     #[test]
+ 1557:         let secret_seed = [0_u8; 16];
+ 1558:         let public_seed = [0_u8; 16];
+ 1559:         let mut output = [0_u8; 15];
+ 1576:     #[test]
+ 1581:         let secret_seed = [0x65_u8; 16];
+ 1582:         let public_seed = [0x87_u8; 16];
+ 1585:         let mut first = [0_u8; 16];
+ 1586:         let mut second = [0_u8; 16];
+ 1609:     #[test]
+ 1614:         let secret_seed = [0xa9_u8; 16];
+ 1615:         let public_seed = [0xcb_u8; 16];
+ 1623:         let mut first = [0_u8; 16];
+ 1624:         let mut second = [0_u8; 16];
+ 1647:     #[test]
+ 1649:         let secret_seed = [0xed_u8; 32];
+ 1650:         let public_seed = [0x0f_u8; 32];
+ 1652:         let mut output = [0_u8; 32];
+ 1654:         for parameter_set in PARAMETER_SETS {
+ 1663:                 &secret_seed[..parameters.n],
+ 1664:                 &public_seed[..parameters.n],
+ 1666:                 &mut output[..parameters.n],
+ 1672:     #[test]
+ 1674:         for parameter_set in PARAMETER_SETS {
+ 1685:     #[test]
+ 1688:         let secret_seed = [0_u8; 16];
+ 1689:         let public_seed = [0_u8; 16];
+ 1690:         let message = [0_u8; 16];
+ 1692:         let mut signature = [0_u8; 4096];
+ 1702:                 &mut signature[..expected - 1],
+ 1711:     #[test]
+ 1714:         let secret_seed = [0_u8; 16];
+ 1715:         let public_seed = [0_u8; 16];
+ 1716:         let message = [0_u8; 16];
+ 1720:         let mut signature = [0_u8; 4096];
+ 1730:                 &mut signature[..signature_length],
+ 1739:     #[test]
+ 1744:         let secret_seed = [0x21_u8; 16];
+ 1745:         let public_seed = [0x43_u8; 16];
+ 1746:         let message = [0x65_u8; 16];
+ 1754:         let mut signature = [0_u8; 4096];
+ 1763:             &mut signature[..signature_length],
+ 1767:         let mut expected_wots = [0_u8; 4096];
+ 1777:             &mut expected_wots[..wots_length],
+ 1781:         let mut expected_path = [0_u8; 512];
+ 1789:             &mut expected_path[..path_length],
+ 1793:         assert_eq!(&signature[..wots_length], &expected_wots[..wots_length]);
+ 1796:             &signature[wots_length..signature_length],
+ 1797:             &expected_path[..path_length]
+ 1801:     #[test]
+ 1806:         let secret_seed = [0x87_u8; 16];
+ 1807:         let public_seed = [0xa9_u8; 16];
+ 1808:         let message = [0xcb_u8; 16];
+ 1812:         let mut first = [0_u8; 4096];
+ 1813:         let mut second = [0_u8; 4096];
+ 1822:             &mut first[..signature_length],
+ 1833:             &mut second[..signature_length],
+ 1837:         assert_eq!(&first[..signature_length], &second[..signature_length]);
+ 1840:     #[test]
+ 1845:         let secret_seed = [0xed_u8; 16];
+ 1846:         let public_seed = [0x0f_u8; 16];
+ 1847:         let message = [0x31_u8; 16];
+ 1851:         let mut first = [0_u8; 4096];
+ 1852:         let mut second = [0_u8; 4096];
+ 1861:             &mut first[..signature_length],
+ 1872:             &mut second[..signature_length],
+ 1876:         assert_ne!(&first[..signature_length], &second[..signature_length]);
+ 1879:     #[test]
+ 1881:         let secret_seed = [0x53_u8; 32];
+ 1882:         let public_seed = [0x75_u8; 32];
+ 1883:         let message = [0x97_u8; 32];
+ 1885:         let mut signature = [0_u8; 4096];
+ 1887:         for parameter_set in PARAMETER_SETS {
+ 1895:                 &secret_seed[..parameters.n],
+ 1896:                 &public_seed[..parameters.n],
+ 1897:                 &message[..parameters.n],
+ 1900:                 &mut signature[..signature_length],
+ 1906:     #[test]
+ 1910:         let signature = [0_u8; 4096];
+ 1911:         let message = [0_u8; 16];
+ 1912:         let public_seed = [0_u8; 16];
+ 1913:         let mut output = [0_u8; 16];
+ 1918:                 &signature[..expected - 1],
+ 1932:     #[test]
+ 1936:         let signature = [0_u8; 4096];
+ 1937:         let message = [0_u8; 16];
+ 1938:         let public_seed = [0_u8; 16];
+ 1939:         let mut output = [0_u8; 15];
+ 1944:                 &signature[..signature_length],
+ 1958:     #[test]
+ 1962:         let signature = [0_u8; 4096];
+ 1963:         let message = [0_u8; 16];
+ 1964:         let public_seed = [0_u8; 16];
+ 1967:         let mut output = [0_u8; 16];
+ 1972:                 &signature[..signature_length],
+ 1986:     #[test]
+ 1988:         for parameter_set in [
+ 1997:             let secret_seed = [0x21_u8; 32];
+ 1998:             let public_seed = [0x43_u8; 32];
+ 1999:             let message = [0x65_u8; 32];
+ 2004:             let mut signature = [0_u8; 4096];
+ 2008:                 &secret_seed[..parameters.n],
+ 2009:                 &public_seed[..parameters.n],
+ 2010:                 &message[..parameters.n],
+ 2013:                 &mut signature[..signature_length],
+ 2017:             let mut reconstructed = [0_u8; 32];
+ 2021:                 &signature[..signature_length],
+ 2022:                 &message[..parameters.n],
+ 2023:                 &public_seed[..parameters.n],
+ 2026:                 &mut reconstructed[..parameters.n],
+ 2030:             let mut expected = [0_u8; 32];
+ 2034:                 &secret_seed[..parameters.n],
+ 2035:                 &public_seed[..parameters.n],
+ 2037:                 &mut expected[..parameters.n],
+ 2042:                 &reconstructed[..parameters.n],
+ 2043:                 &expected[..parameters.n],
+ 2049:     #[test]
+ 2054:         let secret_seed = [0x87_u8; 16];
+ 2055:         let public_seed = [0xa9_u8; 16];
+ 2056:         let message = [0xcb_u8; 16];
+ 2061:         let mut signature = [0_u8; 4096];
+ 2070:             &mut signature[..signature_length],
+ 2074:         let mut reconstructed = [0_u8; 16];
+ 2078:             &signature[..signature_length],
+ 2087:         let mut expected = [0_u8; 16];
+ 2101:     #[test]
+ 2106:         let secret_seed = [0xed_u8; 16];
+ 2107:         let public_seed = [0x0f_u8; 16];
+ 2108:         let message = [0x31_u8; 16];
+ 2113:         let mut signature = [0_u8; 4096];
+ 2122:             &mut signature[..signature_length],
+ 2126:         let mut original = [0_u8; 16];
+ 2130:             &signature[..signature_length],
+ 2139:         signature[0] ^= 1;
+ 2141:         let mut modified = [0_u8; 16];
+ 2145:             &signature[..signature_length],
+ 2157:     #[test]
+ 2159:         let secret_seed = [0x53_u8; 32];
+ 2160:         let public_seed = [0x75_u8; 32];
+ 2161:         let message = [0x97_u8; 32];
+ 2164:         let mut signature = [0_u8; 4096];
+ 2165:         let mut reconstructed = [0_u8; 32];
+ 2166:         let mut expected = [0_u8; 32];
+ 2168:         for parameter_set in PARAMETER_SETS {
+ 2176:                 &secret_seed[..parameters.n],
+ 2177:                 &public_seed[..parameters.n],
+ 2178:                 &message[..parameters.n],
+ 2181:                 &mut signature[..signature_length],
+ 2187:                 &signature[..signature_length],
+ 2188:                 &message[..parameters.n],
+ 2189:                 &public_seed[..parameters.n],
+ 2192:                 &mut reconstructed[..parameters.n],
+ 2198:                 &secret_seed[..parameters.n],
+ 2199:                 &public_seed[..parameters.n],
+ 2201:                 &mut expected[..parameters.n],
+ 2206:                 &reconstructed[..parameters.n],
+ 2207:                 &expected[..parameters.n],
+
+===== crates/pqc-slh-dsa/src/hypertree.rs =====
+   16: #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+   28: /// Structural context for one XMSS layer of the hypertree.
+   29: #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+   45:     /// Return the encoded XMSS-signature length for this layer.
+   52: #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+  124: impl fmt::Display for HypertreeError {
+  126:         match self {
+  185: impl From<XmssError> for HypertreeError {
+  198:     if parameters.d == 0 || parameters.hp == 0 || parameters.h != composed_height {
+  206:     if parameters.hp > u32::BITS as usize {
+  215: /// A hypertree signature contains one XMSS signature for each of the `d`
+  248: /// Derive the base XMSS address for one hypertree position.
+  275: /// Construct the structural context for one hypertree layer.
+  288:     if initial.layer != 0 {
+  295:     if layer >= parameters.d {
+  304:     for _ in 0..layer {
+  332: /// exact signature-byte range for each layer. No cryptographic operation is
+  345:     if initial.layer != 0 {
+  355:     for layer in 0..parameters.d {
+  371:         if layer + 1 < parameters.d {
+  386:     signature: &[u8],
+  390:     if signature.len() != expected {
+  410:     secret_seed: &[u8],
+  411:     public_seed: &[u8],
+  412:     message: &[u8],
+  415:     signature: &mut [u8],
+  419:     if message.len() != parameters.n {
+  427:     let mut current = [0_u8; 32];
+  428:     current[..parameters.n].copy_from_slice(message);
+  430:     for layer in 0..parameters.d {
+  432:         let layer_signature = &mut signature[context.signature_start..context.signature_end];
+  438:             &current[..parameters.n],
+  444:         if layer + 1 < parameters.d {
+  445:             let mut next_message = [0_u8; 32];
+  452:                 &mut next_message[..parameters.n],
+  455:             current[..parameters.n].copy_from_slice(&next_message[..parameters.n]);
+  466: /// signature segment reconstructs the root that becomes the message for the
+  470:     signature: &[u8],
+  471:     message: &[u8],
+  472:     public_seed: &[u8],
+  475:     output: &mut [u8],
+  479:     if message.len() != parameters.n {
+  486:     if output.len() != parameters.n {
+  494:     let mut current = [0_u8; 32];
+  495:     current[..parameters.n].copy_from_slice(message);
+  497:     for layer in 0..parameters.d {
+  499:         let layer_signature = &signature[context.signature_start..context.signature_end];
+  501:         let mut reconstructed = [0_u8; 32];
+  506:             &current[..parameters.n],
+  510:             &mut reconstructed[..parameters.n],
+  513:         current[..parameters.n].copy_from_slice(&reconstructed[..parameters.n]);
+  516:     output.copy_from_slice(&current[..parameters.n]);
+  538:     if next_layer == parameters.d {
+  544:     let leaf_mask = if parameters.hp == u32::BITS as usize {
+  573:     if position.layer >= parameters.d {
+  586:     if u64::from(position.leaf_index) >= leaf_count {
+  607:     let tree_index_valid = if tree_bits >= u64::BITS as usize {
+  613:     if !tree_index_valid {
+  623: #[cfg(test)]
+  628:     const PARAMETER_SETS: [SlhDsaParameterSet; 12] = [
+  643:     #[test]
+  645:         for parameter_set in PARAMETER_SETS {
+  650:     #[test]
+  665:     #[test]
+  667:         for parameter_set in PARAMETER_SETS {
+  677:     #[test]
+  691:     #[test]
+  706:     #[test]
+  721:     #[test]
+  737:     #[test]
+  744:         for expected_layer in 1..parameters.d {
+  757:     #[test]
+  769:     #[test]
+  787:     #[test]
+  789:         for parameter_set in PARAMETER_SETS {
+  794:             while let Some(next) = next_position(&parameters, position).unwrap() {
+  805:     #[test]
+  823:     #[test]
+  850:     #[test]
+  877:     #[test]
+  904:     #[test]
+  922:     #[test]
+  937:     #[test]
+  939:         for parameter_set in PARAMETER_SETS {
+  948:                 assert_eq!(&address.as_bytes()[0..4], &layer_bytes);
+  949:                 assert_eq!(&address.as_bytes()[16..32], &[0_u8; 16]);
+  951:                 match next_position(&parameters, position).unwrap() {
+  959:     #[test]
+  961:         for parameter_set in PARAMETER_SETS {
+  971:     #[test]
+  986:     #[test]
+  993:         for layer in 0..parameters.d {
+ 1002:             if layer + 1 < parameters.d {
+ 1008:     #[test]
+ 1014:         for layer in 0..parameters.d {
+ 1023:     #[test]
+ 1025:         for parameter_set in PARAMETER_SETS {
+ 1038:     #[test]
+ 1052:     #[test]
+ 1054:         for parameter_set in PARAMETER_SETS {
+ 1070:     #[test]
+ 1087:     #[test]
+ 1091:         let signature = vec![0_u8; expected];
+ 1096:     #[test]
+ 1100:         let signature = vec![0_u8; expected - 1];
+ 1111:     #[test]
+ 1115:         let secret_seed = [0_u8; 16];
+ 1116:         let public_seed = [0_u8; 16];
+ 1117:         let message = [0_u8; 16];
+ 1118:         let mut signature = [0_u8; 8192];
+ 1128:                 &mut signature[..expected - 1],
+ 1137:     #[test]
+ 1141:         let secret_seed = [0_u8; 16];
+ 1142:         let public_seed = [0_u8; 16];
+ 1143:         let message = [0_u8; 15];
+ 1144:         let mut signature = [0_u8; 8192];
+ 1154:                 &mut signature[..signature_length],
+ 1163:     #[test]
+ 1170:         let secret_seed = [0x21_u8; 16];
+ 1171:         let public_seed = [0x43_u8; 16];
+ 1172:         let message = [0x65_u8; 16];
+ 1178:         let mut signature = [0_u8; 8192];
+ 1187:             &mut signature[..signature_length],
+ 1193:         let mut expected = [0_u8; 4096];
+ 1202:             &mut expected[..xmss_length],
+ 1206:         assert_eq!(&signature[..xmss_length], &expected[..xmss_length]);
+ 1209:     #[test]
+ 1216:         let secret_seed = [0x87_u8; 16];
+ 1217:         let public_seed = [0xa9_u8; 16];
+ 1218:         let message = [0xcb_u8; 16];
+ 1224:         let mut signature = [0_u8; 8192];
+ 1233:             &mut signature[..signature_length],
+ 1241:         let mut first_root = [0_u8; 16];
+ 1252:         let mut expected = [0_u8; 4096];
+ 1261:             &mut expected[..xmss_length],
+ 1266:             &signature[xmss_length..2 * xmss_length],
+ 1267:             &expected[..xmss_length]
+ 1271:     #[test]
+ 1278:         let secret_seed = [0xed_u8; 16];
+ 1279:         let public_seed = [0x0f_u8; 16];
+ 1280:         let message = [0x31_u8; 16];
+ 1283:         let mut first = [0_u8; 8192];
+ 1284:         let mut second = [0_u8; 8192];
+ 1293:             &mut first[..signature_length],
+ 1304:             &mut second[..signature_length],
+ 1308:         assert_eq!(&first[..signature_length], &second[..signature_length]);
+ 1311:     #[test]
+ 1318:         let secret_seed = [0x53_u8; 16];
+ 1319:         let public_seed = [0x75_u8; 16];
+ 1320:         let first_message = [0x00_u8; 16];
+ 1321:         let second_message = [0xff_u8; 16];
+ 1324:         let mut first = [0_u8; 8192];
+ 1325:         let mut second = [0_u8; 8192];
+ 1334:             &mut first[..signature_length],
+ 1345:             &mut second[..signature_length],
+ 1349:         assert_ne!(&first[..signature_length], &second[..signature_length]);
+ 1352:     #[test]
+ 1354:         let secret_seed = [0x97_u8; 32];
+ 1355:         let public_seed = [0xb9_u8; 32];
+ 1356:         let message = [0xdb_u8; 32];
+ 1357:         let mut signature = [0_u8; 8192];
+ 1359:         for parameter_set in PARAMETER_SETS {
+ 1369:                 &secret_seed[..parameters.n],
+ 1370:                 &public_seed[..parameters.n],
+ 1371:                 &message[..parameters.n],
+ 1374:                 &mut signature[..signature_length],
+ 1380:     #[test]
+ 1387:         let secret_seed = [0x1c_u8; 16];
+ 1388:         let public_seed = [0x2d_u8; 16];
+ 1389:         let message = [0x3e_u8; 16];
+ 1394:         let mut signature = [0_u8; 8192];
+ 1403:             &mut signature[..signature_length],
+ 1410:         for layer in 0..parameters.d {
+ 1412:             let layer_signature = &signature[context.signature_start..context.signature_end];
+ 1414:             let mut reconstructed = [0_u8; 16];
+ 1427:             let mut expected = [0_u8; 16];
+ 1443:     #[test]
+ 1447:         let signature = [0_u8; 8192];
+ 1448:         let message = [0_u8; 16];
+ 1449:         let public_seed = [0_u8; 16];
+ 1450:         let mut output = [0_u8; 16];
+ 1455:                 &signature[..expected - 1],
+ 1469:     #[test]
+ 1473:         let signature = [0_u8; 8192];
+ 1474:         let message = [0_u8; 15];
+ 1475:         let public_seed = [0_u8; 16];
+ 1476:         let mut output = [0_u8; 16];
+ 1481:                 &signature[..signature_length],
+ 1495:     #[test]
+ 1499:         let signature = [0_u8; 8192];
+ 1500:         let message = [0_u8; 16];
+ 1501:         let public_seed = [0_u8; 16];
+ 1502:         let mut output = [0_u8; 15];
+ 1507:                 &signature[..signature_length],
+ 1521:     #[test]
+ 1528:         let secret_seed = [0x21_u8; 16];
+ 1529:         let public_seed = [0x43_u8; 16];
+ 1530:         let message = [0x65_u8; 16];
+ 1535:         let mut signature = [0_u8; 8192];
+ 1544:             &mut signature[..signature_length],
+ 1548:         let mut reconstructed = [0_u8; 16];
+ 1552:             &signature[..signature_length],
+ 1564:         let mut expected = [0_u8; 16];
+ 1578:     #[test]
+ 1585:         let secret_seed = [0x87_u8; 16];
+ 1586:         let public_seed = [0xa9_u8; 16];
+ 1587:         let message = [0xcb_u8; 16];
+ 1592:         let mut signature = [0_u8; 8192];
+ 1601:             &mut signature[..signature_length],
+ 1605:         let mut actual = [0_u8; 16];
+ 1609:             &signature[..signature_length],
+ 1621:         for layer in 0..parameters.d {
+ 1623:             let layer_signature = &signature[context.signature_start..context.signature_end];
+ 1625:             let mut next = [0_u8; 16];
+ 1644:     #[test]
+ 1651:         let secret_seed = [0xed_u8; 16];
+ 1652:         let public_seed = [0x0f_u8; 16];
+ 1653:         let message = [0x31_u8; 16];
+ 1658:         let mut signature = [0_u8; 8192];
+ 1667:             &mut signature[..signature_length],
+ 1671:         let mut original = [0_u8; 16];
+ 1675:             &signature[..signature_length],
+ 1684:         signature[0] ^= 1;
+ 1686:         let mut modified = [0_u8; 16];
+ 1690:             &signature[..signature_length],
+ 1702:     #[test]
+ 1709:         let secret_seed = [0x53_u8; 16];
+ 1710:         let public_seed = [0x75_u8; 16];
+ 1711:         let message = [0x97_u8; 16];
+ 1712:         let changed_message = [0xb9_u8; 16];
+ 1715:         let mut signature = [0_u8; 8192];
+ 1724:             &mut signature[..signature_length],
+ 1728:         let mut original = [0_u8; 16];
+ 1729:         let mut modified = [0_u8; 16];
+ 1733:             &signature[..signature_length],
+ 1744:             &signature[..signature_length],
+ 1756:     #[test]
+ 1758:         let secret_seed = [0xdb_u8; 32];
+ 1759:         let public_seed = [0xfc_u8; 32];
+ 1760:         let message = [0x1d_u8; 32];
+ 1762:         let mut signature = [0_u8; 8192];
+ 1763:         let mut reconstructed = [0_u8; 32];
+ 1764:         let mut expected = [0_u8; 32];
+ 1766:         for parameter_set in PARAMETER_SETS {
+ 1778:                 &secret_seed[..parameters.n],
+ 1779:                 &public_seed[..parameters.n],
+ 1780:                 &message[..parameters.n],
+ 1783:                 &mut signature[..signature_length],
+ 1789:                 &signature[..signature_length],
+ 1790:                 &message[..parameters.n],
+ 1791:                 &public_seed[..parameters.n],
+ 1794:                 &mut reconstructed[..parameters.n],
+ 1803:                 &secret_seed[..parameters.n],
+ 1804:                 &public_seed[..parameters.n],
+ 1806:                 &mut expected[..parameters.n],
+ 1811:                 &reconstructed[..parameters.n],
+ 1812:                 &expected[..parameters.n],

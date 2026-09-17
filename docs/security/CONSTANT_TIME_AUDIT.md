@@ -12,18 +12,18 @@ This audit consolidates the repository's source review, timing screens, rejectio
 
 ## Decision
 
-**PASS** — 11 targets classified; 0 blocking findings.
+**PASS** — 19 targets classified; 0 blocking findings.
 
 ## Summary
 
 | Dimension | Count |
 |---|---:|
 | Class: `algorithmic-variable-time` | 3 |
-| Class: `constant-time-required` | 7 |
-| Class: `public-variable-time` | 1 |
-| Status: `reviewed` | 5 |
+| Class: `constant-time-required` | 9 |
+| Class: `public-variable-time` | 7 |
+| Status: `reviewed` | 11 |
 | Status: `variable-time-accepted` | 3 |
-| Status: `verified` | 3 |
+| Status: `verified` | 5 |
 
 ## Target register
 
@@ -39,6 +39,14 @@ This audit consolidates the repository's source review, timing screens, rejectio
 | `CT-MLDSA-ETA-SAMPLING` | pqc-ml-dsa | `algorithmic-variable-time` | `variable-time-accepted` | `crates/pqc-ml-dsa/src/sample.rs` |
 | `CT-MLDSA-SIGN` | pqc-ml-dsa | `algorithmic-variable-time` | `variable-time-accepted` | `crates/pqc-ml-dsa/src/signature.rs` |
 | `CT-MLDSA-VERIFY` | pqc-ml-dsa | `public-variable-time` | `verified` | `crates/pqc-ml-dsa/src/verification.rs` |
+| `CT-SLHDSA-PRF` | pqc-slh-dsa | `constant-time-required` | `verified` | `crates/pqc-slh-dsa/src/hash.rs` |
+| `CT-SLHDSA-PRF-MSG` | pqc-slh-dsa | `constant-time-required` | `verified` | `crates/pqc-slh-dsa/src/hash.rs` |
+| `CT-SLHDSA-WOTS-SIGN` | pqc-slh-dsa | `public-variable-time` | `reviewed` | `crates/pqc-slh-dsa/src/wots.rs` |
+| `CT-SLHDSA-FORS-SIGN` | pqc-slh-dsa | `public-variable-time` | `reviewed` | `crates/pqc-slh-dsa/src/fors.rs` |
+| `CT-SLHDSA-XMSS-SIGN` | pqc-slh-dsa | `public-variable-time` | `reviewed` | `crates/pqc-slh-dsa/src/xmss.rs` |
+| `CT-SLHDSA-HYPERTREE-SIGN` | pqc-slh-dsa | `public-variable-time` | `reviewed` | `crates/pqc-slh-dsa/src/hypertree.rs` |
+| `CT-SLHDSA-SIGN` | pqc-slh-dsa | `public-variable-time` | `reviewed` | `crates/pqc-slh-dsa/src/api.rs` |
+| `CT-SLHDSA-VERIFY` | pqc-slh-dsa | `public-variable-time` | `reviewed` | `crates/pqc-slh-dsa/src/api.rs` |
 | `CT-MACHINE-CODE-RELEASE` | release toolchain | `constant-time-required` | `reviewed` | `scripts/run-stage9f4c-machine-code-audit.sh` |
 
 ## Detailed review
@@ -157,6 +165,102 @@ This audit consolidates the repository's source review, timing screens, rejectio
 - Requirements: branches depend only on public input or public result; malformed-input behavior does not consume secrets
 - Validation: ACVP SigVer; source review; generated-code review
 - Evidence: `docs/stage9d5-mldsa-verification.md`; `audit/stage9f4e/security-finding-register.md`
+
+### CT-SLHDSA-PRF — pqc-slh-dsa
+
+- Classification: `constant-time-required`
+- Status: `verified`
+- Symbols: `pub fn prf(`
+- Secret inputs: SK.seed
+- Public inputs: PK.seed; address; parameter set
+- Requirements: no secret-dependent control flow; no secret-indexed memory; fixed hash operation for selected public parameter set
+- Validation: source review; secret-dependency audit; optimized machine-code audit; fixed-vs-varying timing screen; Linux dynamic secret-taint audit
+- Evidence: `docs/security/CONSTANT_TIME_ENGINEERING.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_MACHINE_CODE_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_TIMING_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_TAINT_AUDIT.md`
+- Notes: Parameter-set selection and input-length validation are public. SK.seed is absorbed as hash input and must not affect control flow or memory addressing.
+
+### CT-SLHDSA-PRF-MSG — pqc-slh-dsa
+
+- Classification: `constant-time-required`
+- Status: `verified`
+- Symbols: `pub fn prf_msg(`
+- Secret inputs: SK.prf; optional randomness
+- Public inputs: message; parameter set
+- Requirements: no secret-dependent control flow; no secret-indexed memory; fixed PRF operation for selected public parameter set and message length
+- Validation: source review; secret-dependency audit; optimized machine-code audit; fixed-vs-varying timing screen; Linux dynamic secret-taint audit
+- Evidence: `docs/security/CONSTANT_TIME_ENGINEERING.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_MACHINE_CODE_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_TIMING_AUDIT.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_TAINT_AUDIT.md`
+- Notes: The SHA-256 versus SHA-512 choice is determined by the public parameter set. Secret key and optional-randomness bytes are consumed only as PRF inputs.
+
+### CT-SLHDSA-WOTS-SIGN — pqc-slh-dsa
+
+- Classification: `public-variable-time`
+- Status: `reviewed`
+- Symbols: `pub fn sign(`
+- Secret inputs: SK.seed; WOTS+ secret-key elements derived from SK.seed
+- Public inputs: message; parameter set; message-derived chain lengths; WOTS+ address
+- Requirements: chain-count variation attributable only to message-derived chain lengths; no additional secret-dependent control flow; no secret-indexed memory
+- Validation: source review; secret-dependency audit
+- Evidence: `docs/security/CONSTANT_TIME_ENGINEERING.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md`
+- Notes: WOTS+ chain work varies with message-derived base-w digits. SK.seed affects generated chain values but must not affect chain counts, branches, or memory addresses.
+
+### CT-SLHDSA-FORS-SIGN — pqc-slh-dsa
+
+- Classification: `public-variable-time`
+- Status: `reviewed`
+- Symbols: `pub fn sign(`
+- Secret inputs: SK.seed; FORS secret values derived from SK.seed
+- Public inputs: message digest; parameter set; digest-derived FORS indices; FORS address
+- Requirements: tree selection attributable only to digest-derived indices; no additional secret-dependent control flow; no secret-indexed memory
+- Validation: source review; secret-dependency audit
+- Evidence: `docs/security/CONSTANT_TIME_ENGINEERING.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md`
+- Notes: FORS leaf selection and authentication paths depend on H_msg-derived public transcript indices; SK.seed must not introduce additional variation.
+
+### CT-SLHDSA-XMSS-SIGN — pqc-slh-dsa
+
+- Classification: `public-variable-time`
+- Status: `reviewed`
+- Symbols: `pub fn sign(`
+- Secret inputs: SK.seed; WOTS+ secret-key elements derived from SK.seed
+- Public inputs: message; parameter set; leaf index; XMSS address
+- Requirements: authentication-path selection attributable only to leaf position; tree dimensions determined only by public parameter set; no additional secret-dependent control flow; no secret-indexed memory
+- Validation: source review; secret-dependency audit
+- Evidence: `docs/security/CONSTANT_TIME_ENGINEERING.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md`
+- Notes: XMSS traversal is controlled by public tree dimensions and transcript-derived leaf position; secret seed bytes must not control traversal.
+
+### CT-SLHDSA-HYPERTREE-SIGN — pqc-slh-dsa
+
+- Classification: `public-variable-time`
+- Status: `reviewed`
+- Symbols: `pub fn sign(`
+- Secret inputs: SK.seed
+- Public inputs: message; parameter set; tree index; leaf index
+- Requirements: layer count determined only by public parameter set; layer positions attributable only to transcript-derived indices; no additional secret-dependent control flow; no secret-indexed memory
+- Validation: source review; secret-dependency audit
+- Evidence: `docs/security/CONSTANT_TIME_ENGINEERING.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md`
+- Notes: Hypertree composition performs the public parameter-set-defined number of XMSS layers. Tree and leaf positions derive from H_msg.
+
+### CT-SLHDSA-SIGN — pqc-slh-dsa
+
+- Classification: `public-variable-time`
+- Status: `reviewed`
+- Symbols: `fn sign_with_randomness(`
+- Secret inputs: private key; SK.seed; SK.prf; optional randomness
+- Public inputs: message; context; parameter set; H_msg-derived digest and tree positions
+- Requirements: variable work attributable only to public or transcript-derived values; secret-bearing PRF boundaries reviewed separately; no additional secret-dependent control flow; no secret-indexed memory
+- Validation: source review; secret-dependency audit
+- Evidence: `docs/security/CONSTANT_TIME_ENGINEERING.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md`
+- Notes: The complete SLH-DSA signer is not claimed fixed-time. WOTS/FORS/XMSS variation is permitted only where attributable to the public transcript or parameter set.
+
+### CT-SLHDSA-VERIFY — pqc-slh-dsa
+
+- Classification: `public-variable-time`
+- Status: `reviewed`
+- Symbols: `pub fn verify(`; `pub fn hash_verify(`
+- Secret inputs: None recorded
+- Public inputs: verification key; message; context; signature; parameter set; verification result
+- Requirements: branches depend only on public input or public result; malformed-input behavior does not consume secrets
+- Validation: ACVP SigVer; adversarial validation; source review; secret-dependency audit
+- Evidence: `docs/security/CONSTANT_TIME_ENGINEERING.md`; `audit/slh-dsa-s6/SLH_DSA_SECRET_DEPENDENCY_AUDIT.md`
+- Notes: Verification consumes no private-key material; malformed-input and signature-dependent behavior is therefore public-variable-time.
 
 ### CT-MACHINE-CODE-RELEASE — release toolchain
 

@@ -13,6 +13,10 @@ Run:
 
 The default scope covers library tests for `pqc-rs-core`, `pqc-rs-ml-kem`, and `pqc-rs-hpke`.
 
+SLH-DSA additionally has a dedicated bounded Miri campaign: `./scripts/run-slhdsa-s6-miri.sh`.
+
+The SLH-DSA campaign targets selected parsing, conversion, bounds, tree-arithmetic, buffer-partitioning, and malformed-input paths rather than computationally expensive full signing campaigns.
+
 ## AddressSanitizer
 
 Run:
@@ -21,7 +25,11 @@ Run:
 ./scripts/run-address-sanitizer.sh
 ```
 
-This runs the complete workspace tests and the HPKE negative tests under ASan.
+The repository-wide runner exercises workspace tests and HPKE negative tests under ASan, subject to the workflow execution budget. A workflow timeout is recorded as incomplete coverage, not as a sanitizer finding or a passing result.
+
+SLH-DSA additionally has a dedicated bounded ASan campaign: `./scripts/run-slhdsa-s6-asan.sh`.
+
+This dedicated campaign covers selected structural, bounds, tree-arithmetic, signature-slicing, and malformed-input paths and is maintained as an independent SLH-DSA assurance gate.
 
 ## Undefined-behavior coverage
 

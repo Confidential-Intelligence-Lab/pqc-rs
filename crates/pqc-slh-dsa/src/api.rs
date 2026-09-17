@@ -8,6 +8,7 @@ use rand_core::{CryptoRng, RngCore};
 use crate::{
     address::{Address, AddressType},
     fors,
+    hash_slhdsa::{hash_message_prime, SlhDsaPreHash},
     hash_suite::HashSuite,
     hypertree::{self, HypertreePosition},
     message_digest::parse_message_digest,
@@ -257,12 +258,12 @@ impl SlhDsa {
     where
         R: CryptoRng + RngCore,
     {
-        let mut bytes = vec![0_u8; self.keygen_seed_bytes()];
+        let bytes = random_secret_vec(self.keygen_seed_bytes(), rng)?;
 
-        rng.try_fill_bytes(&mut bytes)
-            .map_err(|_| SlhDsaError::RandomnessFailure)?;
-
-        SlhDsaKeyGenSeed::from_bytes(self.parameter_set, &bytes)
+        Ok(SlhDsaKeyGenSeed {
+            parameter_set: self.parameter_set,
+            bytes,
+        })
     }
 
     /// Generate a deterministic Pure SLH-DSA signature.
@@ -314,14 +315,74 @@ impl SlhDsa {
         self.ensure_context_length(context)?;
 
         let parameters = self.parameter_set.parameters();
-        let mut optional_randomness = vec![0_u8; parameters.n];
-
-        rng.try_fill_bytes(&mut optional_randomness)
-            .map_err(|_| SlhDsaError::RandomnessFailure)?;
+        let optional_randomness = random_secret_vec(parameters.n, rng)?;
 
         let encoded_message = Self::encode_external_message(message, context)?;
 
-        self.sign_with_randomness(private_key, &encoded_message, &optional_randomness)
+        self.sign_with_randomness(
+            private_key,
+            &encoded_message,
+            optional_randomness.as_bytes(),
+        )
+    }
+
+    /// Generate a deterministic HashSLH-DSA signature.
+    ///
+    /// The message supplied to the internal FIPS 205 signing algorithm is:
+    ///
+    /// `0x01 || len(context) || context || DER(OID(PH)) || PH(message)`.
+    ///
+    /// Deterministic signing uses `PK.seed` as the optional randomization
+    /// input to `PRF_msg`.
+    pub fn hash_sign_deterministic(
+        &self,
+        private_key: &SlhDsaPrivateKey,
+        message: &[u8],
+        context: &[u8],
+        prehash: SlhDsaPreHash,
+    ) -> Result<SlhDsaSignature, SlhDsaError> {
+        self.ensure_private_key_parameter_set(private_key)?;
+        self.ensure_context_length(context)?;
+
+        let parameters = self.parameter_set.parameters();
+        let encoded_key = private_key.as_bytes();
+
+        if encoded_key.len() != parameters.private_key_bytes {
+            return Err(SlhDsaError::InvalidPrivateKey);
+        }
+
+        let public_seed = &encoded_key[2 * parameters.n..3 * parameters.n];
+        let encoded_message = hash_message_prime(message, context, prehash)?;
+
+        self.sign_with_randomness(private_key, &encoded_message, public_seed)
+    }
+
+    /// Generate a hedged HashSLH-DSA signature using fresh caller-supplied
+    /// cryptographic randomness.
+    pub fn hash_sign_hedged<R>(
+        &self,
+        private_key: &SlhDsaPrivateKey,
+        message: &[u8],
+        context: &[u8],
+        prehash: SlhDsaPreHash,
+        rng: &mut R,
+    ) -> Result<SlhDsaSignature, SlhDsaError>
+    where
+        R: CryptoRng + RngCore,
+    {
+        self.ensure_private_key_parameter_set(private_key)?;
+        self.ensure_context_length(context)?;
+
+        let parameters = self.parameter_set.parameters();
+        let optional_randomness = random_secret_vec(parameters.n, rng)?;
+
+        let encoded_message = hash_message_prime(message, context, prehash)?;
+
+        self.sign_with_randomness(
+            private_key,
+            &encoded_message,
+            optional_randomness.as_bytes(),
+        )
     }
 
     /// Sign a FIPS 205 internal-interface message deterministically.
@@ -367,12 +428,9 @@ impl SlhDsa {
         self.ensure_private_key_parameter_set(private_key)?;
 
         let parameters = self.parameter_set.parameters();
-        let mut optional_randomness = vec![0_u8; parameters.n];
+        let optional_randomness = random_secret_vec(parameters.n, rng)?;
 
-        rng.try_fill_bytes(&mut optional_randomness)
-            .map_err(|_| SlhDsaError::RandomnessFailure)?;
-
-        self.sign_with_randomness(private_key, message, &optional_randomness)
+        self.sign_with_randomness(private_key, message, optional_randomness.as_bytes())
     }
 
     fn sign_with_randomness(
@@ -538,6 +596,26 @@ impl SlhDsa {
         self.ensure_context_length(context)?;
 
         let encoded_message = Self::encode_external_message(message, context)?;
+
+        self.verify_encoded_message(public_key, &encoded_message, signature)
+    }
+
+    /// Verify a HashSLH-DSA signature.
+    ///
+    /// Returns `Ok(false)` when the signature is structurally well formed but
+    /// does not authenticate the supplied public key, message, context, and
+    /// prehash algorithm.
+    pub fn hash_verify(
+        &self,
+        public_key: &SlhDsaPublicKey,
+        message: &[u8],
+        context: &[u8],
+        prehash: SlhDsaPreHash,
+        signature: &SlhDsaSignature,
+    ) -> Result<bool, SlhDsaError> {
+        self.ensure_context_length(context)?;
+
+        let encoded_message = hash_message_prime(message, context, prehash)?;
 
         self.verify_encoded_message(public_key, &encoded_message, signature)
     }
@@ -751,6 +829,16 @@ impl SlhDsa {
     }
 }
 
+fn random_secret_vec<R>(length: usize, rng: &mut R) -> Result<SecretVec, SlhDsaError>
+where
+    R: CryptoRng + RngCore,
+{
+    let mut output = SecretVec::new(vec![0_u8; length]);
+    rng.try_fill_bytes(output.as_mut_bytes())
+        .map_err(|_| SlhDsaError::RandomnessFailure)?;
+    Ok(output)
+}
+
 impl SignatureScheme for SlhDsa {
     type PublicKey = SlhDsaPublicKey;
     type SecretKey = SlhDsaPrivateKey;
@@ -820,7 +908,7 @@ fn map_slhdsa_error(error: SlhDsaError) -> PqcError {
 
         SlhDsaError::RandomnessFailure => PqcError::RandomnessFailure,
 
-        SlhDsaError::NotImplemented | SlhDsaError::InternalError => PqcError::InternalError,
+        SlhDsaError::InternalError => PqcError::InternalError,
     }
 }
 
@@ -1881,6 +1969,148 @@ mod tests {
                 .sign_internal_deterministic(key_pair.private_key(), b"message",)
                 .err(),
             Some(SlhDsaError::ParameterSetMismatch)
+        );
+    }
+    #[test]
+    fn hash_deterministic_signature_verifies() {
+        let slh = SlhDsa::new(SlhDsaParameterSet::Sha2_128s);
+        let key_pair = signing_key_pair(SlhDsaParameterSet::Sha2_128s);
+
+        let signature = slh
+            .hash_sign_deterministic(
+                key_pair.private_key(),
+                b"message",
+                b"ctx",
+                SlhDsaPreHash::Sha2_256,
+            )
+            .unwrap();
+
+        assert!(slh
+            .hash_verify(
+                key_pair.public_key(),
+                b"message",
+                b"ctx",
+                SlhDsaPreHash::Sha2_256,
+                &signature,
+            )
+            .unwrap());
+    }
+
+    #[test]
+    fn hash_hedged_signature_verifies() {
+        let slh = SlhDsa::new(SlhDsaParameterSet::Sha2_128s);
+        let key_pair = signing_key_pair(SlhDsaParameterSet::Sha2_128s);
+        let mut rng = DeterministicRng::new(0x5a);
+
+        let signature = slh
+            .hash_sign_hedged(
+                key_pair.private_key(),
+                b"message",
+                b"ctx",
+                SlhDsaPreHash::Sha2_256,
+                &mut rng,
+            )
+            .unwrap();
+
+        assert!(slh
+            .hash_verify(
+                key_pair.public_key(),
+                b"message",
+                b"ctx",
+                SlhDsaPreHash::Sha2_256,
+                &signature,
+            )
+            .unwrap());
+    }
+
+    #[test]
+    fn hash_verification_rejects_changed_message() {
+        let slh = SlhDsa::new(SlhDsaParameterSet::Sha2_128s);
+        let key_pair = signing_key_pair(SlhDsaParameterSet::Sha2_128s);
+
+        let signature = slh
+            .hash_sign_deterministic(
+                key_pair.private_key(),
+                b"message",
+                b"ctx",
+                SlhDsaPreHash::Sha2_256,
+            )
+            .unwrap();
+
+        assert!(!slh
+            .hash_verify(
+                key_pair.public_key(),
+                b"changed",
+                b"ctx",
+                SlhDsaPreHash::Sha2_256,
+                &signature,
+            )
+            .unwrap());
+    }
+
+    #[test]
+    fn hash_verification_rejects_changed_context() {
+        let slh = SlhDsa::new(SlhDsaParameterSet::Sha2_128s);
+        let key_pair = signing_key_pair(SlhDsaParameterSet::Sha2_128s);
+
+        let signature = slh
+            .hash_sign_deterministic(
+                key_pair.private_key(),
+                b"message",
+                b"ctx",
+                SlhDsaPreHash::Sha2_256,
+            )
+            .unwrap();
+
+        assert!(!slh
+            .hash_verify(
+                key_pair.public_key(),
+                b"message",
+                b"other",
+                SlhDsaPreHash::Sha2_256,
+                &signature,
+            )
+            .unwrap());
+    }
+
+    #[test]
+    fn hash_verification_rejects_different_prehash_algorithm() {
+        let slh = SlhDsa::new(SlhDsaParameterSet::Sha2_128s);
+        let key_pair = signing_key_pair(SlhDsaParameterSet::Sha2_128s);
+
+        let signature = slh
+            .hash_sign_deterministic(
+                key_pair.private_key(),
+                b"message",
+                b"ctx",
+                SlhDsaPreHash::Sha2_256,
+            )
+            .unwrap();
+
+        assert!(!slh
+            .hash_verify(
+                key_pair.public_key(),
+                b"message",
+                b"ctx",
+                SlhDsaPreHash::Sha2_512,
+                &signature,
+            )
+            .unwrap());
+    }
+
+    #[test]
+    fn hash_signing_rejects_oversized_context() {
+        let slh = SlhDsa::new(SlhDsaParameterSet::Sha2_128s);
+        let key_pair = signing_key_pair(SlhDsaParameterSet::Sha2_128s);
+
+        assert_eq!(
+            slh.hash_sign_deterministic(
+                key_pair.private_key(),
+                b"message",
+                &[0_u8; 256],
+                SlhDsaPreHash::Sha2_256,
+            ),
+            Err(SlhDsaError::ContextTooLong)
         );
     }
 }

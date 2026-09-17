@@ -9,9 +9,10 @@
 //!
 //! - cryptographic key generation;
 //! - deterministic key generation from a parameter-bound seed;
-//! - deterministic Pure SLH-DSA signing;
-//! - hedged Pure SLH-DSA signing;
+//! - deterministic and hedged Pure SLH-DSA signing;
 //! - Pure SLH-DSA signature verification;
+//! - deterministic and hedged HashSLH-DSA signing;
+//! - HashSLH-DSA signature verification with all twelve standardized prehash algorithms;
 //! - typed key, seed, and signature import and export.
 //!
 //! # Parameter binding
@@ -59,6 +60,13 @@ mod hash;
 #[cfg(feature = "internal-api")]
 #[doc(hidden)]
 pub mod hash_suite;
+
+#[cfg(feature = "internal-api")]
+#[doc(hidden)]
+pub mod hash_slhdsa;
+
+#[cfg(not(feature = "internal-api"))]
+mod hash_slhdsa;
 
 #[cfg(not(feature = "internal-api"))]
 #[allow(dead_code)]
@@ -112,4 +120,5 @@ pub use api::{
     SlhDsa, SlhDsaKeyGenSeed, SlhDsaKeyPair, SlhDsaPrivateKey, SlhDsaPublicKey, SlhDsaSignature,
 };
 pub use error::SlhDsaError;
+pub use hash_slhdsa::SlhDsaPreHash;
 pub use params::{SlhDsaHashFamily, SlhDsaParameterSet, SlhDsaParameters};

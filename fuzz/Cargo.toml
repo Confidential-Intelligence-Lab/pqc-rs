@@ -15,6 +15,7 @@ pqc-hpke = { package = "pqc-rs-hpke", path = "../crates/pqc-hpke", version = "0.
 pqc-ml-kem = { package = "pqc-rs-ml-kem", path = "../crates/pqc-ml-kem", version = "0.4.0" }
 pqc-test-harness = { package = "pqc-rs-test-harness", path = "../crates/pqc-test-harness", version = "0.4.0" }
 pqc-ml-dsa = { version = "0.4.0", package = "pqc-rs-ml-dsa", path = "../crates/pqc-ml-dsa", features = ["internal-api"] }
+pqc-slh-dsa = { package = "pqc-rs-slh-dsa", path = "../crates/pqc-slh-dsa", features = ["internal-api"] }
 
 [[bin]]
 name = "ml_kem_key_checks"
@@ -65,6 +66,13 @@ bench = false
 [[bin]]
 name = "mldsa_verification"
 path = "fuzz_targets/mldsa_verification.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "slhdsa_verification"
+path = "fuzz_targets/slhdsa_verification.rs"
 test = false
 doc = false
 bench = false

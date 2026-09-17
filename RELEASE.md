@@ -20,15 +20,15 @@ Public releases are owner-authorized and evidence-driven.
 The dependency order for the current public packages is:
 
 1. `pqc-rs-core`;
-2. independent algorithm crates, currently `pqc-rs-ml-kem` and
-   `pqc-rs-ml-dsa`;
+2. independent algorithm crates, currently `pqc-rs-ml-kem`,
+   `pqc-rs-ml-dsa`, and `pqc-rs-slh-dsa`;
 3. protocol integration crates, currently `pqc-rs-hpke`, after their required
    algorithm crates are indexed.
 
 Independent crates at the same dependency level do not require an ordering
 between them. The dependency graph must be rechecked before every publication.
-`pqc-rs-slh-dsa`, `pqc-rs-hybrid`, and `pqc-rs-test-harness` remain private
-unless a separately reviewed release changes that boundary.
+`pqc-rs-hybrid` and `pqc-rs-test-harness` remain private unless a separately
+reviewed release changes that boundary.
 
 ## Tags and registry provenance
 

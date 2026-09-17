@@ -1,0 +1,578 @@
+schema_version = 2
+standard = "FIPS205"
+title = "Stateless Hash-Based Digital Signature Standard"
+classification = "normative"
+source = "https://doi.org/10.6028/NIST.FIPS.205"
+published = "2024-08-13"
+notes = [
+  "This module records repository traceability to FIPS 205; it does not constitute CAVP, CMVP, FIPS 140-3 validation, certification, or an independent security audit.",
+  "Statuses are intentionally conservative. A requirement is marked mapped when implementation and repository tests can be identified; external validation and interoperability are tracked separately.",
+  "The current public API implements Pure SLH-DSA. HashSLH-DSA external signing and verification are explicit completion gaps at the S1 audit baseline.",
+  "S1 audit baseline commit: 80ba9265a8bdf9a884283afd22465a79c1858569."
+]
+
+[[requirement]]
+id = "FIPS205-3-APPROVED-PARAMETER-SETS"
+section = "3"
+class = "shall"
+status = "mapped"
+title = "Support the twelve approved SLH-DSA parameter sets"
+implementation = ["crates/pqc-slh-dsa/src/params.rs"]
+tests = ["crates/pqc-slh-dsa/src/params.rs"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["slh-dsa", "parameters"]
+
+[[requirement]]
+id = "FIPS205-3-SHA2-PARAMETER-SETS"
+section = "3"
+class = "shall"
+status = "mapped"
+title = "Support the six standardized SHA2 SLH-DSA parameter sets"
+implementation = [
+  "crates/pqc-slh-dsa/src/params.rs",
+  "crates/pqc-slh-dsa/src/hash_suite.rs"
+]
+tests = [
+  "crates/pqc-slh-dsa/src/params.rs",
+  "crates/pqc-slh-dsa/src/hash_suite.rs"
+]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["slh-dsa", "sha2", "parameters"]
+
+[[requirement]]
+id = "FIPS205-3-SHAKE-PARAMETER-SETS"
+section = "3"
+class = "shall"
+status = "mapped"
+title = "Support the six standardized SHAKE SLH-DSA parameter sets"
+implementation = [
+  "crates/pqc-slh-dsa/src/params.rs",
+  "crates/pqc-slh-dsa/src/hash_suite.rs"
+]
+tests = [
+  "crates/pqc-slh-dsa/src/params.rs",
+  "crates/pqc-slh-dsa/src/hash_suite.rs"
+]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["slh-dsa", "shake", "parameters"]
+
+[[requirement]]
+id = "FIPS205-4-ADDRESSING"
+section = "4"
+class = "shall"
+status = "mapped"
+title = "SLH-DSA address types and encodings follow FIPS 205"
+implementation = ["crates/pqc-slh-dsa/src/address.rs"]
+tests = ["crates/pqc-slh-dsa/src/address.rs"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["address", "domain-separation"]
+
+[[requirement]]
+id = "FIPS205-4-CONVERSIONS"
+section = "4"
+class = "shall"
+status = "mapped"
+title = "Integer, byte, and base-2b conversions follow FIPS 205"
+implementation = ["crates/pqc-slh-dsa/src/conversion.rs"]
+tests = ["crates/pqc-slh-dsa/src/conversion.rs"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["conversion", "encoding"]
+
+[[requirement]]
+id = "FIPS205-5-HASH-FUNCTIONS"
+section = "5"
+class = "shall"
+status = "mapped"
+title = "SLH-DSA hash functions implement the standardized SHA2 and SHAKE instantiations"
+implementation = [
+  "crates/pqc-slh-dsa/src/hash.rs",
+  "crates/pqc-slh-dsa/src/hash_suite.rs"
+]
+tests = [
+  "crates/pqc-slh-dsa/src/hash.rs",
+  "crates/pqc-slh-dsa/src/hash_suite.rs"
+]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["hash", "sha2", "shake"]
+
+[[requirement]]
+id = "FIPS205-5-PRF"
+section = "5"
+class = "shall"
+status = "mapped"
+title = "PRF and PRF_msg use the FIPS 205 constructions"
+implementation = [
+  "crates/pqc-slh-dsa/src/hash.rs",
+  "crates/pqc-slh-dsa/src/hash_suite.rs"
+]
+tests = [
+  "crates/pqc-slh-dsa/src/hash_suite.rs",
+  "crates/pqc-test-harness/tests/slhdsa_acvp.rs"
+]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["hash", "prf", "sign"]
+
+[[requirement]]
+id = "FIPS205-5-HMSG"
+section = "5"
+class = "shall"
+status = "mapped"
+title = "H_msg derives the message digest, tree index, and leaf index as specified"
+implementation = [
+  "crates/pqc-slh-dsa/src/hash_suite.rs",
+  "crates/pqc-slh-dsa/src/message_digest.rs"
+]
+tests = [
+  "crates/pqc-slh-dsa/src/hash_suite.rs",
+  "crates/pqc-slh-dsa/src/message_digest.rs",
+  "crates/pqc-test-harness/tests/slhdsa_acvp.rs"
+]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["hash", "message-digest"]
+
+[[requirement]]
+id = "FIPS205-6-WOTS"
+section = "6"
+class = "shall"
+status = "mapped"
+title = "WOTS+ signing and public-key reconstruction follow FIPS 205"
+implementation = ["crates/pqc-slh-dsa/src/wots.rs"]
+tests = ["crates/pqc-slh-dsa/src/wots.rs"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["wots", "internal"]
+
+[[requirement]]
+id = "FIPS205-7-XMSS"
+section = "7"
+class = "shall"
+status = "mapped"
+title = "XMSS signing and root reconstruction follow FIPS 205"
+implementation = ["crates/pqc-slh-dsa/src/xmss.rs"]
+tests = ["crates/pqc-slh-dsa/src/xmss.rs"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["xmss", "internal"]
+
+[[requirement]]
+id = "FIPS205-7-HYPERTREE"
+section = "7"
+class = "shall"
+status = "mapped"
+title = "Hypertree signing and root reconstruction follow FIPS 205"
+implementation = ["crates/pqc-slh-dsa/src/hypertree.rs"]
+tests = ["crates/pqc-slh-dsa/src/hypertree.rs"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["hypertree", "xmss", "internal"]
+
+[[requirement]]
+id = "FIPS205-8-FORS"
+section = "8"
+class = "shall"
+status = "mapped"
+title = "FORS signing and public-key reconstruction follow FIPS 205"
+implementation = ["crates/pqc-slh-dsa/src/fors.rs"]
+tests = ["crates/pqc-slh-dsa/src/fors.rs"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["fors", "internal"]
+
+[[requirement]]
+id = "FIPS205-9-INTERNAL-KEYGEN"
+section = "9"
+class = "shall"
+status = "mapped"
+title = "SLH-DSA internal key generation follows the specified seed expansion and root derivation"
+implementation = ["crates/pqc-slh-dsa/src/api.rs"]
+tests = [
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-test-harness/tests/slhdsa_acvp.rs"
+]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["internal", "keygen"]
+
+[[requirement]]
+id = "FIPS205-9-INTERNAL-SIGN"
+section = "9"
+class = "shall"
+status = "mapped"
+title = "SLH-DSA internal signing follows the standardized construction"
+implementation = [
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-slh-dsa/src/fors.rs",
+  "crates/pqc-slh-dsa/src/hypertree.rs"
+]
+tests = [
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-test-harness/tests/slhdsa_acvp.rs"
+]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["internal", "sign"]
+
+[[requirement]]
+id = "FIPS205-9-INTERNAL-VERIFY"
+section = "9"
+class = "shall"
+status = "mapped"
+title = "SLH-DSA internal verification follows the standardized construction"
+implementation = [
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-slh-dsa/src/fors.rs",
+  "crates/pqc-slh-dsa/src/hypertree.rs"
+]
+tests = [
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-test-harness/tests/slhdsa_acvp.rs"
+]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["internal", "verify"]
+
+[[requirement]]
+id = "FIPS205-10-KEYGEN"
+section = "10"
+class = "shall"
+status = "mapped"
+title = "External SLH-DSA key generation obtains fresh randomness and produces a parameter-bound key pair"
+implementation = ["crates/pqc-slh-dsa/src/api.rs"]
+tests = [
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-test-harness/tests/slhdsa_acvp.rs"
+]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["keygen", "public-api", "randomness"]
+
+[[requirement]]
+id = "FIPS205-10-PURE-SIGN"
+section = "10"
+class = "shall"
+status = "mapped"
+title = "Pure SLH-DSA external signing applies the required message framing"
+implementation = ["crates/pqc-slh-dsa/src/api.rs"]
+tests = [
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-test-harness/tests/slhdsa_acvp.rs"
+]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["pure", "sign", "public-api"]
+
+[[requirement]]
+id = "FIPS205-10-PURE-SIGN-DETERMINISTIC"
+section = "10"
+class = "shall"
+status = "mapped"
+title = "Deterministic Pure SLH-DSA signing uses the standardized optional-randomness value"
+implementation = ["crates/pqc-slh-dsa/src/api.rs"]
+tests = [
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-test-harness/tests/slhdsa_acvp.rs"
+]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["pure", "sign", "deterministic"]
+
+[[requirement]]
+id = "FIPS205-10-PURE-SIGN-HEDGED"
+section = "10"
+class = "shall"
+status = "mapped"
+title = "Hedged Pure SLH-DSA signing incorporates fresh n-byte randomness"
+implementation = ["crates/pqc-slh-dsa/src/api.rs"]
+tests = ["crates/pqc-slh-dsa/src/api.rs"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["pure", "sign", "hedged", "randomness"]
+
+[[requirement]]
+id = "FIPS205-10-PURE-VERIFY"
+section = "10"
+class = "shall"
+status = "mapped"
+title = "Pure SLH-DSA verification applies the required external framing and verifies the signature"
+implementation = ["crates/pqc-slh-dsa/src/api.rs"]
+tests = [
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-test-harness/tests/slhdsa_acvp.rs"
+]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["pure", "verify", "public-api"]
+
+[[requirement]]
+id = "FIPS205-10-CONTEXT"
+section = "10"
+class = "shall"
+status = "mapped"
+title = "Pure signing and verification bind the supplied context"
+implementation = ["crates/pqc-slh-dsa/src/api.rs"]
+tests = ["crates/pqc-slh-dsa/src/api.rs"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["context", "domain-separation"]
+
+[[requirement]]
+id = "FIPS205-10-CONTEXT-LENGTH"
+section = "10"
+class = "shall"
+status = "mapped"
+title = "Context length is limited to at most 255 bytes"
+implementation = [
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-slh-dsa/src/error.rs"
+]
+tests = ["crates/pqc-slh-dsa/src/api.rs"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["context", "input-validation"]
+
+[[requirement]]
+id = "FIPS205-10-HASH-SIGN"
+section = "10"
+class = "shall"
+status = "mapped"
+title = "HashSLH-DSA external signing applies the approved pre-hash function, identifier encoding, and external framing"
+implementation = [
+  "crates/pqc-slh-dsa/src/hash_slhdsa.rs",
+  "crates/pqc-slh-dsa/src/api.rs"
+]
+tests = [
+  "crates/pqc-slh-dsa/src/hash_slhdsa.rs",
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-test-harness/src/bin/slhdsa-acvp-hash-siggen.rs"
+]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+evidence = [
+  "NIST ACVP FIPS 205 external HashSLH-DSA SigGen: 288/288 cases passed; 144 deterministic and 144 hedged"
+]
+tags = ["hashslh-dsa", "prehash", "sign"]
+
+[[requirement]]
+id = "FIPS205-10-HASH-VERIFY"
+section = "10"
+class = "shall"
+status = "mapped"
+title = "HashSLH-DSA external verification applies the approved pre-hash function, identifier encoding, and external framing"
+implementation = [
+  "crates/pqc-slh-dsa/src/hash_slhdsa.rs",
+  "crates/pqc-slh-dsa/src/api.rs"
+]
+tests = [
+  "crates/pqc-slh-dsa/src/hash_slhdsa.rs",
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-test-harness/src/bin/slhdsa-acvp-hash-sigver.rs"
+]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+evidence = [
+  "NIST ACVP FIPS 205 external HashSLH-DSA SigVer: 168/168 cases matched; 24 expected valid and 144 expected invalid"
+]
+tags = ["hashslh-dsa", "prehash", "verify"]
+
+[[requirement]]
+id = "FIPS205-KEY-ENCODING"
+section = "10"
+class = "shall"
+status = "mapped"
+title = "Public and private key encodings have the standardized layout and exact lengths"
+implementation = [
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-slh-dsa/src/params.rs"
+]
+tests = ["crates/pqc-slh-dsa/src/api.rs"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["keys", "encoding", "input-validation"]
+
+[[requirement]]
+id = "FIPS205-SIGNATURE-ENCODING"
+section = "9"
+class = "shall"
+status = "mapped"
+title = "SLH-DSA signatures use the standardized R || SIG_FORS || SIG_HT layout and exact length"
+implementation = [
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-slh-dsa/src/fors.rs",
+  "crates/pqc-slh-dsa/src/hypertree.rs"
+]
+tests = [
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-slh-dsa/src/fors.rs",
+  "crates/pqc-slh-dsa/src/hypertree.rs"
+]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["signature", "encoding"]
+
+[[requirement]]
+id = "FIPS205-INPUT-CHECKING"
+section = "10"
+class = "shall"
+status = "mapped"
+title = "Public operations reject invalid key, signature, context, and parameter-set inputs"
+implementation = [
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-slh-dsa/src/error.rs"
+]
+tests = ["crates/pqc-slh-dsa/src/api.rs"]
+owner = "pqc-rs maintainers"
+ci = ["workspace-tests"]
+tags = ["input-validation", "errors"]
+
+[[requirement]]
+id = "FIPS205-ACVP-KEYGEN"
+section = "ACVP"
+class = "validation"
+status = "mapped"
+title = "ACVP SLH-DSA key-generation vector processing"
+implementation = [
+  "crates/pqc-test-harness/src/bin/slhdsa-acvp-keygen.rs"
+]
+tests = [
+  "crates/pqc-test-harness/tests/slhdsa_acvp.rs"
+]
+owner = "pqc-rs maintainers"
+references = ["NIST ACVP SLH-DSA JSON Specification"]
+tags = ["acvp", "keygen"]
+
+[[requirement]]
+id = "FIPS205-ACVP-PURE-SIGGEN"
+section = "ACVP"
+class = "validation"
+status = "mapped"
+title = "ACVP Pure SLH-DSA signature-generation vector processing"
+implementation = [
+  "crates/pqc-test-harness/src/bin/slhdsa-acvp-siggen-pure.rs"
+]
+tests = [
+  "crates/pqc-test-harness/tests/slhdsa_acvp.rs"
+]
+owner = "pqc-rs maintainers"
+references = ["NIST ACVP SLH-DSA JSON Specification"]
+tags = ["acvp", "pure", "siggen"]
+
+[[requirement]]
+id = "FIPS205-ACVP-PURE-SIGVER"
+section = "ACVP"
+class = "validation"
+status = "mapped"
+title = "ACVP Pure SLH-DSA signature-verification vector processing"
+implementation = [
+  "crates/pqc-test-harness/src/bin/slhdsa-acvp-sigver-pure.rs"
+]
+tests = [
+  "crates/pqc-test-harness/tests/slhdsa_acvp.rs"
+]
+owner = "pqc-rs maintainers"
+references = ["NIST ACVP SLH-DSA JSON Specification"]
+tags = ["acvp", "pure", "sigver"]
+
+
+[[requirement]]
+id = "FIPS205-ACVP-HASH-SIGGEN"
+section = "ACVP"
+class = "validation"
+status = "mapped"
+title = "ACVP HashSLH-DSA signature-generation vector processing"
+implementation = [
+  "crates/pqc-test-harness/src/bin/slhdsa-acvp-hash-siggen.rs"
+]
+tests = [
+  "crates/pqc-test-harness/src/bin/slhdsa-acvp-hash-siggen.rs"
+]
+owner = "pqc-rs maintainers"
+references = ["NIST ACVP SLH-DSA JSON Specification"]
+evidence = [
+  "HashSLH-DSA SigGen: 288/288 NIST ACVP cases passed; 144 deterministic and 144 hedged"
+]
+tags = ["acvp", "hashslh-dsa", "siggen"]
+
+[[requirement]]
+id = "FIPS205-ACVP-HASH-SIGVER"
+section = "ACVP"
+class = "validation"
+status = "mapped"
+title = "ACVP HashSLH-DSA signature-verification vector processing"
+implementation = [
+  "crates/pqc-test-harness/src/bin/slhdsa-acvp-hash-sigver.rs"
+]
+tests = [
+  "crates/pqc-test-harness/src/bin/slhdsa-acvp-hash-sigver.rs"
+]
+owner = "pqc-rs maintainers"
+references = ["NIST ACVP SLH-DSA JSON Specification"]
+evidence = [
+  "HashSLH-DSA SigVer: 168/168 NIST ACVP cases matched; 24 expected valid and 144 expected invalid"
+]
+tags = ["acvp", "hashslh-dsa", "sigver"]
+
+[[requirement]]
+id = "FIPS205-ASSURANCE-SECRET-PROTECTION"
+section = "11"
+class = "shall"
+status = "mapped"
+title = "Secret seed, PRF material, and private-key storage are treated as secret material"
+implementation = [
+  "crates/pqc-slh-dsa/src/api.rs",
+  "crates/pqc-rs-core/**"
+]
+tests = []
+owner = "pqc-rs maintainers"
+notes = ["Detailed zeroization, secret-lifetime, and compiler-level assurance are deferred to S6."]
+tags = ["secret-lifetime", "zeroization", "assurance"]
+
+[[requirement]]
+id = "FIPS205-INTEROP-PURE"
+section = "interoperability"
+class = "validation"
+status = "mapped"
+title = "Pure SLH-DSA interoperates bidirectionally with an independent implementation"
+implementation = [
+  "crates/pqc-test-harness/src/bin/pqc-interop-rust.rs",
+  "scripts/interop/providers/liboqs_provider.py",
+  "scripts/interop/providers/liboqs_bridge.c",
+  "scripts/cross_provider_interop.py"
+]
+tests = [
+  "scripts/cross_provider_interop.py"
+]
+owner = "pqc-rs maintainers"
+evidence = [
+  "Pure SLH-DSA: 24/24 directed PQC-rs/liboqs interoperability cases passed across all 12 FIPS 205 parameter sets"
+]
+tags = ["interop", "pure", "liboqs", "slh-dsa"]
+
+[[requirement]]
+id = "FIPS205-INTEROP-HASHSLH"
+section = "interoperability"
+class = "validation"
+status = "mapped"
+title = "HashSLH-DSA interoperates bidirectionally with an independent implementation"
+implementation = [
+  "crates/pqc-test-harness/src/bin/pqc-interop-rust.rs",
+  "scripts/interop/providers/liboqs_provider.py",
+  "scripts/interop/providers/liboqs_bridge.c",
+  "scripts/cross_provider_interop.py"
+]
+tests = [
+  "scripts/cross_provider_interop.py"
+]
+owner = "pqc-rs maintainers"
+evidence = [
+  "HashSLH-DSA: 24/24 representative directed PQC-rs/liboqs interoperability cases passed",
+  "Coverage spans all 12 FIPS 205 parameter sets and all 12 supported prehash algorithms, one orthogonal pairing each; this is not the full Cartesian product"
+]
+tags = ["interop", "hashslh-dsa", "liboqs", "prehash"]

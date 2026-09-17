@@ -201,20 +201,158 @@ static int kem(
     return rc;
 }
 
+static const char *sig_alg_name(const char *alg)
+{
+    if (strcmp(alg, "SLH-DSA-SHA2-128s") == 0) {
+        return OQS_SIG_alg_slh_dsa_pure_sha2_128s;
+    }
+    if (strcmp(alg, "SLH-DSA-SHA2-128f") == 0) {
+        return OQS_SIG_alg_slh_dsa_pure_sha2_128f;
+    }
+    if (strcmp(alg, "SLH-DSA-SHA2-192s") == 0) {
+        return OQS_SIG_alg_slh_dsa_pure_sha2_192s;
+    }
+    if (strcmp(alg, "SLH-DSA-SHA2-192f") == 0) {
+        return OQS_SIG_alg_slh_dsa_pure_sha2_192f;
+    }
+    if (strcmp(alg, "SLH-DSA-SHA2-256s") == 0) {
+        return OQS_SIG_alg_slh_dsa_pure_sha2_256s;
+    }
+    if (strcmp(alg, "SLH-DSA-SHA2-256f") == 0) {
+        return OQS_SIG_alg_slh_dsa_pure_sha2_256f;
+    }
+    if (strcmp(alg, "SLH-DSA-SHAKE-128s") == 0) {
+        return OQS_SIG_alg_slh_dsa_pure_shake_128s;
+    }
+    if (strcmp(alg, "SLH-DSA-SHAKE-128f") == 0) {
+        return OQS_SIG_alg_slh_dsa_pure_shake_128f;
+    }
+    if (strcmp(alg, "SLH-DSA-SHAKE-192s") == 0) {
+        return OQS_SIG_alg_slh_dsa_pure_shake_192s;
+    }
+    if (strcmp(alg, "SLH-DSA-SHAKE-192f") == 0) {
+        return OQS_SIG_alg_slh_dsa_pure_shake_192f;
+    }
+    if (strcmp(alg, "SLH-DSA-SHAKE-256s") == 0) {
+        return OQS_SIG_alg_slh_dsa_pure_shake_256s;
+    }
+    if (strcmp(alg, "SLH-DSA-SHAKE-256f") == 0) {
+        return OQS_SIG_alg_slh_dsa_pure_shake_256f;
+    }
+
+    return alg;
+}
+
+static const char *hash_sig_alg_name(
+    const char *alg,
+    const char *prehash)
+{
+    const char *family = NULL;
+    const char *level = NULL;
+    const char *speed = NULL;
+    const char *ph = NULL;
+    const char *suffix;
+    static char name[96];
+
+    if (strncmp(alg, "SLH-DSA-SHA2-", 13) == 0) {
+        family = "SHA2";
+    } else if (strncmp(alg, "SLH-DSA-SHAKE-", 14) == 0) {
+        family = "SHAKE";
+    } else {
+        return NULL;
+    }
+
+    suffix = strrchr(alg, '-');
+    if (suffix == NULL || strlen(suffix + 1) < 4) {
+        return NULL;
+    }
+
+    if (strncmp(suffix + 1, "128", 3) == 0) {
+        level = "128";
+    } else if (strncmp(suffix + 1, "192", 3) == 0) {
+        level = "192";
+    } else if (strncmp(suffix + 1, "256", 3) == 0) {
+        level = "256";
+    } else {
+        return NULL;
+    }
+
+    if (suffix[strlen(suffix) - 1] == 's') {
+        speed = "S";
+    } else if (suffix[strlen(suffix) - 1] == 'f') {
+        speed = "F";
+    } else {
+        return NULL;
+    }
+
+    if (strcmp(prehash, "SHA2-224") == 0) {
+        ph = "SHA2_224";
+    } else if (strcmp(prehash, "SHA2-256") == 0) {
+        ph = "SHA2_256";
+    } else if (strcmp(prehash, "SHA2-384") == 0) {
+        ph = "SHA2_384";
+    } else if (strcmp(prehash, "SHA2-512") == 0) {
+        ph = "SHA2_512";
+    } else if (strcmp(prehash, "SHA2-512/224") == 0) {
+        ph = "SHA2_512_224";
+    } else if (strcmp(prehash, "SHA2-512/256") == 0) {
+        ph = "SHA2_512_256";
+    } else if (strcmp(prehash, "SHA3-224") == 0) {
+        ph = "SHA3_224";
+    } else if (strcmp(prehash, "SHA3-256") == 0) {
+        ph = "SHA3_256";
+    } else if (strcmp(prehash, "SHA3-384") == 0) {
+        ph = "SHA3_384";
+    } else if (strcmp(prehash, "SHA3-512") == 0) {
+        ph = "SHA3_512";
+    } else if (strcmp(prehash, "SHAKE-128") == 0) {
+        ph = "SHAKE_128";
+    } else if (strcmp(prehash, "SHAKE-256") == 0) {
+        ph = "SHAKE_256";
+    } else {
+        return NULL;
+    }
+
+    snprintf(
+        name,
+        sizeof(name),
+        "SLH_DSA_%s_PREHASH_%s_%s%s",
+        ph,
+        family,
+        level,
+        speed);
+
+    return name;
+}
+
 static int sig(
     const char *op,
     const char *alg,
     int argc,
     char **argv)
 {
-    OQS_SIG *sig = OQS_SIG_new(alg);
+    const char *selected_alg = sig_alg_name(alg);
+    OQS_SIG *sig;
     int rc = 1;
+
+    if (strcmp(op, "slh-hash-sign") == 0 && argc >= 7) {
+        selected_alg = hash_sig_alg_name(alg, argv[6]);
+    } else if (strcmp(op, "slh-hash-verify") == 0 && argc >= 8) {
+        selected_alg = hash_sig_alg_name(alg, argv[7]);
+    }
+
+    if (selected_alg == NULL) {
+        return 2;
+    }
+
+    sig = OQS_SIG_new(selected_alg);
 
     if (sig == NULL) {
         return 2;
     }
 
-    if (strcmp(op, "dsa-keygen") == 0) {
+    if (strcmp(op, "dsa-keygen") == 0 ||
+        strcmp(op, "slh-keygen") == 0) {
         unsigned char *public_key =
             malloc(sig->length_public_key);
 
@@ -244,7 +382,9 @@ static int sig(
         free(public_key);
         free(secret_key);
     } else if (
-        strcmp(op, "dsa-sign") == 0 &&
+        (strcmp(op, "dsa-sign") == 0 ||
+         strcmp(op, "slh-sign") == 0 ||
+         strcmp(op, "slh-hash-sign") == 0) &&
         argc >= 6) {
 
         size_t secret_key_len;
@@ -293,7 +433,9 @@ static int sig(
         free(context);
         free(signature);
     } else if (
-        strcmp(op, "dsa-verify") == 0 &&
+        (strcmp(op, "dsa-verify") == 0 ||
+         strcmp(op, "slh-verify") == 0 ||
+         strcmp(op, "slh-hash-verify") == 0) &&
         argc >= 7) {
 
         size_t public_key_len;
@@ -357,7 +499,8 @@ int main(int argc, char **argv)
         return kem(argv[1], argv[2], argc, argv);
     }
 
-    if (strncmp(argv[2], "ML-DSA", 6) == 0) {
+    if (strncmp(argv[2], "ML-DSA", 6) == 0 ||
+        strncmp(argv[2], "SLH-DSA", 7) == 0) {
         return sig(argv[1], argv[2], argc, argv);
     }
 

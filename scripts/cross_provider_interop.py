@@ -25,6 +25,36 @@ PARAMS_DSA = [
     "ML-DSA-87",
 ]
 
+PARAMS_SLH = [
+    "SLH-DSA-SHA2-128s",
+    "SLH-DSA-SHA2-128f",
+    "SLH-DSA-SHA2-192s",
+    "SLH-DSA-SHA2-192f",
+    "SLH-DSA-SHA2-256s",
+    "SLH-DSA-SHA2-256f",
+    "SLH-DSA-SHAKE-128s",
+    "SLH-DSA-SHAKE-128f",
+    "SLH-DSA-SHAKE-192s",
+    "SLH-DSA-SHAKE-192f",
+    "SLH-DSA-SHAKE-256s",
+    "SLH-DSA-SHAKE-256f",
+]
+
+HASH_SLH_CASES = [
+    ("SLH-DSA-SHA2-128s", "SHA2-224"),
+    ("SLH-DSA-SHA2-128f", "SHA2-256"),
+    ("SLH-DSA-SHA2-192s", "SHA2-384"),
+    ("SLH-DSA-SHA2-192f", "SHA2-512"),
+    ("SLH-DSA-SHA2-256s", "SHA2-512/224"),
+    ("SLH-DSA-SHA2-256f", "SHA2-512/256"),
+    ("SLH-DSA-SHAKE-128s", "SHA3-224"),
+    ("SLH-DSA-SHAKE-128f", "SHA3-256"),
+    ("SLH-DSA-SHAKE-192s", "SHA3-384"),
+    ("SLH-DSA-SHAKE-192f", "SHA3-512"),
+    ("SLH-DSA-SHAKE-256s", "SHAKE-128"),
+    ("SLH-DSA-SHAKE-256f", "SHAKE-256"),
+]
+
 PROVIDERS = {
     "rust": [
         sys.executable,
@@ -1327,6 +1357,196 @@ def run_ml_dsa_cross_parameter(
             )
 
 
+
+def run_slh_interop(
+    root: pathlib.Path,
+    results: list[dict[str, Any]],
+    findings: list[dict[str, Any]],
+) -> None:
+    message = hashlib.sha256(b"slh-dsa-cross-provider-message").hexdigest()
+    context = "41322e33"
+
+    def slh_seed(parameter_set: str, prehash: str | None = None) -> str:
+        level = next(
+            level
+            for level in ("128", "192", "256")
+            if level in parameter_set
+        )
+        n = {"128": 16, "192": 24, "256": 32}[level]
+        tag = (
+            f"{parameter_set}-{prehash}-seed"
+            if prehash is not None
+            else f"{parameter_set}-seed"
+        )
+        return hashlib.shake_256(tag.encode()).hexdigest(3 * n)
+
+    for parameter_set in PARAMS_SLH:
+        cases = (
+            ("rust", "liboqs"),
+            ("liboqs", "rust"),
+        )
+        for producer, consumer in cases:
+            case = f"{parameter_set}:{producer}->{consumer}"
+            try:
+                if producer == "rust":
+                    keypair = call(
+                        root,
+                        "rust",
+                        "slh-keygen",
+                        parameter_set,
+                        {"seed": slh_seed(parameter_set)},
+                    )
+                else:
+                    keypair = call(
+                        root,
+                        "liboqs",
+                        "slh-keygen",
+                        parameter_set,
+                        {},
+                    )
+
+                signature = call(
+                    root,
+                    producer,
+                    "slh-sign",
+                    parameter_set,
+                    {
+                        "secret_key": keypair["secret_key"],
+                        "message": message,
+                        "context": context,
+                    },
+                )
+                verification = call(
+                    root,
+                    consumer,
+                    "slh-verify",
+                    parameter_set,
+                    {
+                        "public_key": keypair["public_key"],
+                        "message": message,
+                        "context": context,
+                        "signature": signature["signature"],
+                    },
+                )
+                decision = (
+                    "pass"
+                    if verification["valid"]
+                    else "fail"
+                )
+                add_result(
+                    results,
+                    findings,
+                    section="slh-dsa-pure",
+                    case=case,
+                    decision=decision,
+                    algorithm="SLH-DSA",
+                    parameter_set=parameter_set,
+                    producer=producer,
+                    consumer=consumer,
+                )
+            except Exception as error:
+                add_result(
+                    results,
+                    findings,
+                    section="slh-dsa-pure",
+                    case=case,
+                    decision="fail",
+                    algorithm="SLH-DSA",
+                    parameter_set=parameter_set,
+                    producer=producer,
+                    consumer=consumer,
+                    reason=str(error),
+                )
+
+    for parameter_set, prehash in HASH_SLH_CASES:
+        for producer, consumer in (
+            ("rust", "liboqs"),
+            ("liboqs", "rust"),
+        ):
+            case = (
+                f"{parameter_set}:{prehash}:"
+                f"{producer}->{consumer}"
+            )
+            try:
+                if producer == "rust":
+                    keypair = call(
+                        root,
+                        "rust",
+                        "slh-keygen",
+                        parameter_set,
+                        {
+                            "seed": slh_seed(
+                                parameter_set,
+                                prehash,
+                            )
+                        },
+                    )
+                else:
+                    keypair = call(
+                        root,
+                        "liboqs",
+                        "slh-keygen",
+                        parameter_set,
+                        {},
+                    )
+
+                signature = call(
+                    root,
+                    producer,
+                    "slh-hash-sign",
+                    parameter_set,
+                    {
+                        "secret_key": keypair["secret_key"],
+                        "message": message,
+                        "context": context,
+                        "prehash": prehash,
+                    },
+                )
+                verification = call(
+                    root,
+                    consumer,
+                    "slh-hash-verify",
+                    parameter_set,
+                    {
+                        "public_key": keypair["public_key"],
+                        "message": message,
+                        "context": context,
+                        "signature": signature["signature"],
+                        "prehash": prehash,
+                    },
+                )
+                decision = (
+                    "pass"
+                    if verification["valid"]
+                    else "fail"
+                )
+                add_result(
+                    results,
+                    findings,
+                    section="slh-dsa-hash",
+                    case=case,
+                    decision=decision,
+                    algorithm="HashSLH-DSA",
+                    parameter_set=parameter_set,
+                    prehash=prehash,
+                    producer=producer,
+                    consumer=consumer,
+                )
+            except Exception as error:
+                add_result(
+                    results,
+                    findings,
+                    section="slh-dsa-hash",
+                    case=case,
+                    decision="fail",
+                    algorithm="HashSLH-DSA",
+                    parameter_set=parameter_set,
+                    prehash=prehash,
+                    producer=producer,
+                    consumer=consumer,
+                    reason=str(error),
+                )
+
 def write_reports(
     output: pathlib.Path,
     *,
@@ -1374,22 +1594,20 @@ def write_reports(
         "results": results,
         "findings": findings,
         "claim_boundary": (
-            "A pass demonstrates the tested "
-            "software-provider interoperability "
-            "properties for PQC-rs, wolfSSL, "
-            "OpenSSL, and liboqs. ML-KEM "
-            "deterministic equivalence covers "
-            "ML-KEM-512/768/1024, including "
-            "implicit rejection. ML-DSA exact "
-            "seeded equivalence covers PQC-rs, "
-            "wolfSSL, and OpenSSL; liboqs is "
-            "included in raw-key/signature, "
-            "context-bound, negative, and "
-            "cross-parameter interoperability "
-            "tests because its public API does "
-            "not expose deterministic ML-DSA "
-            "key generation or explicit signing "
-            "randomness."
+            "A pass demonstrates the tested software-provider interoperability "
+            "properties for the providers and interfaces exercised by each "
+            "campaign. ML-KEM deterministic equivalence covers PQC-rs, wolfSSL, "
+            "OpenSSL, liboqs, and AWS-LC across ML-KEM-512/768/1024, including "
+            "implicit rejection. ML-DSA exact seeded equivalence is limited to "
+            "providers whose public APIs expose the required deterministic "
+            "controls; broader semantic verification includes the supported "
+            "five-provider interfaces. SLH-DSA interoperability is separately "
+            "scoped to PQC-rs and liboqs: Pure SLH-DSA is exercised "
+            "bidirectionally for all twelve parameter sets, and HashSLH-DSA is "
+            "exercised bidirectionally for twelve representative "
+            "parameter-set/prehash pairs spanning all twelve standardized "
+            "prehash algorithms. The HashSLH campaign is representative, not "
+            "the full parameter-set/prehash Cartesian product."
         ),
     }
 
@@ -1420,8 +1638,8 @@ def write_reports(
         "",
         "## Provider capability matrix",
         "",
-        "| Capability | PQC-rs | wolfSSL | OpenSSL | liboqs |",
-        "|---|---|---|---|---|",
+        "| Capability | PQC-rs | wolfSSL | OpenSSL | liboqs | AWS-LC |",
+        "|---|---|---|---|---|---|",
     ]
 
     capability_labels = [
@@ -1607,6 +1825,14 @@ def main() -> int:
         )
 
         run_ml_dsa_cross_parameter(
+            root,
+            results,
+            findings,
+        )
+
+        # SLH-DSA interoperability is currently scoped to PQC-rs <-> liboqs.
+        # Keep it additive to the broader five-provider ML-KEM/ML-DSA campaign.
+        run_slh_interop(
             root,
             results,
             findings,
