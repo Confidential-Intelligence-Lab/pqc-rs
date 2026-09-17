@@ -60,7 +60,39 @@ with tempfile.TemporaryDirectory(prefix="a22-") as tmp:
     assert response["ok"] is True
     assert response["provider"] == "liboqs"
     capabilities = response["capabilities"]
-    assert {item["algorithm"] for item in capabilities} == {"ML-KEM", "ML-DSA"}
+    by_algorithm = {
+        item["algorithm"]: item
+        for item in capabilities
+    }
+
+    assert set(by_algorithm) == {
+        "ML-KEM",
+        "ML-DSA",
+        "SLH-DSA",
+    }
+
+    assert by_algorithm["SLH-DSA"]["parameter_sets"] == [
+        "SLH-DSA-SHA2-128s",
+        "SLH-DSA-SHA2-128f",
+        "SLH-DSA-SHA2-192s",
+        "SLH-DSA-SHA2-192f",
+        "SLH-DSA-SHA2-256s",
+        "SLH-DSA-SHA2-256f",
+        "SLH-DSA-SHAKE-128s",
+        "SLH-DSA-SHAKE-128f",
+        "SLH-DSA-SHAKE-192s",
+        "SLH-DSA-SHAKE-192f",
+        "SLH-DSA-SHAKE-256s",
+        "SLH-DSA-SHAKE-256f",
+    ]
+
+    assert set(by_algorithm["SLH-DSA"]["operations"]) == {
+        "slh-keygen",
+        "slh-sign",
+        "slh-verify",
+        "slh-hash-sign",
+        "slh-hash-verify",
+    }
 
     temp_manifest = root / "target/a2-2-validation-manifest.toml"
     temp_manifest.parent.mkdir(parents=True, exist_ok=True)
