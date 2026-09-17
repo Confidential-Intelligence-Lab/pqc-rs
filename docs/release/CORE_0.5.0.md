@@ -40,9 +40,10 @@ released only after `pqc-rs-core` `0.5.0` is available from the registry.
 
 ## Release provenance
 
-This document describes the release candidate before registry publication.
-
-Source commit, crate-specific tag, crates.io checksum, archive size,
-publication date, and yank status must be recorded only after the final
-candidate passes all release gates and registry publication is independently
-verified.
+- source revision: `c446714f9ae5a9210b1fb7959d8e640c03a15d39`;
+- crate-specific tag: `pqc-rs-core-v0.5.0`;
+- crates.io version: `pqc-rs-core 0.5.0`;
+- registry archive SHA-256:
+  `5cced2eb2acf74e1daa6172b17e184da391fe5e209dbada279a9e2188ebdbfc8`;
+- local and registry crate archives: byte-for-byte identical by SHA-256;
+- Rust MSRV: `1.80`.
