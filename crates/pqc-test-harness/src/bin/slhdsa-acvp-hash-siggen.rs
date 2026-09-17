@@ -78,7 +78,7 @@ fn run() -> Result<(), String> {
         .filter(|group| {
             group.signature_interface == SignatureInterface::External
                 && group.pre_hash == Some(PreHashMode::PreHash)
-                && tg_filter.is_none_or(|tg_id| group.tg_id == tg_id)
+                && tg_filter.map_or(true, |tg_id| group.tg_id == tg_id)
         })
         .collect::<Vec<_>>();
 

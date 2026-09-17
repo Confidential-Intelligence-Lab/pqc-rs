@@ -7,7 +7,11 @@ use pqc_slh_dsa::{
     hash::{Sha2TweakableHash, ShakeTweakableHash},
 };
 
-#[cfg(all(target_os = "linux", feature = "valgrind-secret-taint"))]
+#[cfg(all(
+    target_os = "linux",
+    feature = "valgrind-secret-taint",
+    pqc_valgrind_available
+))]
 #[link(name = "pqc_valgrind_secret", kind = "static")]
 unsafe extern "C" {
     fn pqc_valgrind_make_secret(ptr: *mut core::ffi::c_void, len: usize);
@@ -15,27 +19,47 @@ unsafe extern "C" {
     fn pqc_valgrind_running() -> core::ffi::c_int;
 }
 
-#[cfg(all(target_os = "linux", feature = "valgrind-secret-taint"))]
+#[cfg(all(
+    target_os = "linux",
+    feature = "valgrind-secret-taint",
+    pqc_valgrind_available
+))]
 fn make_secret(bytes: &mut [u8]) {
     unsafe {
         pqc_valgrind_make_secret(bytes.as_mut_ptr().cast(), bytes.len());
     }
 }
 
-#[cfg(not(all(target_os = "linux", feature = "valgrind-secret-taint")))]
+#[cfg(not(all(
+    target_os = "linux",
+    feature = "valgrind-secret-taint",
+    pqc_valgrind_available
+)))]
 fn make_secret(_bytes: &mut [u8]) {}
 
-#[cfg(all(target_os = "linux", feature = "valgrind-secret-taint"))]
+#[cfg(all(
+    target_os = "linux",
+    feature = "valgrind-secret-taint",
+    pqc_valgrind_available
+))]
 fn make_public(bytes: &mut [u8]) {
     unsafe {
         pqc_valgrind_make_public(bytes.as_mut_ptr().cast(), bytes.len());
     }
 }
 
-#[cfg(not(all(target_os = "linux", feature = "valgrind-secret-taint")))]
+#[cfg(not(all(
+    target_os = "linux",
+    feature = "valgrind-secret-taint",
+    pqc_valgrind_available
+)))]
 fn make_public(_bytes: &mut [u8]) {}
 
-#[cfg(all(target_os = "linux", feature = "valgrind-secret-taint"))]
+#[cfg(all(
+    target_os = "linux",
+    feature = "valgrind-secret-taint",
+    pqc_valgrind_available
+))]
 fn running_on_valgrind() -> bool {
     unsafe { pqc_valgrind_running() != 0 }
 }
@@ -65,7 +89,23 @@ fn run() -> Result<(), String> {
         "Linux secret-taint execution requires --features valgrind-secret-taint".to_owned(),
     );
 
-    #[cfg(all(target_os = "linux", feature = "valgrind-secret-taint"))]
+    #[cfg(all(
+        target_os = "linux",
+        feature = "valgrind-secret-taint",
+        pqc_valgrind_available
+    ))]
+    #[cfg(all(
+        target_os = "linux",
+        feature = "valgrind-secret-taint",
+        not(pqc_valgrind_available)
+    ))]
+    return Err("Linux secret-taint execution requires Valgrind development headers".to_owned());
+
+    #[cfg(all(
+        target_os = "linux",
+        feature = "valgrind-secret-taint",
+        pqc_valgrind_available
+    ))]
     if !running_on_valgrind() {
         return Err("Linux secret-taint audit must run under Valgrind".to_owned());
     }
