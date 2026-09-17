@@ -29,6 +29,8 @@ mkdir -p "$OUT"
 
 cargo xtask performance-audit --check
 
+rm -rf "$ROOT/target/criterion"
+
 cargo bench --bench slh_dsa 2>&1 | tee "$OUT/criterion-output.txt"
 
 rm -rf "$OUT/criterion"
