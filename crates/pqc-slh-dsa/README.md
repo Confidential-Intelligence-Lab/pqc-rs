@@ -29,7 +29,7 @@ Implemented operations include:
 - deterministic and hedged Pure SLH-DSA signing;
 - Pure SLH-DSA signature verification;
 - deterministic and hedged HashSLH-DSA signing;
-- HashSLH-DSA signature verification with the standardized prehash algorithms;
+- HashSLH-DSA signature verification with all twelve standardized prehash algorithms;
 - typed import and export of keys and signatures;
 - feature-gated internal interfaces for validation tooling.
 
@@ -62,8 +62,11 @@ assert!(slh_dsa.verify(
 # Ok::<(), pqc_slh_dsa::SlhDsaError>(())
 ```
 
-For reproducible provising or validation, use
+For reproducible provisioning or validation, use
 `SlhDsaKeyGenSeed::from_bytes` together with `SlhDsa::keygen_from_seed`.
+
+Additional examples cover deterministic provisioning, deterministic signing,
+hedged signing, and HashSLH-DSA under `examples/`.
 
 ## API design
 

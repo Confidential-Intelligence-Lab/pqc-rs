@@ -12,7 +12,7 @@
 //! - deterministic and hedged Pure SLH-DSA signing;
 //! - Pure SLH-DSA signature verification;
 //! - deterministic and hedged HashSLH-DSA signing;
-//! - HashSLH-DSA signature verification with the standardized prehash algorithms;
+//! - HashSLH-DSA signature verification with all twelve standardized prehash algorithms;
 //! - typed key, seed, and signature import and export.
 //!
 //! # Parameter binding
