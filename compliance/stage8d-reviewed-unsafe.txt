@@ -1,0 +1,13 @@
+crates/pqc-test-harness/src/bin/slhdsa-s6-heap-audit.rs:        let new_pointer = unsafe { System.realloc(pointer, old_layout, new_size) };
+crates/pqc-test-harness/src/bin/slhdsa-s6-heap-audit.rs:        let pointer = unsafe { System.alloc(layout) };
+crates/pqc-test-harness/src/bin/slhdsa-s6-heap-audit.rs:        let pointer = unsafe { System.alloc_zeroed(layout) };
+crates/pqc-test-harness/src/bin/slhdsa-s6-heap-audit.rs:        unsafe { System.dealloc(pointer, layout) };
+crates/pqc-test-harness/src/bin/slhdsa-s6-heap-audit.rs:    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+crates/pqc-test-harness/src/bin/slhdsa-s6-heap-audit.rs:    unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+crates/pqc-test-harness/src/bin/slhdsa-s6-heap-audit.rs:    unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
+crates/pqc-test-harness/src/bin/slhdsa-s6-heap-audit.rs:    unsafe fn realloc(&self, pointer: *mut u8, old_layout: Layout, new_size: usize) -> *mut u8 {
+crates/pqc-test-harness/src/bin/slhdsa-s6-heap-audit.rs:unsafe impl GlobalAlloc for CountingAllocator {
+crates/pqc-test-harness/src/bin/slhdsa-s6-secret-taint.rs:    unsafe {
+crates/pqc-test-harness/src/bin/slhdsa-s6-secret-taint.rs:    unsafe {
+crates/pqc-test-harness/src/bin/slhdsa-s6-secret-taint.rs:    unsafe { pqc_valgrind_running() != 0 }
+crates/pqc-test-harness/src/bin/slhdsa-s6-secret-taint.rs:unsafe extern "C" {

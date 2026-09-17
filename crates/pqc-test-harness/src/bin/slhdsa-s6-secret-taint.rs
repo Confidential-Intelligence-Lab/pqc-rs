@@ -13,6 +13,10 @@ use pqc_slh_dsa::{
     pqc_valgrind_available
 ))]
 #[link(name = "pqc_valgrind_secret", kind = "static")]
+// SAFETY: These declarations bind to the pqc_valgrind_secret static shim
+// compiled by this crate's build script when pqc_valgrind_available is set.
+// The shim accepts caller-owned pointer/length pairs only for the duration of
+// each call and does not retain those pointers.
 unsafe extern "C" {
     fn pqc_valgrind_make_secret(ptr: *mut core::ffi::c_void, len: usize);
     fn pqc_valgrind_make_public(ptr: *mut core::ffi::c_void, len: usize);
@@ -25,6 +29,8 @@ unsafe extern "C" {
     pqc_valgrind_available
 ))]
 fn make_secret(bytes: &mut [u8]) {
+    // SAFETY: `bytes.as_mut_ptr()` is valid for exactly `bytes.len()` bytes
+    // for the duration of this call, and the Valgrind shim does not retain it.
     unsafe {
         pqc_valgrind_make_secret(bytes.as_mut_ptr().cast(), bytes.len());
     }
@@ -43,6 +49,8 @@ fn make_secret(_bytes: &mut [u8]) {}
     pqc_valgrind_available
 ))]
 fn make_public(bytes: &mut [u8]) {
+    // SAFETY: `bytes.as_mut_ptr()` is valid for exactly `bytes.len()` bytes
+    // for the duration of this call, and the Valgrind shim does not retain it.
     unsafe {
         pqc_valgrind_make_public(bytes.as_mut_ptr().cast(), bytes.len());
     }
@@ -61,6 +69,8 @@ fn make_public(_bytes: &mut [u8]) {}
     pqc_valgrind_available
 ))]
 fn running_on_valgrind() -> bool {
+    // SAFETY: `pqc_valgrind_running` takes no pointers or caller-owned
+    // state and returns only whether execution is currently under Valgrind.
     unsafe { pqc_valgrind_running() != 0 }
 }
 

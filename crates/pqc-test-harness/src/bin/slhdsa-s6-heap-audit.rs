@@ -19,8 +19,14 @@ static PEAK_LIVE_BYTES: AtomicUsize = AtomicUsize::new(0);
 #[global_allocator]
 static GLOBAL: CountingAllocator = CountingAllocator;
 
+// SAFETY: CountingAllocator delegates every allocation operation to
+// `std::alloc::System` using the pointer/layout contract supplied by
+// `GlobalAlloc`. Accounting does not alter allocation pointers, layouts, or
+// ownership, and deallocation/reallocation are forwarded exactly once.
 unsafe impl GlobalAlloc for CountingAllocator {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
+        // SAFETY: `layout` is supplied under `GlobalAlloc::alloc`'s
+        // contract and is forwarded unchanged to `System`.
         let pointer = unsafe { System.alloc(layout) };
         if !pointer.is_null() && TRACKING.load(Ordering::Relaxed) {
             record_allocation(layout.size());
@@ -29,6 +35,8 @@ unsafe impl GlobalAlloc for CountingAllocator {
     }
 
     unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
+        // SAFETY: `layout` is supplied under `GlobalAlloc::alloc_zeroed`'s
+        // contract and is forwarded unchanged to `System`.
         let pointer = unsafe { System.alloc_zeroed(layout) };
         if !pointer.is_null() && TRACKING.load(Ordering::Relaxed) {
             record_allocation(layout.size());
@@ -40,10 +48,14 @@ unsafe impl GlobalAlloc for CountingAllocator {
         if TRACKING.load(Ordering::Relaxed) {
             record_deallocation(layout.size());
         }
+        // SAFETY: `pointer` and `layout` are supplied under
+        // `GlobalAlloc::dealloc`'s contract and are forwarded unchanged.
         unsafe { System.dealloc(pointer, layout) };
     }
 
     unsafe fn realloc(&self, pointer: *mut u8, old_layout: Layout, new_size: usize) -> *mut u8 {
+        // SAFETY: `pointer`, `old_layout`, and `new_size` are supplied
+        // under `GlobalAlloc::realloc`'s contract and are forwarded unchanged.
         let new_pointer = unsafe { System.realloc(pointer, old_layout, new_size) };
         if !new_pointer.is_null() && TRACKING.load(Ordering::Relaxed) {
             record_deallocation(old_layout.size());
