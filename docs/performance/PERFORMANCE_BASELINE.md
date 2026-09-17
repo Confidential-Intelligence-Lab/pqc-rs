@@ -12,7 +12,7 @@ This baseline measures release-mode cryptographic operations using Criterion. It
 
 ## Decision
 
-**PASS** — 10 active benchmark groups; 0 blocking findings.
+**PASS** — 15 active benchmark groups; 0 blocking findings.
 
 ## Execution
 
@@ -53,6 +53,11 @@ ML-DSA signing is rejection-sampled and therefore naturally variable. Review its
 | `PERF-HPKE-SEAL-OPEN` | `hpke/base/seal_open_1k` | `authenticated-encryption` | ML-KEM-768/HKDF-SHA256/AES-128-GCM | 1 KiB seal latency; 1 KiB open latency; throughput |
 | `PERF-HPKE-EXPORT` | `hpke/base/export_32` | `exporter` | ML-KEM-768/HKDF-SHA256/AES-128-GCM | 32-byte export latency |
 | `PERF-HYBRID-SETUP` | `hpke/hybrid/setup` | `protocol-setup` | MLKEM768-P256; MLKEM768-X25519; MLKEM1024-P384 | sender setup latency; receiver setup latency |
+| `PERF-SLHDSA-KEYGEN` | `slh_dsa/keygen` | `key-generation` | SLH-DSA-SHA2-128s; SLH-DSA-SHA2-128f; SLH-DSA-SHA2-192s; SLH-DSA-SHA2-192f; SLH-DSA-SHA2-256s; SLH-DSA-SHA2-256f; SLH-DSA-SHAKE-128s; SLH-DSA-SHAKE-128f; SLH-DSA-SHAKE-192s; SLH-DSA-SHAKE-192f; SLH-DSA-SHAKE-256s; SLH-DSA-SHAKE-256f | median latency; confidence interval; throughput |
+| `PERF-SLHDSA-PURE-SIGN` | `slh_dsa/pure_sign` | `signing` | SLH-DSA-SHA2-128s; SLH-DSA-SHA2-128f; SLH-DSA-SHA2-192s; SLH-DSA-SHA2-192f; SLH-DSA-SHA2-256s; SLH-DSA-SHA2-256f; SLH-DSA-SHAKE-128s; SLH-DSA-SHAKE-128f; SLH-DSA-SHAKE-192s; SLH-DSA-SHAKE-192f; SLH-DSA-SHAKE-256s; SLH-DSA-SHAKE-256f | median latency; confidence interval; throughput |
+| `PERF-SLHDSA-PURE-VERIFY` | `slh_dsa/pure_verify` | `verification` | SLH-DSA-SHA2-128s; SLH-DSA-SHA2-128f; SLH-DSA-SHA2-192s; SLH-DSA-SHA2-192f; SLH-DSA-SHA2-256s; SLH-DSA-SHA2-256f; SLH-DSA-SHAKE-128s; SLH-DSA-SHAKE-128f; SLH-DSA-SHAKE-192s; SLH-DSA-SHAKE-192f; SLH-DSA-SHAKE-256s; SLH-DSA-SHAKE-256f | median latency; confidence interval; throughput |
+| `PERF-SLHDSA-HASH-SIGN` | `slh_dsa/hash_sign` | `signing` | SLH-DSA-SHA2-128s; SLH-DSA-SHA2-128f; SLH-DSA-SHA2-192s; SLH-DSA-SHA2-192f; SLH-DSA-SHA2-256s; SLH-DSA-SHA2-256f; SLH-DSA-SHAKE-128s; SLH-DSA-SHAKE-128f; SLH-DSA-SHAKE-192s; SLH-DSA-SHAKE-192f; SLH-DSA-SHAKE-256s; SLH-DSA-SHAKE-256f | median latency; confidence interval; throughput |
+| `PERF-SLHDSA-HASH-VERIFY` | `slh_dsa/hash_verify` | `verification` | SLH-DSA-SHA2-128s; SLH-DSA-SHA2-128f; SLH-DSA-SHA2-192s; SLH-DSA-SHA2-192f; SLH-DSA-SHA2-256s; SLH-DSA-SHA2-256f; SLH-DSA-SHAKE-128s; SLH-DSA-SHAKE-128f; SLH-DSA-SHAKE-192s; SLH-DSA-SHAKE-192f; SLH-DSA-SHAKE-256s; SLH-DSA-SHAKE-256f | median latency; confidence interval; throughput |
 
 ## Interpretation boundaries
 

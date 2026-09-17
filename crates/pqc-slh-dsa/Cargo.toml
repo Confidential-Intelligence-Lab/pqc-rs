@@ -30,3 +30,10 @@ sha3 = { workspace = true }
 
 [lib]
 name = "pqc_slh_dsa"
+
+[dev-dependencies]
+criterion = { workspace = true }
+
+[[bench]]
+name = "slh_dsa"
+harness = false
