@@ -131,10 +131,10 @@ change before version 1.0.
 
 | Crate | Layer | Purpose | Version |
 |---|---|---|---|
-| [`pqc-rs-core`](https://crates.io/crates/pqc-rs-core) | PQC-rs | Core traits, byte types, errors, and secret containers | `0.4.0` |
+| [`pqc-rs-core`](https://crates.io/crates/pqc-rs-core) | PQC-rs | Core traits, byte types, errors, and secret containers | `0.5.0` |
 | [`pqc-rs-ml-kem`](https://crates.io/crates/pqc-rs-ml-kem) | PQC-rs | ML-KEM (FIPS 203) | `0.4.1` |
 | [`pqc-rs-ml-dsa`](https://crates.io/crates/pqc-rs-ml-dsa) | PQC-rs | ML-DSA (FIPS 204) | `0.4.0` |
-| [`pqc-rs-slh-dsa`](https://crates.io/crates/pqc-rs-slh-dsa) | PQC-rs | SLH-DSA (FIPS 205) | `0.4.0` |
+| [`pqc-rs-slh-dsa`](https://crates.io/crates/pqc-rs-slh-dsa) | PQC-rs | SLH-DSA (FIPS 205) | `0.5.0` |
 | [`pqc-rs-hybrid`](https://crates.io/crates/pqc-rs-hybrid) | PQC-rs | PQ/traditional hybrid composition | `0.4.0` |
 | [`pqc-rs-hpke`](https://crates.io/crates/pqc-rs-hpke) | PQC-rs | HPKE with post-quantum and hybrid KEM integration | `0.4.1` |
 | [`pqc-rs-protocol`](https://crates.io/crates/pqc-rs-protocol) | PQC-Forge | Negotiation, policy binding, and protocol state | `0.4.1` |
@@ -148,7 +148,7 @@ Add only the crates required by your application. For example:
 [dependencies]
 pqc-rs-ml-kem = "0.4.1"
 pqc-rs-ml-dsa = "0.4.0"
-pqc-rs-slh-dsa = "0.4.0"
+pqc-rs-slh-dsa = "0.5.0"
 pqc-rs-hpke = "0.4.1"
 ```
 ### Try the crypto-agile secure channel
