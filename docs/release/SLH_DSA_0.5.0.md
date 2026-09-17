@@ -118,3 +118,13 @@ Source commit, crate-specific tag, crates.io checksum, archive size, publication
 date, and yank status must be recorded only after the final release candidate
 passes all release gates and the registry publication is independently
 verified.
+
+## Release provenance
+
+- source revision: `c446714f9ae5a9210b1fb7959d8e640c03a15d39`;
+- crate-specific tag: `pqc-rs-slh-dsa-v0.5.0`;
+- crates.io version: `pqc-rs-slh-dsa 0.5.0`;
+- registry archive SHA-256:
+  `e9444fc93c560b5dab38faab742aa142c6e083a8f8c96ff44aedd6fa60e9bd77`;
+- local and registry crate archives: byte-for-byte identical by SHA-256;
+- Rust MSRV: `1.80`.
