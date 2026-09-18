@@ -3,10 +3,12 @@ set -euo pipefail
 OUT_DIR="${1:-target/stage10b2}"
 mkdir -p "${OUT_DIR}"
 python3 scripts/patch-stage10b2-enable-compare.py
-cargo fmt --all
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test -p pqc-rs-core --all-features
-cargo test --workspace --all-features
+if [[ "${PQC_STAGE11_PROBE_ONLY:-0}" != "1" ]]; then
+  cargo fmt --all
+  cargo clippy --workspace --all-targets --all-features -- -D warnings
+  cargo test -p pqc-rs-core --all-features
+  cargo test --workspace --all-features
+fi
 cargo build -p pqc-rs-test-harness --bin ct-stage10b2-audit --release
 cargo run -p pqc-rs-test-harness --bin ct-stage10b2-timing --release -- "${OUT_DIR}/mismatch-position-timing.csv"
 python3 scripts/analyze-stage10b2-timing.py "${OUT_DIR}/mismatch-position-timing.csv" | tee "${OUT_DIR}/mismatch-position-analysis.txt"

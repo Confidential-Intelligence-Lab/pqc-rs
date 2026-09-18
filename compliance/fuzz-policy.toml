@@ -78,3 +78,22 @@ status = "active"
 components = ["ML-DSA-44 verification", "ML-DSA-65 verification", "ML-DSA-87 verification"]
 properties = ["arbitrary public keys and signatures never panic", "malformed encodings return false or structured error"]
 seed_corpus = "fuzz/corpus/mldsa_verification"
+
+[[target]]
+id = "FZ-SLHDSA-VERIFY"
+name = "slhdsa_verification"
+path = "fuzz/fuzz_targets/slhdsa_verification.rs"
+class = "cryptographic-boundary"
+status = "active"
+components = [
+  "Pure SLH-DSA verification",
+  "SLH-DSA-SHA2 parameter sets",
+  "SLH-DSA-SHAKE parameter sets",
+]
+properties = [
+  "arbitrary public keys and signatures never panic",
+  "malformed encodings return false or structured error",
+  "all twelve FIPS 205 parameter sets are exercised",
+  "exact-length expanded inputs reach deep verification",
+]
+seed_corpus = "fuzz/corpus/slhdsa_verification"

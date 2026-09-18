@@ -6,7 +6,7 @@ If a compatible harness or metric cannot be found it prints STAGE11_SKIP, which
 Stage 11 records as an inconclusive repetition rather than a pass or failure.
 """
 from __future__ import annotations
-import argparse, re, subprocess, sys
+import argparse, os, re, subprocess, sys
 from pathlib import Path
 
 SPECS = {
@@ -110,7 +110,14 @@ def main()->int:
         command=command_for(path)
         if not command: continue
         print(f"stage11_adapter_candidate={path}",file=sys.stderr)
-        proc=subprocess.run(command,capture_output=True,text=True)
+        env = os.environ.copy()
+        env["PQC_STAGE11_PROBE_ONLY"] = "1"
+        proc = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            env=env,
+        )
         combined=proc.stdout+"\n"+proc.stderr
         sys.stdout.write(combined)
         if proc.returncode != 0:

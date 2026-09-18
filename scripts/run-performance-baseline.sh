@@ -26,6 +26,7 @@ mkdir -p "$OUT"
 cargo xtask performance-audit --check
 cargo bench --bench ml_kem
 cargo bench --bench ml_dsa
+cargo bench --bench slh_dsa
 cargo bench --bench hpke
 cargo bench --bench hybrid_hpke
 

@@ -11,6 +11,7 @@
 | `FZ-HYBRID-KEM` | `hybrid_kem_inputs` | `cryptographic-boundary` | `active` | `fuzz/corpus/hybrid_kem_inputs` | — |
 | `FZ-MLDSA-PRIMITIVES` | `mldsa_primitives` | `arithmetic-invariant` | `active` | `fuzz/corpus/mldsa_primitives` | — |
 | `FZ-MLDSA-VERIFY` | `mldsa_verification` | `cryptographic-boundary` | `active` | `fuzz/corpus/mldsa_verification` | — |
+| `FZ-SLHDSA-VERIFY` | `slhdsa_verification` | `cryptographic-boundary` | `active` | `fuzz/corpus/slhdsa_verification` | — |
 
 ## Gate findings
 

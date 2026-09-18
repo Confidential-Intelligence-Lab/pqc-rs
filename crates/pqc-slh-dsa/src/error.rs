@@ -17,8 +17,6 @@ pub enum SlhDsaError {
     ParameterSetMismatch,
     /// Caller-supplied random-number generation failed.
     RandomnessFailure,
-    /// The requested operation is not implemented in the current stage.
-    NotImplemented,
     /// An internal cryptographic invariant failed.
     InternalError,
 }
@@ -33,7 +31,6 @@ impl core::fmt::Display for SlhDsaError {
             Self::ContextTooLong => "SLH-DSA context exceeds 255 bytes",
             Self::ParameterSetMismatch => "SLH-DSA parameter-set mismatch",
             Self::RandomnessFailure => "SLH-DSA randomness generation failed",
-            Self::NotImplemented => "SLH-DSA operation is not implemented",
             Self::InternalError => "internal SLH-DSA operation failed",
         })
     }

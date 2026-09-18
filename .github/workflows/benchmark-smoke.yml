@@ -15,5 +15,6 @@ jobs:
       - run: cargo xtask performance-audit --check
       - run: cargo bench --bench ml_kem -- --test
       - run: cargo bench --bench ml_dsa -- --test
+      - run: cargo bench --bench slh_dsa -- --test
       - run: cargo bench --bench hpke -- --test
       - run: cargo bench --bench hybrid_hpke -- --test

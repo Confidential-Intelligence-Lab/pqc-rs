@@ -44,12 +44,61 @@ def collect_mldsa(src):
     rows.append((crate,'enum','PreHashAlgorithm',rel,'Stable'))
     return rows
 
+
+
+def collect_slhdsa(src):
+    crate=src.parent.name
+    rows=[]
+    lib=src/'lib.rs'
+    rel=lib.relative_to(ROOT).as_posix()
+
+    for module in ('api','error','params'):
+        rows.append((crate,'mod',module,rel,'Stable'))
+
+    lib_text=lib.read_text(errors='ignore')
+    for item in REEXPORT.findall(lib_text):
+        rows.append((crate,'re-export',item.strip().replace('\n',' '),rel,'Stable'))
+
+    internal_api_decl=re.compile(
+        r'(?ms)^\s*#\[cfg\(feature = "internal-api"\)\]\s*'
+        r'(?:#\[[^\n]*\]\s*)*'
+        r'(?P<decl>'
+        r'pub\s+(?:const\s+)?(?:unsafe\s+)?'
+        r'(?:struct|enum|trait|fn|type|const|static)\s+'
+        r'[A-Za-z_][A-Za-z0-9_]*'
+        r')'
+    )
+
+    for name in ('api.rs','error.rs','params.rs'):
+        source_path=src/name
+        rel=source_path.relative_to(ROOT).as_posix()
+        source=source_path.read_text(errors='ignore')
+
+        hidden_names={
+            m.group('decl').split('(')[0].split()[-1]
+            for m in internal_api_decl.finditer(source)
+        }
+
+        for kind,item in MLDSA_PAT.findall(source):
+            if item in hidden_names:
+                continue
+            rows.append((crate,kind,item,rel,'Stable'))
+
+    prehash=src/'hash_slhdsa.rs'
+    rel=prehash.relative_to(ROOT).as_posix()
+    rows.append((crate,'enum','SlhDsaPreHash',rel,'Stable'))
+
+    return rows
+
 def collect():
     rows=[]
     for src in CRATES:
         crate=src.parent.name
         if crate=='pqc-ml-dsa':
             rows.extend(collect_mldsa(src))
+            continue
+        if crate=='pqc-slh-dsa':
+            rows.extend(collect_slhdsa(src))
             continue
         for p in sorted(src.rglob('*.rs')):
             if '/bin/' in p.as_posix() or '#[cfg(test)]' in p.read_text(errors='ignore')[:200]: pass

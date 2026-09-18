@@ -118,3 +118,93 @@ status = "active"
 parameter_sets = ["MLKEM768-P256", "MLKEM768-X25519", "MLKEM1024-P384"]
 metrics = ["sender setup latency", "receiver setup latency"]
 source = "crates/pqc-hpke/benches/hybrid_hpke.rs"
+
+[[benchmark]]
+id = "PERF-SLHDSA-KEYGEN"
+name = "slh_dsa/keygen"
+crate = "pqc-rs-slh-dsa"
+bench = "slh_dsa"
+class = "key-generation"
+status = "active"
+parameter_sets = [
+  "SLH-DSA-SHA2-128s", "SLH-DSA-SHA2-128f",
+  "SLH-DSA-SHA2-192s", "SLH-DSA-SHA2-192f",
+  "SLH-DSA-SHA2-256s", "SLH-DSA-SHA2-256f",
+  "SLH-DSA-SHAKE-128s", "SLH-DSA-SHAKE-128f",
+  "SLH-DSA-SHAKE-192s", "SLH-DSA-SHAKE-192f",
+  "SLH-DSA-SHAKE-256s", "SLH-DSA-SHAKE-256f",
+]
+metrics = ["median latency", "confidence interval", "throughput"]
+source = "crates/pqc-slh-dsa/benches/slh_dsa.rs"
+
+[[benchmark]]
+id = "PERF-SLHDSA-PURE-SIGN"
+name = "slh_dsa/pure_sign"
+crate = "pqc-rs-slh-dsa"
+bench = "slh_dsa"
+class = "signing"
+status = "active"
+parameter_sets = [
+  "SLH-DSA-SHA2-128s", "SLH-DSA-SHA2-128f",
+  "SLH-DSA-SHA2-192s", "SLH-DSA-SHA2-192f",
+  "SLH-DSA-SHA2-256s", "SLH-DSA-SHA2-256f",
+  "SLH-DSA-SHAKE-128s", "SLH-DSA-SHAKE-128f",
+  "SLH-DSA-SHAKE-192s", "SLH-DSA-SHAKE-192f",
+  "SLH-DSA-SHAKE-256s", "SLH-DSA-SHAKE-256f",
+]
+metrics = ["median latency", "confidence interval", "throughput"]
+source = "crates/pqc-slh-dsa/benches/slh_dsa.rs"
+
+[[benchmark]]
+id = "PERF-SLHDSA-PURE-VERIFY"
+name = "slh_dsa/pure_verify"
+crate = "pqc-rs-slh-dsa"
+bench = "slh_dsa"
+class = "verification"
+status = "active"
+parameter_sets = [
+  "SLH-DSA-SHA2-128s", "SLH-DSA-SHA2-128f",
+  "SLH-DSA-SHA2-192s", "SLH-DSA-SHA2-192f",
+  "SLH-DSA-SHA2-256s", "SLH-DSA-SHA2-256f",
+  "SLH-DSA-SHAKE-128s", "SLH-DSA-SHAKE-128f",
+  "SLH-DSA-SHAKE-192s", "SLH-DSA-SHAKE-192f",
+  "SLH-DSA-SHAKE-256s", "SLH-DSA-SHAKE-256f",
+]
+metrics = ["median latency", "confidence interval", "throughput"]
+source = "crates/pqc-slh-dsa/benches/slh_dsa.rs"
+
+[[benchmark]]
+id = "PERF-SLHDSA-HASH-SIGN"
+name = "slh_dsa/hash_sign"
+crate = "pqc-rs-slh-dsa"
+bench = "slh_dsa"
+class = "signing"
+status = "active"
+parameter_sets = [
+  "SLH-DSA-SHA2-128s", "SLH-DSA-SHA2-128f",
+  "SLH-DSA-SHA2-192s", "SLH-DSA-SHA2-192f",
+  "SLH-DSA-SHA2-256s", "SLH-DSA-SHA2-256f",
+  "SLH-DSA-SHAKE-128s", "SLH-DSA-SHAKE-128f",
+  "SLH-DSA-SHAKE-192s", "SLH-DSA-SHAKE-192f",
+  "SLH-DSA-SHAKE-256s", "SLH-DSA-SHAKE-256f",
+]
+metrics = ["median latency", "confidence interval", "throughput"]
+source = "crates/pqc-slh-dsa/benches/slh_dsa.rs"
+
+[[benchmark]]
+id = "PERF-SLHDSA-HASH-VERIFY"
+name = "slh_dsa/hash_verify"
+crate = "pqc-rs-slh-dsa"
+bench = "slh_dsa"
+class = "verification"
+status = "active"
+parameter_sets = [
+  "SLH-DSA-SHA2-128s", "SLH-DSA-SHA2-128f",
+  "SLH-DSA-SHA2-192s", "SLH-DSA-SHA2-192f",
+  "SLH-DSA-SHA2-256s", "SLH-DSA-SHA2-256f",
+  "SLH-DSA-SHAKE-128s", "SLH-DSA-SHAKE-128f",
+  "SLH-DSA-SHAKE-192s", "SLH-DSA-SHAKE-192f",
+  "SLH-DSA-SHAKE-256s", "SLH-DSA-SHAKE-256f",
+]
+metrics = ["median latency", "confidence interval", "throughput"]
+source = "crates/pqc-slh-dsa/benches/slh_dsa.rs"

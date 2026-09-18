@@ -22,6 +22,67 @@ jobs:
       - run: cargo +nightly miri setup
       - run: ./scripts/run-miri.sh
 
+  slhdsa-bounded-miri:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: dtolnay/rust-toolchain@4fd1da8b0805d2d2e936788875a7d65dbd677dc2 # nightly
+        with:
+          components: miri, rust-src
+
+      - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+
+      - run: cargo +nightly miri setup
+
+      - name: Run bounded SLH-DSA Miri campaign
+        run: ./scripts/run-slhdsa-s6-miri.sh
+
+  slhdsa-address-sanitizer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: dtolnay/rust-toolchain@4fd1da8b0805d2d2e936788875a7d65dbd677dc2 # nightly
+
+      - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+
+      - name: Run SLH-DSA AddressSanitizer campaign
+        run: ./scripts/run-slhdsa-s6-asan.sh
+
+  slhdsa-heap-audit:
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 15
+
+    steps:
+
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: dtolnay/rust-toolchain@4fd1da8b0805d2d2e936788875a7d65dbd677dc2 # nightly
+
+      - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+
+      - name: Run SLH-DSA heap audit
+
+        shell: bash
+
+        run: |
+
+          set -euo pipefail
+
+          cargo run --release \
+            -p pqc-rs-test-harness \
+            --bin slhdsa-s6-heap-audit \
+            | tee /tmp/slhdsa-s6-heap-audit.jsonl
+
+          test "$(wc -l < /tmp/slhdsa-s6-heap-audit.jsonl | tr -d ' ')" = "60"
+
   address-sanitizer:
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -30,6 +91,18 @@ jobs:
       - uses: dtolnay/rust-toolchain@4fd1da8b0805d2d2e936788875a7d65dbd677dc2 # nightly
       - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
       - run: ./scripts/run-address-sanitizer.sh
+
+  slhdsa-stack-sizes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: dtolnay/rust-toolchain@4fd1da8b0805d2d2e936788875a7d65dbd677dc2 # nightly
+        with:
+          components: llvm-tools-preview
+      - uses: Swatinem/rust-cache@42dc69e1aa15d09112580998cf2ef0119e2e91ae # v2
+      - name: Run SLH-DSA stack-size audit
+        run: ./scripts/run-slhdsa-s6-stack-audit.sh
 
   undefined-behavior-sanitizer:
     runs-on: ubuntu-latest

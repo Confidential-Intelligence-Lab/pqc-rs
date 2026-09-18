@@ -8,6 +8,23 @@ The project follows the principles of Keep a Changelog and intends to adopt Sema
 
 ### Added
 
+- prepared `pqc-rs-slh-dsa` `0.5.0` as the hardened FIPS 205 release line,
+  covering all twelve standardized parameter sets, Pure SLH-DSA and
+  HashSLH-DSA, deterministic and hedged signing, validation, interoperability,
+  assurance, and reproducible performance evidence;
+- added release-candidate documentation for the `pqc-rs-slh-dsa` `0.5.0`
+  publication path.
+
+### Changed
+
+- established `pqc-rs-slh-dsa` `0.5.0` as a new pre-1.0 API boundary after
+  removing the public `SlhDsaError::NotImplemented` variant and completing the
+  hardened public interface;
+- updated release policy and workspace dependency metadata for the SLH-DSA
+  `0.5.0` candidate.
+
+### Added
+
 - published `pqc-rs-ml-dsa` `0.4.0` independently from the original workspace
   promotion, covering FIPS 204 ML-DSA-44, ML-DSA-65, and ML-DSA-87;
 - recorded the immutable publication provenance at source commit

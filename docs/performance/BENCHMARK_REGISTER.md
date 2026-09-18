@@ -14,6 +14,11 @@
 | `PERF-HPKE-SEAL-OPEN` | `hpke/base/seal_open_1k` | `pqc-rs-hpke` | `hpke` | `active` | `crates/pqc-hpke/benches/hpke.rs` |
 | `PERF-HPKE-EXPORT` | `hpke/base/export_32` | `pqc-rs-hpke` | `hpke` | `active` | `crates/pqc-hpke/benches/hpke.rs` |
 | `PERF-HYBRID-SETUP` | `hpke/hybrid/setup` | `pqc-rs-hpke` | `hybrid_hpke` | `active` | `crates/pqc-hpke/benches/hybrid_hpke.rs` |
+| `PERF-SLHDSA-KEYGEN` | `slh_dsa/keygen` | `pqc-rs-slh-dsa` | `slh_dsa` | `active` | `crates/pqc-slh-dsa/benches/slh_dsa.rs` |
+| `PERF-SLHDSA-PURE-SIGN` | `slh_dsa/pure_sign` | `pqc-rs-slh-dsa` | `slh_dsa` | `active` | `crates/pqc-slh-dsa/benches/slh_dsa.rs` |
+| `PERF-SLHDSA-PURE-VERIFY` | `slh_dsa/pure_verify` | `pqc-rs-slh-dsa` | `slh_dsa` | `active` | `crates/pqc-slh-dsa/benches/slh_dsa.rs` |
+| `PERF-SLHDSA-HASH-SIGN` | `slh_dsa/hash_sign` | `pqc-rs-slh-dsa` | `slh_dsa` | `active` | `crates/pqc-slh-dsa/benches/slh_dsa.rs` |
+| `PERF-SLHDSA-HASH-VERIFY` | `slh_dsa/hash_verify` | `pqc-rs-slh-dsa` | `slh_dsa` | `active` | `crates/pqc-slh-dsa/benches/slh_dsa.rs` |
 
 ## Gate findings
 

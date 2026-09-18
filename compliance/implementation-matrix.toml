@@ -56,7 +56,7 @@ evidence = "compliance/standards/fips204.toml"
 name = "RFC 9958"
 scope = "KEM-oriented API guidance"
 status = "mapped"
-evidence = "docs/rfc9958-traceability.md"
+evidence = "docs/standards/generated/RFC9958.generated.md"
 
 [[standard]]
 name = "RFC 9180"

@@ -10,6 +10,7 @@ readonly DEFAULT_TARGETS=(
   hybrid_kem_inputs
   mldsa_primitives
   mldsa_verification
+  slhdsa_verification
 )
 
 if [[ -n "${FUZZ_TARGETS:-}" ]]; then

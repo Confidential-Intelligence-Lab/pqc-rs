@@ -26,9 +26,10 @@ Implemented operations include:
 
 - cryptographic key generation;
 - deterministic key generation from a caller-supplied FIPS 205 seed;
-- deterministic Pure SLH-DSA signing;
-- hedged Pure SLH-DSA signing;
+- deterministic and hedged Pure SLH-DSA signing;
 - Pure SLH-DSA signature verification;
+- deterministic and hedged HashSLH-DSA signing;
+- HashSLH-DSA signature verification with all twelve standardized prehash algorithms;
 - typed import and export of keys and signatures;
 - feature-gated internal interfaces for validation tooling.
 
@@ -61,8 +62,11 @@ assert!(slh_dsa.verify(
 # Ok::<(), pqc_slh_dsa::SlhDsaError>(())
 ```
 
-For reproducible provising or validation, use
+For reproducible provisioning or validation, use
 `SlhDsaKeyGenSeed::from_bytes` together with `SlhDsa::keygen_from_seed`.
+
+Additional examples cover deterministic provisioning, deterministic signing,
+hedged signing, and HashSLH-DSA under `examples/`.
 
 ## API design
 
@@ -102,6 +106,8 @@ The implementation has been tested against pinned NIST ACVP sample vectors:
 | KeyGen | 120 / 120 |
 | External Pure SigGen | 168 / 168 |
 | External Pure SigVer | 168 / 168 |
+| External HashSLH SigGen | 288 / 288 |
+| External HashSLH SigVer | 168 / 168 |
 
 The crate also contains unit tests covering address encoding, hash
 instantiation, WOTS+, XMSS, FORS, hypertree composition, key generation,

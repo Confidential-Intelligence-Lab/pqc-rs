@@ -12,17 +12,17 @@ The fuzzing program targets malformed encodings, parser robustness, protocol sta
 
 ## Decision
 
-**PASS** — 7 active targets; 0 blocking findings.
+**PASS** — 8 active targets; 0 blocking findings.
 
 ## Coverage summary
 
 | Dimension | Count |
 |---|---:|
-| Active targets | 7 |
+| Active targets | 8 |
 | CI smoke duration per target | 30 seconds |
 | Recommended campaign duration per target | 3600 seconds |
 | `arithmetic-invariant` targets | 1 |
-| `cryptographic-boundary` targets | 3 |
+| `cryptographic-boundary` targets | 4 |
 | `decoder` targets | 1 |
 | `parser` targets | 1 |
 | `state-machine` targets | 1 |
@@ -102,6 +102,14 @@ Crashes and timeouts are written under `fuzz/artifacts/<target>/`. Every confirm
 - Components: ML-DSA-44 verification; ML-DSA-65 verification; ML-DSA-87 verification
 - Properties: arbitrary public keys and signatures never panic; malformed encodings return false or structured error
 - Seed corpus: `fuzz/corpus/mldsa_verification`
+
+### FZ-SLHDSA-VERIFY — `slhdsa_verification`
+
+- Class: `cryptographic-boundary`
+- Status: `active`
+- Components: Pure SLH-DSA verification; SLH-DSA-SHA2 parameter sets; SLH-DSA-SHAKE parameter sets
+- Properties: arbitrary public keys and signatures never panic; malformed encodings return false or structured error; all twelve FIPS 205 parameter sets are exercised; exact-length expanded inputs reach deep verification
+- Seed corpus: `fuzz/corpus/slhdsa_verification`
 
 ## Limitations
 

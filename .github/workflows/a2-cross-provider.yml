@@ -67,8 +67,7 @@ jobs:
             -GNinja \
             -DCMAKE_INSTALL_PREFIX="$RUNNER_TEMP/oqs-install" \
             -DBUILD_SHARED_LIBS=ON \
-            -DOQS_BUILD_ONLY_LIB=ON \
-            -DOQS_MINIMAL_BUILD="KEM_ml_kem_512;KEM_ml_kem_768;KEM_ml_kem_1024;SIG_ml_dsa_44;SIG_ml_dsa_65;SIG_ml_dsa_87"
+            -DOQS_BUILD_ONLY_LIB=ON
 
           cmake --build "$RUNNER_TEMP/liboqs/build"
           cmake --install "$RUNNER_TEMP/liboqs/build"
