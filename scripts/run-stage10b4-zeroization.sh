@@ -4,10 +4,12 @@ set -euo pipefail
 python3 scripts/patch-stage10b4-enable-zeroize.py
 python3 scripts/patch-stage10b4-secret-drop.py
 
-cargo fmt --all
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test -p pqc-rs-core --all-features
-cargo test --workspace --all-features
+if [[ "${PQC_STAGE11_PROBE_ONLY:-0}" != "1" ]]; then
+  cargo fmt --all
+  cargo clippy --workspace --all-targets --all-features -- -D warnings
+  cargo test -p pqc-rs-core --all-features
+  cargo test --workspace --all-features
+fi
 
 ./scripts/audit-stage10b4-zeroization.sh
 

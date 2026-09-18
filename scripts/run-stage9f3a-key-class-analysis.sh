@@ -4,10 +4,12 @@ set -euo pipefail
 OUT_DIR="${1:-target/stage9f3a}"
 mkdir -p "${OUT_DIR}"
 
-cargo fmt --all
-cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test -p pqc-rs-ml-dsa --all-features
-cargo test --workspace --all-features
+if [[ "${PQC_STAGE11_PROBE_ONLY:-0}" != "1" ]]; then
+  cargo fmt --all
+  cargo clippy --workspace --all-targets --all-features -- -D warnings
+  cargo test -p pqc-rs-ml-dsa --all-features
+  cargo test --workspace --all-features
+fi
 
 cargo run \
   -p pqc-rs-test-harness \
