@@ -76,6 +76,10 @@ PROVIDERS = {
         sys.executable,
         "scripts/interop/providers/awslc_provider.py",
     ],
+    "bouncycastle": [
+        sys.executable,
+        "scripts/interop/providers/bouncycastle_provider.py",
+    ],
 }
 
 # Providers exposing deterministic ML-DSA key generation.
