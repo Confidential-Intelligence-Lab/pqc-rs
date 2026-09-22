@@ -78,8 +78,6 @@ def capabilities() -> list[dict[str, Any]]:
                 "slh-keygen",
                 "slh-sign",
                 "slh-verify",
-                "slh-hash-sign",
-                "slh-hash-verify",
             ],
             "properties": {
                 "seeded_keygen": "supported",
@@ -185,6 +183,23 @@ def run_bridge(
             str(inputs["secret_key"]),
             str(inputs["ciphertext"]),
         ])
+    elif operation == "slh-keygen":
+        arguments.extend([
+            str(inputs["seed"]),
+        ])
+    elif operation == "slh-sign":
+        arguments.extend([
+            str(inputs["secret_key"]),
+            str(inputs["message"]),
+            str(inputs["context"]),
+        ])
+    elif operation == "slh-verify":
+        arguments.extend([
+            str(inputs["public_key"]),
+            str(inputs["message"]),
+            str(inputs["context"]),
+            str(inputs["signature"]),
+        ])
     elif operation == "dsa-keygen":
         arguments.extend([
             str(inputs["xi"]),
@@ -256,6 +271,23 @@ def run_bridge(
         }
 
     if operation == "dsa-verify":
+        return {
+            "valid": value.lower() == "true",
+        }
+
+    if operation == "slh-keygen":
+        public_key, secret_key = value.split(":", 1)
+        return {
+            "public_key": public_key,
+            "secret_key": secret_key,
+        }
+
+    if operation == "slh-sign":
+        return {
+            "signature": value,
+        }
+
+    if operation == "slh-verify":
         return {
             "valid": value.lower() == "true",
         }

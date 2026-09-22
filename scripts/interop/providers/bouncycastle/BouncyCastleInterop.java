@@ -9,6 +9,12 @@ import org.bouncycastle.crypto.params.MLDSAPublicKeyParameters;
 import org.bouncycastle.crypto.params.ParametersWithContext;
 import org.bouncycastle.crypto.params.ParametersWithRandom;
 import org.bouncycastle.crypto.signers.MLDSASigner;
+import org.bouncycastle.crypto.generators.SLHDSAKeyPairGenerator;
+import org.bouncycastle.crypto.params.SLHDSAKeyGenerationParameters;
+import org.bouncycastle.crypto.params.SLHDSAParameters;
+import org.bouncycastle.crypto.params.SLHDSAPrivateKeyParameters;
+import org.bouncycastle.crypto.params.SLHDSAPublicKeyParameters;
+import org.bouncycastle.crypto.signers.SLHDSASigner;
 import org.bouncycastle.crypto.kems.MLKEMExtractor;
 import org.bouncycastle.crypto.kems.MLKEMGenerator;
 import org.bouncycastle.crypto.params.MLKEMKeyGenerationParameters;
@@ -147,6 +153,137 @@ public final class BouncyCastleInterop {
         } finally {
             privateKey.destroy();
         }
+    }
+
+    private static SLHDSAParameters slhParameters(String name) {
+        switch (name) {
+        case "SLH-DSA-SHA2-128s":
+            return SLHDSAParameters.sha2_128s;
+        case "SLH-DSA-SHA2-128f":
+            return SLHDSAParameters.sha2_128f;
+        case "SLH-DSA-SHA2-192s":
+            return SLHDSAParameters.sha2_192s;
+        case "SLH-DSA-SHA2-192f":
+            return SLHDSAParameters.sha2_192f;
+        case "SLH-DSA-SHA2-256s":
+            return SLHDSAParameters.sha2_256s;
+        case "SLH-DSA-SHA2-256f":
+            return SLHDSAParameters.sha2_256f;
+        case "SLH-DSA-SHAKE-128s":
+            return SLHDSAParameters.shake_128s;
+        case "SLH-DSA-SHAKE-128f":
+            return SLHDSAParameters.shake_128f;
+        case "SLH-DSA-SHAKE-192s":
+            return SLHDSAParameters.shake_192s;
+        case "SLH-DSA-SHAKE-192f":
+            return SLHDSAParameters.shake_192f;
+        case "SLH-DSA-SHAKE-256s":
+            return SLHDSAParameters.shake_256s;
+        case "SLH-DSA-SHAKE-256f":
+            return SLHDSAParameters.shake_256f;
+        default:
+            throw new IllegalArgumentException(
+                "unsupported SLH-DSA parameter set: " + name
+            );
+        }
+    }
+
+    private static void slhKeygen(
+        SLHDSAParameters params,
+        String seedHex
+    ) {
+        byte[] seed = decode(seedHex);
+        int n = params.getN();
+        requireLength("seed", seed, 3 * n);
+
+        byte[] skSeed = java.util.Arrays.copyOfRange(seed, 0, n);
+        byte[] skPrf = java.util.Arrays.copyOfRange(seed, n, 2 * n);
+        byte[] pkSeed = java.util.Arrays.copyOfRange(seed, 2 * n, 3 * n);
+
+        SLHDSAKeyPairGenerator generator = new SLHDSAKeyPairGenerator();
+        generator.init(
+            new SLHDSAKeyGenerationParameters(
+                new FixedSecureRandom(seed),
+                params
+            )
+        );
+
+        AsymmetricCipherKeyPair pair =
+            generator.internalGenerateKeyPair(skSeed, skPrf, pkSeed);
+
+        SLHDSAPublicKeyParameters publicKey =
+            (SLHDSAPublicKeyParameters)pair.getPublic();
+        SLHDSAPrivateKeyParameters privateKey =
+            (SLHDSAPrivateKeyParameters)pair.getPrivate();
+
+        try {
+            System.out.println(
+                encode(publicKey.getEncoded()) + ":" +
+                encode(privateKey.getEncoded())
+            );
+        } finally {
+            privateKey.destroy();
+        }
+    }
+
+    private static void slhSign(
+        SLHDSAParameters params,
+        String privateKeyHex,
+        String messageHex,
+        String contextHex
+    ) {
+        SLHDSAPrivateKeyParameters privateKey =
+            new SLHDSAPrivateKeyParameters(
+                params,
+                decode(privateKeyHex)
+            );
+
+        try {
+            SLHDSASigner signer = new SLHDSASigner();
+            signer.init(
+                true,
+                new ParametersWithContext(
+                    privateKey,
+                    decode(contextHex)
+                )
+            );
+
+            System.out.println(
+                encode(signer.generateSignature(decode(messageHex)))
+            );
+        } finally {
+            privateKey.destroy();
+        }
+    }
+
+    private static void slhVerify(
+        SLHDSAParameters params,
+        String publicKeyHex,
+        String messageHex,
+        String contextHex,
+        String signatureHex
+    ) {
+        SLHDSAPublicKeyParameters publicKey =
+            new SLHDSAPublicKeyParameters(
+                params,
+                decode(publicKeyHex)
+            );
+
+        SLHDSASigner verifier = new SLHDSASigner();
+        verifier.init(
+            false,
+            new ParametersWithContext(
+                publicKey,
+                decode(contextHex)
+            )
+        );
+
+        boolean valid = verifier.verifySignature(
+            decode(messageHex),
+            decode(signatureHex)
+        );
+
+        System.out.println(valid ? "true" : "false");
     }
 
     private static MLDSAParameters dsaParameters(String name) {
@@ -302,6 +439,47 @@ public final class BouncyCastleInterop {
                 );
             }
             decaps(parameters(parameterSet), args[2], args[3]);
+            return;
+
+        case "slh-keygen":
+            if (args.length != 3) {
+                throw new IllegalArgumentException(
+                    "slh-keygen requires seed"
+                );
+            }
+            slhKeygen(
+                slhParameters(parameterSet),
+                args[2]
+            );
+            return;
+
+        case "slh-sign":
+            if (args.length != 5) {
+                throw new IllegalArgumentException(
+                    "slh-sign requires private key, message, and context"
+                );
+            }
+            slhSign(
+                slhParameters(parameterSet),
+                args[2],
+                args[3],
+                args[4]
+            );
+            return;
+
+        case "slh-verify":
+            if (args.length != 6) {
+                throw new IllegalArgumentException(
+                    "slh-verify requires public key, message, context, and signature"
+                );
+            }
+            slhVerify(
+                slhParameters(parameterSet),
+                args[2],
+                args[3],
+                args[4],
+                args[5]
+            );
             return;
 
         case "dsa-keygen":

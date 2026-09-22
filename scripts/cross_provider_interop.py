@@ -1408,17 +1408,24 @@ def run_slh_interop(
         return hashlib.shake_256(tag.encode()).hexdigest(3 * n)
 
     for parameter_set in PARAMS_SLH:
-        cases = (
-            ("rust", "liboqs"),
-            ("liboqs", "rust"),
+        pure_providers = (
+            "rust",
+            "liboqs",
+            "bouncycastle",
+        )
+        cases = tuple(
+            (producer, consumer)
+            for producer in pure_providers
+            for consumer in pure_providers
+            if producer != consumer
         )
         for producer, consumer in cases:
             case = f"{parameter_set}:{producer}->{consumer}"
             try:
-                if producer == "rust":
+                if producer in ("rust", "bouncycastle"):
                     keypair = call(
                         root,
-                        "rust",
+                        producer,
                         "slh-keygen",
                         parameter_set,
                         {"seed": slh_seed(parameter_set)},
