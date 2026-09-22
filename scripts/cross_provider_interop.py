@@ -1642,7 +1642,7 @@ def write_reports(
             "implicit rejection. ML-DSA exact seeded equivalence is limited to "
             "providers whose public APIs expose the required deterministic "
             "controls; broader semantic verification includes the supported "
-            "five-provider interfaces. SLH-DSA interoperability is separately "
+            "six-provider interfaces. SLH-DSA interoperability is separately "
             "scoped to PQC-rs and liboqs: Pure SLH-DSA is exercised "
             "bidirectionally for all twelve parameter sets, and HashSLH-DSA is "
             "exercised bidirectionally for twelve representative "
@@ -1872,7 +1872,7 @@ def main() -> int:
         )
 
         # SLH-DSA interoperability is currently scoped to PQC-rs <-> liboqs.
-        # Keep it additive to the broader five-provider ML-KEM/ML-DSA campaign.
+        # Keep it additive to the broader six-provider ML-KEM/ML-DSA campaign.
         run_slh_interop(
             root,
             results,

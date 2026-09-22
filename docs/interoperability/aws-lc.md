@@ -36,7 +36,7 @@ The PQC-rs provider contract maps:
     encapsulation seed = m
 
 The canonical gate requires byte-for-byte agreement between PQC-rs, AWS-LC,
-wolfSSL, OpenSSL, and liboqs for:
+wolfSSL, OpenSSL, liboqs, and Bouncy Castle for:
 
 - deterministic key generation;
 - exact public-key encoding;
@@ -55,7 +55,7 @@ public key and expanded secret key through the public raw-key interfaces.
 
 For ML-DSA-44, ML-DSA-65, and ML-DSA-87, the canonical gate requires exact
 seeded public-key and expanded secret-key parity between PQC-rs, AWS-LC,
-wolfSSL, and OpenSSL.
+wolfSSL, OpenSSL, and Bouncy Castle.
 
 ## ML-DSA signing and verification
 
@@ -100,7 +100,7 @@ deterministic input part of the tested interoperability contract.
 
 ## Execution
 
-The canonical five-provider interoperability gate is:
+The canonical six-provider primitive interoperability gate is:
 
     cargo xtask interop-cross --strict
 

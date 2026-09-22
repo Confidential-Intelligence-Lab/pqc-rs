@@ -58,7 +58,7 @@ title = "Bouncy Castle Java"
 enabled = false
 command = ["python3", "scripts/interop/providers/bouncycastle_provider.py"]
 required = false
-notes = "Bouncy Castle Java lightweight-API provider. Capability audit covers ML-KEM, ML-DSA, and SLH-DSA; primitive execution is introduced incrementally by the BC interoperability work."
+notes = "Bouncy Castle Java lightweight-API provider covering ML-KEM, ML-DSA, Pure SLH-DSA, and HashSLH-DSA interoperability. Deterministic interfaces support exact parity testing where applicable."
 
 [[provider]]
 id = "botan"
@@ -88,7 +88,7 @@ comparison = "semantic"
 id = "software-provider-parity"
 title = "Canonical software-provider interoperability parity gate"
 vectors = []
-providers = ["rust", "wolfssl", "openssl", "liboqs", "awslc"]
+providers = ["rust", "wolfssl", "openssl", "liboqs", "awslc", "bouncycastle"]
 required = false
 comparison = "provider-parity"
-notes = "Executed by cargo xtask interop-cross --strict. Covers exact ML-KEM parity across all five providers, exact ML-DSA seeded key-generation parity where deterministic key-generation APIs are public, exact ML-DSA signature parity where explicit signing randomness is public, and semantic/negative ML-DSA interoperability across all five providers."
+notes = "Executed by cargo xtask interop-cross --strict. Covers ML-KEM and ML-DSA interoperability across six software providers with exact deterministic comparisons where public APIs expose equivalent controls, plus Pure SLH-DSA and HashSLH-DSA interoperability across PQC-rs, liboqs, and Bouncy Castle."
