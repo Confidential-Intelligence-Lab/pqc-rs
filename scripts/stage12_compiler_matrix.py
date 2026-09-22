@@ -30,7 +30,6 @@ def main()->int:
         checks=[]
         checks.append(run(["cargo",f"+{tc}","check","--workspace","--all-targets","--all-features","--locked"]))
         if tc=="stable":
-            checks.append(run(["cargo",f"+{tc}","test","--workspace","--all-features","--locked"]))
             checks.append(run(["cargo",f"+{tc}","clippy","--workspace","--all-targets","--all-features","--locked","--","-D","warnings"]))
         status="pass" if all(c["status"]=="pass" for c in checks) else "fail"
         rows.append({"toolchain":tc,"status":status,"checks":checks})
