@@ -4,7 +4,7 @@
 
 - Project: `pqc-rfc9958-rs`
 - Schema: `1`
-- Last verified: `2026-07-17`
+- Last verified: `2026-09-21`
 - HPKE message suites: **27**
 - Base/PSK configurations: **54**
 
@@ -14,6 +14,7 @@
 |---|---|---|---|
 | FIPS 203 | ML-KEM | **verified** | `compliance/standards/fips203.toml` |
 | FIPS 204 | ML-DSA | **verified** | `compliance/standards/fips204.toml` |
+| FIPS 205 | SLH-DSA | **verified** | `compliance/standards/fips205.toml` |
 | RFC 9958 | KEM-oriented API guidance | **mapped** | `docs/standards/generated/RFC9958.generated.md` |
 | RFC 9180 | HPKE Base and PSK modes | **verified** | `crates/pqc-hpke/tests/ciphersuite_matrix.rs` |
 
@@ -24,9 +25,10 @@
 | ML-KEM | 512 | **verified** | FIPS 203 ACVP and workspace regression tests |
 | ML-KEM | 768 | **verified** | FIPS 203 ACVP and workspace regression tests |
 | ML-KEM | 1024 | **verified** | FIPS 203 ACVP and workspace regression tests |
-| ML-DSA | 44 | **verified** | FIPS 204 ACVP and workspace regression tests |
-| ML-DSA | 65 | **verified** | FIPS 204 ACVP and workspace regression tests |
-| ML-DSA | 87 | **verified** | FIPS 204 ACVP and workspace regression tests |
+| ML-DSA | 44 | **verified** | FIPS 204 ACVP; Pure/Hash and deterministic/hedged regression tests |
+| ML-DSA | 65 | **verified** | FIPS 204 ACVP; Pure/Hash and deterministic/hedged regression tests |
+| ML-DSA | 87 | **verified** | FIPS 204 ACVP; Pure/Hash and deterministic/hedged regression tests |
+| SLH-DSA | all 12 standardized parameter sets | **verified** | FIPS 205 ACVP, adversarial, interoperability, and assurance tests |
 
 ## HPKE Ciphersuite Matrix
 

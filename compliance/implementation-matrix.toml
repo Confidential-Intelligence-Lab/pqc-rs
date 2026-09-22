@@ -2,7 +2,7 @@
 schema_version = 1
 project = "pqc-rfc9958-rs"
 generated_document = "docs/IMPLEMENTATION_MATRIX.md"
-last_verified = "2026-07-17"
+last_verified = "2026-09-21"
 
 [[algorithm]]
 primitive = "ML-KEM"
@@ -26,19 +26,25 @@ evidence = "FIPS 203 ACVP and workspace regression tests"
 primitive = "ML-DSA"
 variant = "44"
 status = "verified"
-evidence = "FIPS 204 ACVP and workspace regression tests"
+evidence = "FIPS 204 ACVP; Pure/Hash and deterministic/hedged regression tests"
 
 [[algorithm]]
 primitive = "ML-DSA"
 variant = "65"
 status = "verified"
-evidence = "FIPS 204 ACVP and workspace regression tests"
+evidence = "FIPS 204 ACVP; Pure/Hash and deterministic/hedged regression tests"
 
 [[algorithm]]
 primitive = "ML-DSA"
 variant = "87"
 status = "verified"
-evidence = "FIPS 204 ACVP and workspace regression tests"
+evidence = "FIPS 204 ACVP; Pure/Hash and deterministic/hedged regression tests"
+
+[[algorithm]]
+primitive = "SLH-DSA"
+variant = "all 12 standardized parameter sets"
+status = "verified"
+evidence = "FIPS 205 ACVP, adversarial, interoperability, and assurance tests"
 
 [[standard]]
 name = "FIPS 203"
@@ -51,6 +57,12 @@ name = "FIPS 204"
 scope = "ML-DSA"
 status = "verified"
 evidence = "compliance/standards/fips204.toml"
+
+[[standard]]
+name = "FIPS 205"
+scope = "SLH-DSA"
+status = "verified"
+evidence = "compliance/standards/fips205.toml"
 
 [[standard]]
 name = "RFC 9958"
