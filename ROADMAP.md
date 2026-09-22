@@ -1,453 +1,208 @@
-# Roadmap
-
-> Last reviewed: 2026-08-19
-
-This roadmap communicates project direction and release gates rather than a
-binding delivery schedule. PQC-rs advances a crate only when its normative
-source, validation evidence, interoperability, security review, packaging, and
-maintenance ownership are sufficiently mature for the claim being made.
-
-## Milestone 0 — public foundation and 0.4.0 publication (complete)
-
-The first release candidate established a standards-driven Rust foundation.
-The subsequent stable promotion published the original three public crates at
-`0.4.0`, and the independently gated ML-DSA workstream later published at the
-same ecosystem version. The public GitHub repository is the project's external
-source of record.
-
-| Area | Completed checkpoint |
-|---|---|
-| Initial published crates | `pqc-rs-core`, `pqc-rs-ml-kem`, `pqc-rs-ml-dsa`, and `pqc-rs-hpke` reached their initial `0.4.0` publication checkpoints; later patch and PQC-Forge releases are recorded below |
-| Public releases | The original stable foundation is identified by annotated tag `v0.4.0`; the later ML-DSA publication is identified independently by annotated tag `pqc-rs-ml-dsa-v0.4.0` |
-| ML-KEM | FIPS 203 ML-KEM-512, ML-KEM-768, and ML-KEM-1024 are implemented and ACVP-oriented vector validated |
-| ML-DSA | FIPS 204 ML-DSA-44, ML-DSA-65, ML-DSA-87, and HashML-DSA are implemented, repository validated, and published as `pqc-rs-ml-dsa` `0.4.0` |
-| HPKE | RFC 9180 Base and PSK modes are implemented across the maintained ciphersuite matrix |
-| PQ HPKE | Pure post-quantum and post-quantum/traditional hybrid profiles are pinned to `draft-ietf-hpke-pq-05` and remain experimental |
-| Interoperability | Bidirectional ML-KEM and ML-DSA checks with Open Quantum Safe `liboqs`; ML-KEM exchange checks with OpenSSL; native HPKE transcript comparison with an independent RFC 9180 oracle |
-| Assurance | Formatting, warning-free linting, tests, rustdoc, ACVP-oriented validation, fuzzing, Miri, secret and zeroization review, timing and generated-code screening, SBOM generation, signed source artifacts, and signed Stage 13 evidence |
-| Public CI | All public workflows pass; external actions are pinned to immutable commit SHAs and repository-level SHA enforcement is active |
-| Main protection | Changes require a pull request and the `quality`, `audit`, `dependency-policy`, `constant-time-audit`, and `zeroization-audit` checks; deletion and force-push are blocked |
-
-The pre-1.0 releases remain intended for research, evaluation, integration testing,
-and external scrutiny. Repository-local evidence is not a formal proof, FIPS or
-CMVP validation, Common Criteria certification, independent security audit, or
-authorization to protect production secrets without an application-specific
-risk assessment.
-
-## Engineering principles
-
-1. **Normative sources before implementation claims.** Finalized standards,
-   Internet-Drafts, regional selections, and research candidates have distinct
-   maturity labels and compatibility promises.
-2. **Correctness before optimization.** Conformance, malformed-input handling,
-   interoperability, and side-channel review precede architecture-specific
-   tuning.
-3. **Stable and experimental APIs remain separated.** Revision-pinned drafts
-   and pre-standard algorithms do not silently enter stable interfaces.
-4. **Each crate earns publication independently.** A passing workspace does
-   not substitute for crate-specific packaging, reconstruction, documentation,
-   and assurance gates.
-5. **Security claims remain conservative.** Testing and empirical screening
-   are described as evidence, not proof or certification.
-
-## Release and branch policy
-
-Three project decisions govern the next stages:
-
-1. The public repository at
-   `https://github.com/Confidential-Intelligence-Lab/pqc-rs` is the external
-   source of record for code, issues, pull requests, releases, and public
-   review outcomes.
-2. The foundation crates retain synchronized ecosystem versions through
-   `1.0.0`. Independently gated diversity crates may use their own `0.x`
-   versions.
-3. Each independently published crate retains an immutable publication source,
-   annotated tag, registry checksum, release record, and closeout evidence.
-   Publication work is reconciled into `main` through reviewed integration
-   branches rather than by moving or rewriting publication tags.
-
-A change restarts the review clock when it materially changes a published API,
-cryptographic behavior, serialization or wire behavior, normative claim, or a
-release-gating assurance result. Editorial corrections, CI-only repairs, and
-clearly non-semantic documentation changes are recorded in the review log and
-do not automatically restart the full window.
-
-## Milestone 1 — v0.4.0 stable foundation (complete)
-
-Primary outcome: publish `pqc-rs-core`, `pqc-rs-ml-kem`, and `pqc-rs-hpke` at
-`0.4.0` without expanding their algorithm or API scope.
-
-### Retained follow-up work
-
-1. Maintain Stage 10B-5 cross-architecture assurance on public
-   GitHub-hosted runners:
-
-   - Linux x86-64 (`ubuntu-24.04`);
-   - Linux ARM64 (`ubuntu-24.04-arm`); and
-   - Apple ARM64 (`macos-14` or another explicitly pinned ARM64 image).
-
-   The public matrix is active and passing. Functional, generated-code,
-   secret-dependency, and artifact-integrity checks remain release gates.
-   Architecture-specific timing evidence is used for regression screening;
-   absolute performance is not compared across unlike machines.
-
-2. Maintain the user-facing release documentation:
-
-   - installation and minimal working examples;
-   - ML-KEM and HPKE quick starts;
-   - interoperability quick start;
-   - supported-target matrix;
-   - pre-1.0 migration notes;
-   - threat model, limitations, and non-certification language; and
-   - Minisign verification instructions.
-
-3. Complete public-project governance:
-
-   - focused issue forms for bugs, interoperability, API feedback, and
-     standards questions;
-   - verified private vulnerability reporting;
-   - a public discussion channel for non-sensitive questions; and
-   - protection for release tags matching `v*`.
-
-4. Preserve the exact published tags, commits, registry identities, signed
-   evidence, and release records.
-
-### External review and outreach
-
-The earlier roadmap proposed a 21-day prepublication review. The published
-`0.4.0` artifacts did not use that timetable. External scrutiny remains an
-ongoing post-publication workstream:
-
-- contact the authors of RFC 9958 with a focused request about engineering
-  interpretation and migration guidance;
-- invite selected cryptographers, Rust engineers, implementers, and deployment
-  experts to review areas aligned with their expertise;
-- announce the review to the PQUIP mailing list (`pqc@ietf.org`);
-- send a separate HPKE-focused notice to `hpke@ietf.org`; and
-- publish a disposition record covering every non-sensitive comment and its
-  release impact.
-
-RFC 9958 is Informational engineering guidance, not an algorithm or protocol
-specification. The project must not describe itself as an “RFC 9958
-implementation.” Normative claims remain tied to FIPS 203, RFC 9180, and the
-explicitly pinned HPKE Internet-Draft revision.
-
-Every report must be acknowledged and classified. Any critical or high-severity
-security or correctness finding, release-blocking conformance defect, or
-release-blocking interoperability defect requires a documented disposition and
-the complete applicable assurance profile before a corrective release.
-
-Crates.io action: completed for `pqc-rs-core`, `pqc-rs-ml-kem`, and
-`pqc-rs-hpke` at `0.4.0`.
-
-## Milestone 2 — FIPS 204 ML-DSA 0.4.0 publication (complete)
-
-Primary outcome: productize the verified ML-DSA implementation as the
-independently consumable `pqc-rs-ml-dsa` crate at `0.4.0`.
-
-### Public API contract
-
-The ML-DSA API and ownership-boundary review defined:
-
-- typed public keys, private keys, key-generation seeds, and signatures;
-- ML-DSA-44, ML-DSA-65, and ML-DSA-87;
-- pure ML-DSA and HashML-DSA;
-- context handling and pre-hash selection;
-- deterministic and randomized signing;
-- explicit verification and malformed-signature behavior;
-- seed-form versus expanded private-key ownership and zeroization;
-- `no_std`, `alloc`, and `std` feature boundaries; and
-- a private implementation boundary for arithmetic internals.
-
-NIST recognizes a key-generation seed as an acceptable alternative private-key
-format for FIPS 204. PQC-rs therefore makes the seed-versus-expanded-key choice
-explicit in the supported API and documentation rather than leaving it as an
-incidental storage detail.
-
-### Implementation and publication assurance
-
-- replaced the temporary placeholder type with a supported typed public
-  surface;
-- kept arithmetic and primitive-only modules behind the reviewed private
-  implementation boundary;
-- preserved coverage for ML-DSA-44, ML-DSA-65, ML-DSA-87, and HashML-DSA;
-- preserved ACVP-oriented and intermediate-value evidence;
-- completed malformed-input, negative-verification, fuzzing, Miri, timing,
-  generated-code, secret-lifetime, and zeroization review;
-- preserved bidirectional signature interoperability gates;
-- added rustdoc examples and feature-matrix tests; and
-- rebuilt the packaged crate from its crates.io dependency graph and verified
-  docs.rs-compatible documentation.
-
-Publication result: `pqc-rs-ml-dsa` `0.4.0`, tied to its immutable publication
-source, annotated tag `pqc-rs-ml-dsa-v0.4.0`, registry checksum, GitHub release,
-and closeout evidence.
-
-## Milestone 3 — PQC-Forge protocol and application realizations (complete)
-
-Primary outcome: establish PQC-Forge as a reusable cryptographic-agility
-architecture above the PQC-rs primitive layer and demonstrate that the common
-protocol and policy machinery supports structurally different cryptographic
-applications.
-
-Completed work:
-
-- published `pqc-rs-protocol` `0.4.1`, including capability identifiers,
-  negotiation, local policy evaluation, validated negotiation evidence,
-  established protocol context, framing, transport state, and lifecycle
-  machinery;
-- published `pqc-rs-secure-channel` `0.4.0` as a PQC-Forge realization that
-  resolves validated capabilities into pure post-quantum and hybrid HPKE
-  profiles;
-- published `pqc-rs-authentication` `0.4.0` as a sibling PQC-Forge realization
-  using ML-DSA-65 challenge-response authentication;
-- bound authentication proofs to the established protocol session, protocol
-  identifier and version, negotiated policy and capability, verifier-issued
-  challenge, and application context through a canonical transcript;
-- added verifier-side single-use challenge lifecycle semantics;
-- demonstrated that the authentication realization does not depend on
-  `pqc-rs-secure-channel`, `pqc-rs-hpke`, or `pqc-rs-ml-kem`; and
-- preserved the existing secure-channel realization without modifying it to
-  accommodate authentication.
-
-Architectural result: secure-channel establishment and challenge-response
-authentication are now sibling consumers of the same common negotiation,
-policy, and protocol-state layer. PQC-Forge is therefore not defined by one
-secure-channel workflow; secure channels are one application realization of a
-broader agility architecture.
-
-Publication result:
-
-- `pqc-rs-protocol` `0.4.1`;
-- `pqc-rs-secure-channel` `0.4.0`; and
-- `pqc-rs-authentication` `0.4.0`.
-
-Retained follow-up work:
-
-- additional authentication profiles where standards and composition rules are
-  sufficiently mature;
-- credential, certificate, account, device, or other identity binding at an
-  application-defined boundary;
-- shared challenge-consumption state for distributed verifier deployments;
-- future cross-provider interoperability for overlapping authentication
-  mechanisms;
-- additional PQC-Forge application realizations beyond secure channels and
-  challenge-response authentication; and
-- authentication-specific performance and reproducibility evaluation where it
-  materially supports a research claim.
-
-## Milestone 4 — FIPS 205 SLH-DSA
-
-Primary outcome: replace the `pqc-rs-slh-dsa` placeholder with a complete,
-standards-traced implementation.
-
-Planned work:
-
-- implement all twelve SHA2 and SHAKE parameter sets in FIPS 205;
-- add authoritative known-answer and intermediate-value evidence;
-- define bounded stack, heap, signature-size, and performance profiles;
-- add malformed-input tests, structured fuzzing, differential testing, and
-  secret-lifetime review;
-- establish interoperability with `liboqs` and OpenSSL;
-- track NIST SP 800-230 additional limited-use parameter sets, but keep them
-  outside the stable API until that specification is final.
-
-Crates.io action: first publication of `pqc-rs-slh-dsa` after all FIPS 205
-parameter sets and publication gates pass.
-
-## Milestone 5 — hybrid composition and HPKE evolution
-
-Primary outcome: move reusable hybrid construction beyond HPKE-local profiles
-while preserving explicit draft compatibility boundaries.
-
-Planned work:
-
-- replace the `pqc-rs-hybrid` placeholder with a specification-bound combiner
-  API;
-- document component ordering, domain separation, failure behavior, downgrade
-  resistance, identifiers, and serialization;
-- track `draft-ietf-hpke-pq-05` and later revisions through explicit
-  compatibility releases rather than silently changing wire behavior;
-- track `draft-ietf-hpke-hpke-04`, which would obsolete RFC 9180 if approved;
-- decide Auth and AuthPSK support against the successor HPKE specification
-  rather than expanding an API that may immediately change;
-- extend cross-provider and negative interoperability coverage for every
-  supported hybrid profile.
-
-Crates.io action: first publication of `pqc-rs-hybrid` and a corresponding
-compatibility release of `pqc-rs-hpke`.
-
-## Milestone 6 — v1.0 stable NIST foundation
-
-Version 1.0 stabilizes the common traits and the NIST-centered production API;
-it is not blocked on every future regional or diversity algorithm.
-
-Required gates:
-
-- stable APIs for core, ML-KEM, ML-DSA, SLH-DSA, HPKE, and hybrid composition;
-- a documented SemVer and deprecation contract;
-- supported-platform CI and generated-code/timing evidence for the maintained
-  architecture matrix;
-- independent cryptographic and API review with no unresolved critical or high
-  findings;
-- complete installation, migration, interoperability, threat-model, and
-  operational-limitation documentation;
-- reproducible package reconstruction, SBOMs, checksums, signed artifacts, and
-  release provenance;
-- evidence of sustained external use and feedback across at least one complete
-  public release-candidate cycle.
-
-Crates.io action: stable `1.0.0` releases of the six foundation crates. A small
-umbrella `pqc-rs` crate may then provide curated feature groups without making
-every algorithm a mandatory dependency.
-
-## Standards and algorithm expansion
-
-New algorithms are developed as independently gated crates. Their maturity does
-not delay security fixes or API stability for the foundation crates.
-
-### ISO/IEC, European, and NIST diversity track
-
-This track covers algorithm diversity standardized through ISO/IEC or selected
-by NIST, together with the migration and hybrid-deployment requirements being
-developed by European bodies. Europe does not currently define a single,
-separate algorithm portfolio for this project to copy: the EU coordination
-roadmap, ANSSI guidance, and ETSI work are treated as deployment and protocol
-requirements, while new primitive crates remain tied to their normative
-algorithm standards.
-
-| Algorithm | External status | Planned crate | Entry condition |
-|---|---|---|---|
-| Classic McEliece | Included in ISO/IEC 18033-2:2006/Amd 2:2026 material | `pqc-rs-classic-mceliece` | Confirm exact normative profile, authoritative vectors, large-key API design, licensing, and constant-time reference behavior |
-| FrodoKEM | Included in ISO/IEC 18033-2:2006/Amd 2:2026 material | `pqc-rs-frodokem` | Confirm exact normative profile, authoritative vectors, memory/performance bounds, and reference interoperability |
-| FN-DSA | Selected by NIST; FIPS 206 remains in development | `pqc-rs-fn-dsa` | Stable public draft, authoritative vectors, floating-point/integer implementation policy, and side-channel plan |
-| HQC | Selected by NIST as a non-lattice backup KEM; standard remains in development | `pqc-rs-hqc` | Normative public draft, authoritative vectors, decoding-failure analysis, and reference interoperability |
-
-These crates begin at independent `0.x` versions after the foundation reaches a
-stable release. They graduate according to their own standards and assurance
-evidence.
-
-### Korean KpqC track
-
-The KpqC competition selected two KEMs and two signature schemes. Work remains
-standards-track until the applicable Korean Standard texts and associated
-artifacts are final.
-
-| Algorithm | Class | Planned crate |
-|---|---|---|
-| SMAUG-T | KEM | `pqc-rs-smaug-t` |
-| NTRU+ | KEM | `pqc-rs-ntru-plus` |
-| HAETAE | Digital signature | `pqc-rs-haetae` |
-| AIMer | Digital signature | `pqc-rs-aimer` |
-
-Entry gates for every KpqC crate:
-
-- final Korean Standard or another authoritative normative specification;
-- stable parameter sets and identifiers;
-- authoritative vectors and accessible reference code;
-- intellectual-property and licensing review;
-- bidirectional interoperability with a Korean reference implementation;
-- a named maintainer and the same fuzzing, side-channel, packaging, and signed
-  release-evidence requirements used by the foundation crates.
-
-## Crate publication policy
-
-| Crate group | Versioning policy | Publication status |
-|---|---|---|
-| Existing foundation crates | Synchronized through `1.0.0` | Core and ML-DSA are published at `0.4.0`; ML-KEM and HPKE have subsequent `0.4.1` releases; SLH-DSA and hybrid follow the gated sequence above |
-| PQC-Forge integration crates | Independently gated pre-1.0 releases aligned with the common protocol contract | `pqc-rs-protocol` `0.4.1`, `pqc-rs-secure-channel` `0.4.0`, and `pqc-rs-authentication` `0.4.0` are published |
-| ISO/European/NIST diversity crates | Independent `0.x` versions after the foundation stabilizes | Not yet created |
-| KpqC crates | Independent `0.x` versions after normative and licensing gates pass | Not yet created |
-| `pqc-rs` umbrella | Versioned with the stable foundation and composed from optional feature groups | Candidate after `1.0.0` APIs stabilize |
-| `pqc-rs-test-harness` | Workspace-internal only | Permanently `publish = false` |
-
-For every public crate, publication requires:
-
-1. an authoritative specification and explicit claim boundary;
-2. deterministic conformance and malformed-input evidence;
-3. independent interoperability where an external implementation exists;
-4. secret-dependency, constant-time, zeroization, fuzzing, and memory-safety
-   review appropriate to the algorithm;
-5. API, SemVer, feature-flag, `no_std`/`alloc`/`std`, and rustdoc review;
-6. `cargo package --list` and `cargo publish --dry-run` from a clean Git state;
-7. verification against already published dependency versions;
-8. SBOM, checksums, signed artifacts, and a reproducible evidence bundle;
-9. a clean release commit, annotated tag, and remote verification.
-
-## Interoperability roadmap
-
-The current provider framework covers native Rust, Open Quantum Safe `liboqs`,
-OpenSSL, and an independent RFC 9180 transcript oracle. Planned extensions are:
-
-- OpenSSL bidirectional ML-DSA signature generation and verification;
-- SLH-DSA cross-provider vectors for every published parameter set;
-- negative and malformed-input cross-provider corpora;
-- version-captured provider matrices in signed release evidence;
-- independent reference implementations for Classic McEliece, FrodoKEM,
-  FN-DSA, HQC, and the KpqC algorithms before their stable publication;
-- future protocol adapters only when their IETF specifications and wire formats
-  are sufficiently stable;
-- cross-provider authentication checks where independently implemented
-  ML-DSA or later authentication profiles expose compatible interfaces; and
-- application-level interoperability demonstrations that preserve the
-  separation between common PQC-Forge negotiation/policy machinery and the
-  cryptographic provider used for local realization.
-
-An interoperability pass applies only to the named provider versions,
-parameter sets, operations, and vectors recorded in the evidence. It is not a
-general certification of either implementation.
-
-## Public adoption and teaching
-
-The public project should support three mutually reinforcing uses:
-
-- **Open-source engineering:** invite implementation review, cryptanalysis,
-  interoperability reports, integrations, and additional maintainers.
-- **Migration prototyping:** provide standards-based components and evidence
-  for teams evaluating cryptographic agility, hybrid deployment, and system
-  impacts without overstating production readiness.
-- **Advanced education:** turn the standards matrix, deterministic vectors,
-  provider framework, fuzzing targets, side-channel screens, and release gates
-  into UCI laboratories covering KEMs, signatures, HPKE, interoperability,
-  crypto agility, and secure software engineering.
-
-Teaching material should use deterministic fixtures and explicit pre-1.0
-warnings; it must never normalize unsafe key handling or
-present repository-local testing as certification.
-
-## Deferred but retained — high-performance engineering
-
-Architecture-specific optimization remains a planned workstream:
-
-- vectorized NTT and polynomial arithmetic;
-- NEON, AVX2, AVX-512, and SVE2 backends;
-- cache-aware and memory-footprint engineering;
-- performance-regression CI across supported targets;
-- compiler-diversity and generated-code comparison;
-- future hardware acceleration and co-design interfaces.
-
-This work follows stable reference implementations and API boundaries.
-Optimization must preserve conformance, interoperability, constant-time review,
-and portable fallback paths.
-
-## Standards watch links
-
-- [NIST Post-Quantum Cryptography project](https://csrc.nist.gov/projects/post-quantum-cryptography)
-- [NIST PQC FAQ](https://csrc.nist.gov/Projects/Post-Quantum-Cryptography/faqs)
-- [NIST FIPS 203](https://csrc.nist.gov/pubs/fips/203/final)
-- [NIST FIPS 204](https://csrc.nist.gov/pubs/fips/204/final)
-- [NIST FIPS 205](https://csrc.nist.gov/pubs/fips/205/final)
-- [NIST HQC selection](https://csrc.nist.gov/News/2025/hqc-announced-as-a-4th-round-selection)
-- [RFC 9958](https://www.rfc-editor.org/info/rfc9958/)
-- [IETF PQUIP working group](https://datatracker.ietf.org/wg/pquip/about/)
-- [IETF HPKE working group](https://datatracker.ietf.org/wg/hpke/about/)
-- [IETF `draft-ietf-hpke-pq`](https://datatracker.ietf.org/doc/draft-ietf-hpke-pq/)
-- [IETF `draft-ietf-hpke-hpke`](https://datatracker.ietf.org/doc/draft-ietf-hpke-hpke/)
-- [ISO/IEC 18033-2:2006/Amd 2:2026](https://www.iso.org/standard/86890.html)
-- [EU coordinated PQC implementation roadmap](https://cyber.gouv.fr/en/publications/jointly-led-international-publications/roadmap-for-the-transition-to-pqc/)
-- [ANSSI position on the PQC transition](https://cyber.gouv.fr/en/technological-and-cybersecurity-challenges/post-quantum-cryptography/)
-- [ETSI ESI PQC Working Group](https://portal.etsi.org/TB-SiteMap/ESI/ESI-PQC-WG-ToR)
-- [Open Quantum Safe `liboqs`](https://openquantumsafe.org/liboqs/)
-- [OpenSSL ML-KEM documentation](https://docs.openssl.org/3.5/man7/EVP_KEM-ML-KEM/)
-- [KpqC final algorithm specifications](https://www.kpqc.or.kr/contents/03_exhibit/sub_03.html)
-- [GitHub-hosted runner reference](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
+# PQC-rs Roadmap
+
+> Last reviewed: 2026-09-21
+
+PQC-rs develops an open-source, standards-driven Rust stack in which
+post-quantum cryptography is implemented, assured, interoperable across
+independent providers, and changeable across real applications with
+quantitatively low change propagation and overhead.
+
+The roadmap emphasizes the joint combination of standards fidelity, assurance,
+interoperability, crypto-agility, application transparency, and measured
+efficiency. It does not aim to maximize algorithm count or provider count.
+
+## Current foundation
+
+The principal standardized cryptographic foundation is implemented:
+
+- **ML-KEM / FIPS 203** — ML-KEM-512, ML-KEM-768, and ML-KEM-1024;
+- **ML-DSA / FIPS 204** — ML-DSA-44, ML-DSA-65, and ML-DSA-87, including
+  Pure ML-DSA, HashML-DSA, deterministic signing, and hedged signing;
+- **SLH-DSA / FIPS 205** — all twelve standardized parameter sets, including
+  Pure SLH-DSA and HashSLH-DSA;
+- **HPKE / RFC 9180** — Base and PSK modes with post-quantum KEM integration;
+- **hybrid composition** — revision-pinned post-quantum/traditional HPKE
+  integration.
+
+The repository also includes independent-provider interoperability,
+standards traceability, ACVP/vector validation, negative testing, fuzzing,
+Miri and sanitizer analysis, secret-lifetime and zeroization review,
+constant-time engineering, side-channel screening, reproducibility, and
+release certification.
+
+PQC-Forge builds above this foundation with capability negotiation, policy,
+resolution, protocol binding, activation, and provider boundaries. Current
+application realizations include secure channels and challenge-response
+authentication.
+
+## Definition of completion
+
+A cryptographic capability is not considered complete merely because its
+algorithm is implemented. Where applicable, completion requires:
+
+1. implementation;
+2. standards traceability;
+3. conformance and adversarial testing;
+4. independent interoperability;
+5. assurance coverage;
+6. concise user documentation; and
+7. reproducible release evidence.
+
+Claims remain bounded by the evidence available for each capability.
+
+## R0 — Foundation consolidation
+
+**Objective:** maintain a concise and accurate description of the foundation
+already present on `main`.
+
+Current work:
+
+- reconcile canonical documentation with released capabilities;
+- close remaining documentation/evidence gaps for ML-DSA and SLH-DSA;
+- keep generated implementation and standards matrices current;
+- separate current documentation from historical development provenance.
+
+Exit condition: canonical documentation describes the current implementation,
+validation, interoperability, assurance, and release state without completed
+capabilities remaining listed as future work.
+
+## R1 — Bouncy Castle interoperability
+
+**Objective:** extend independent interoperability to Bouncy Castle Rust using
+the existing provider-interoperability framework.
+
+Planned order:
+
+1. ML-KEM;
+2. ML-DSA;
+3. SLH-DSA where overlapping Bouncy Castle interfaces are available.
+
+Evidence will distinguish byte-exact deterministic comparisons from semantic
+interoperability when provider APIs expose different controls.
+
+Provider additions are motivated by independent implementation diversity and
+useful external validation, not provider count alone.
+
+## R2 — Compiled-code constant-time assurance
+
+**Objective:** strengthen assurance that source-level constant-time intent
+survives compilation.
+
+Investigate compiled-code secret-dependency testing with Bouncy Castle and
+other collaborators, including dynamic taint-style approaches and
+architecture-specific generated-code analysis.
+
+This complements rather than replaces existing timing, secret-dependency,
+machine-code, and cross-architecture assurance.
+
+## R3 — Hybrid HPKE
+
+**Objective:** mature post-quantum/traditional HPKE composition into a
+well-defined transition mechanism.
+
+Work includes:
+
+- construction and revision audit;
+- public API and failure semantics;
+- deterministic validation evidence;
+- interoperability where independent support exists;
+- negative and downgrade-oriented testing;
+- assurance integration; and
+- application-level demonstration through PQC-Forge.
+
+Experimental constructions remain explicitly revision-pinned until their
+specifications are sufficiently stable.
+
+## R4 — Unified assurance
+
+**Objective:** make assurance reusable across cryptographic capabilities rather
+than accumulating algorithm-specific campaigns.
+
+Consolidate:
+
+- standards and conformance evidence;
+- secret inventory and zeroization;
+- constant-time and secret-dependency analysis;
+- fuzzing and adversarial testing;
+- Miri and sanitizer analysis;
+- cross-architecture testing;
+- performance and resource characterization; and
+- reproducible release certification.
+
+## R5 — PQC-Forge migration lifecycle
+
+**Objective:** make cryptographic migration and replacement explicit system
+operations.
+
+Develop the lifecycle:
+
+```text
+inventory
+   -> capability
+   -> policy
+   -> resolution
+   -> binding
+   -> activation
+   -> measurement
+   -> deprecation
+```
+
+Applications should depend on stable protocol and integration boundaries while
+algorithms, providers, policies, and execution substrates remain replaceable
+behind them.
+
+## R6 — Quantitative crypto-agility
+
+**Objective:** measure the cost and localization of cryptographic change.
+
+Evaluation will characterize:
+
+- change propagation;
+- negotiation and resolution overhead;
+- provider substitution;
+- algorithm and policy transitions;
+- software-to-hardware provider substitution;
+- performance and resource overhead; and
+- reproducibility across supported environments.
+
+The goal is to turn crypto-agility from an architectural claim into a
+measurable system property.
+
+## R7 — Application expansion
+
+**Objective:** demonstrate migration and agility across distinct security
+mechanisms.
+
+Priority applications are:
+
+1. secure software and artifact update;
+2. identity, credentials, and PKI;
+3. additional secure-channel and authentication deployments.
+
+New applications should exercise the common PQC-Forge lifecycle rather than
+introduce application-specific algorithm-selection machinery.
+
+## R8 — Deployment providers
+
+**Objective:** extend provider agility where concrete deployment requirements
+justify additional execution substrates.
+
+Candidate environments include:
+
+- embedded systems;
+- HSM and accelerator interfaces;
+- FPGA and other hardware providers; and
+- GPU acceleration where workloads justify it.
+
+Hardware work is driven by application and migration requirements rather than
+accelerator count.
+
+## Long-term direction
+
+PQC migration is the immediate use case. The longer-term objective is
+continuous cryptographic resilience: systems in which cryptography can be
+discovered, selected, negotiated, replaced, accelerated, and deprecated
+without redesigning the application.
+
+PQC-rs provides the cryptographic and assurance foundation. PQC-Forge provides
+the migration and agility architecture.
