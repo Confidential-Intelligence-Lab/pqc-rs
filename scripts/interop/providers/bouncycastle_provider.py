@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import pathlib
 import subprocess
 import sys
@@ -90,9 +91,148 @@ def capabilities() -> list[dict[str, Any]]:
     ]
 
 
+def bc_jar() -> pathlib.Path:
+    override = os.environ.get("BC_JAVA_JAR")
+    if override:
+        jar = pathlib.Path(override).expanduser().resolve()
+    else:
+        jar = pathlib.Path(
+            "/tmp/pqc-rs-bc-audit/bc-java/prov/build/libs/"
+            "bcprov-jdk18on-1.87-SNAPSHOT.jar"
+        )
+
+    if not jar.is_file():
+        raise RuntimeError(
+            "Bouncy Castle provider jar not found; "
+            "set BC_JAVA_JAR to bcprov-jdk18on"
+        )
+
+    return jar
+
+
+def bridge_classes() -> pathlib.Path:
+    return ROOT / "target" / "interop" / "bouncycastle-classes"
+
+
+def bridge_source() -> pathlib.Path:
+    return BRIDGE_DIR / "BouncyCastleInterop.java"
+
+
+def ensure_bridge() -> tuple[pathlib.Path, pathlib.Path]:
+    jar = bc_jar()
+    classes = bridge_classes()
+    source = bridge_source()
+    class_file = classes / "BouncyCastleInterop.class"
+
+    classes.mkdir(parents=True, exist_ok=True)
+
+    rebuild = (
+        not class_file.is_file()
+        or class_file.stat().st_mtime < source.stat().st_mtime
+    )
+
+    if rebuild:
+        completed = subprocess.run(
+            [
+                "javac",
+                "-cp",
+                str(jar),
+                "-d",
+                str(classes),
+                str(source),
+            ],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+        )
+        if completed.returncode != 0:
+            raise RuntimeError(
+                completed.stderr.strip()
+                or "failed to compile Bouncy Castle bridge"
+            )
+
+    return jar, classes
+
+
+def run_bridge(
+    operation: str,
+    parameter_set: str,
+    inputs: dict[str, Any],
+) -> dict[str, Any]:
+    jar, classes = ensure_bridge()
+
+    arguments = [
+        "java",
+        "-cp",
+        f"{jar}:{classes}",
+        "BouncyCastleInterop",
+        operation,
+        parameter_set,
+    ]
+
+    if operation == "kem-keygen":
+        arguments.extend([
+            str(inputs["d"]),
+            str(inputs["z"]),
+        ])
+    elif operation == "kem-encaps":
+        arguments.extend([
+            str(inputs["public_key"]),
+            str(inputs["m"]),
+        ])
+    elif operation == "kem-decaps":
+        arguments.extend([
+            str(inputs["secret_key"]),
+            str(inputs["ciphertext"]),
+        ])
+    else:
+        raise ValueError(
+            f"unsupported Bouncy Castle operation {operation}"
+        )
+
+    completed = subprocess.run(
+        arguments,
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+
+    if completed.returncode != 0:
+        raise RuntimeError(
+            completed.stderr.strip()
+            or completed.stdout.strip()
+            or f"Bouncy Castle bridge exited with {completed.returncode}"
+        )
+
+    value = completed.stdout.strip()
+
+    if operation == "kem-keygen":
+        public_key, secret_key = value.split(":", 1)
+        return {
+            "public_key": public_key,
+            "secret_key": secret_key,
+        }
+
+    if operation == "kem-encaps":
+        ciphertext, shared_secret = value.split(":", 1)
+        return {
+            "ciphertext": ciphertext,
+            "shared_secret": shared_secret,
+        }
+
+    if operation == "kem-decaps":
+        return {
+            "shared_secret": value,
+        }
+
+    raise AssertionError("unreachable")
+
+
 def execute_primitive(request: dict[str, Any]) -> dict[str, Any]:
-    raise RuntimeError(
-        "Bouncy Castle primitive execution is not enabled in BC2.1"
+    return run_bridge(
+        str(request["operation"]),
+        str(request["parameter_set"]),
+        dict(request.get("inputs", {})),
     )
 
 

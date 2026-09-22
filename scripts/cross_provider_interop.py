@@ -97,13 +97,26 @@ EXACT_DSA_SIGN_PROVIDERS = [
     "openssl",
 ]
 
-ALL_PROVIDERS = [
+KEM_PROVIDERS = [
+    "rust",
+    "wolfssl",
+    "openssl",
+    "liboqs",
+    "awslc",
+    "bouncycastle",
+]
+
+DSA_PROVIDERS = [
     "rust",
     "wolfssl",
     "openssl",
     "liboqs",
     "awslc",
 ]
+
+REPORT_PROVIDERS = list(
+    dict.fromkeys(KEM_PROVIDERS + DSA_PROVIDERS)
+)
 
 KEM_SIZES = {
     "ML-KEM-512": {
@@ -179,6 +192,13 @@ CAPABILITY_MATRIX = {
         "ml_dsa_seeded_keygen": "supported",
         "ml_dsa_explicit_signing_randomness": "unsupported_by_public_api",
         "ml_dsa_cross_verification": "supported",
+    },
+    "bouncycastle": {
+        "ml_kem_deterministic_keygen": "supported",
+        "ml_kem_deterministic_encaps": "supported",
+        "ml_dsa_seeded_keygen": "not_yet_integrated",
+        "ml_dsa_explicit_signing_randomness": "not_yet_integrated",
+        "ml_dsa_cross_verification": "not_yet_integrated",
     },
 }
 
@@ -390,7 +410,7 @@ def run_capability_gate(
 
     observed: dict[str, Any] = {}
 
-    for provider in ALL_PROVIDERS:
+    for provider in KEM_PROVIDERS:
         try:
             capability = provider_capabilities(
                 root,
@@ -442,7 +462,7 @@ def run_ml_kem_exact(
 
         keypairs: dict[str, dict[str, Any]] = {}
 
-        for provider in ALL_PROVIDERS:
+        for provider in KEM_PROVIDERS:
             keypairs[provider] = call(
                 root,
                 provider,
@@ -482,7 +502,7 @@ def run_ml_kem_exact(
                 else "fail"
             ),
             parameter_set=ps,
-            providers=ALL_PROVIDERS,
+            providers=KEM_PROVIDERS,
             public_key_sha256=sha256_hex(
                 reference["public_key"]
             ),
@@ -496,7 +516,7 @@ def run_ml_kem_exact(
             dict[str, Any],
         ] = {}
 
-        for provider in ALL_PROVIDERS:
+        for provider in KEM_PROVIDERS:
             encapsulations[provider] = call(
                 root,
                 provider,
@@ -542,7 +562,7 @@ def run_ml_kem_exact(
                 else "fail"
             ),
             parameter_set=ps,
-            providers=ALL_PROVIDERS,
+            providers=KEM_PROVIDERS,
             ciphertext_sha256=sha256_hex(
                 enc_reference["ciphertext"]
             ),
@@ -551,7 +571,7 @@ def run_ml_kem_exact(
             ),
         )
 
-        for provider in ALL_PROVIDERS:
+        for provider in KEM_PROVIDERS:
             decapsulated = call(
                 root,
                 provider,
@@ -604,7 +624,7 @@ def run_ml_kem_exact(
 
             rejection: dict[str, str] = {}
 
-            for provider in ALL_PROVIDERS:
+            for provider in KEM_PROVIDERS:
                 output = call(
                     root,
                     provider,
@@ -649,7 +669,7 @@ def run_ml_kem_exact(
                 ),
                 parameter_set=ps,
                 ciphertext_offset=offset,
-                providers=ALL_PROVIDERS,
+                providers=KEM_PROVIDERS,
                 rejection_sha256=sha256_hex(
                     rust_rejection
                 ),
@@ -804,7 +824,7 @@ def run_ml_dsa_exact(
             ),
         )
 
-        for provider in ALL_PROVIDERS:
+        for provider in DSA_PROVIDERS:
             output = call(
                 root,
                 provider,
@@ -860,7 +880,7 @@ def run_ml_dsa_exact(
             ),
         )["signature"]
 
-        for provider in ALL_PROVIDERS:
+        for provider in DSA_PROVIDERS:
             output = call(
                 root,
                 provider,
@@ -979,7 +999,7 @@ def run_ml_dsa_boundaries_and_negative(
             ),
         )["signature"]
 
-        for provider in ALL_PROVIDERS:
+        for provider in DSA_PROVIDERS:
             result = invoke(
                 root,
                 provider,
@@ -1073,7 +1093,7 @@ def run_ml_dsa_boundaries_and_negative(
         ]
 
         for name, inputs in negative_cases:
-            for provider in ALL_PROVIDERS:
+            for provider in DSA_PROVIDERS:
                 result = invoke(
                     root,
                     provider,
@@ -1134,7 +1154,7 @@ def run_ml_dsa_boundaries_and_negative(
                     modified.hex(),
             }
 
-            for provider in ALL_PROVIDERS:
+            for provider in DSA_PROVIDERS:
                 result = invoke(
                     root,
                     provider,
@@ -1189,7 +1209,7 @@ def run_ml_dsa_boundaries_and_negative(
                     signature,
             }
 
-            for provider in ALL_PROVIDERS:
+            for provider in DSA_PROVIDERS:
                 result = invoke(
                     root,
                     provider,
@@ -1232,7 +1252,7 @@ def run_ml_dsa_boundaries_and_negative(
                 baseline_sig,
         }
 
-        for provider in ALL_PROVIDERS:
+        for provider in DSA_PROVIDERS:
             result = invoke(
                 root,
                 provider,
@@ -1318,7 +1338,7 @@ def run_ml_dsa_cross_parameter(
             ),
         )["signature"]
 
-        for provider in ALL_PROVIDERS:
+        for provider in DSA_PROVIDERS:
 
             result = invoke(
                 root,
@@ -1679,7 +1699,7 @@ def write_reports(
                     provider
                 ][key]
                 for provider
-                in ALL_PROVIDERS
+                in REPORT_PROVIDERS
             )
             + " |"
         )
