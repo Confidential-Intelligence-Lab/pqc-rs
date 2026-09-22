@@ -88,6 +88,7 @@ EXACT_DSA_KEYGEN_PROVIDERS = [
     "wolfssl",
     "openssl",
     "awslc",
+    "bouncycastle",
 ]
 
 # Providers exposing caller-controlled per-signature randomness.
@@ -95,6 +96,7 @@ EXACT_DSA_SIGN_PROVIDERS = [
     "rust",
     "wolfssl",
     "openssl",
+    "bouncycastle",
 ]
 
 KEM_PROVIDERS = [
@@ -112,6 +114,7 @@ DSA_PROVIDERS = [
     "openssl",
     "liboqs",
     "awslc",
+    "bouncycastle",
 ]
 
 REPORT_PROVIDERS = list(
@@ -196,9 +199,9 @@ CAPABILITY_MATRIX = {
     "bouncycastle": {
         "ml_kem_deterministic_keygen": "supported",
         "ml_kem_deterministic_encaps": "supported",
-        "ml_dsa_seeded_keygen": "not_yet_integrated",
-        "ml_dsa_explicit_signing_randomness": "not_yet_integrated",
-        "ml_dsa_cross_verification": "not_yet_integrated",
+        "ml_dsa_seeded_keygen": "supported",
+        "ml_dsa_explicit_signing_randomness": "supported",
+        "ml_dsa_cross_verification": "supported",
     },
 }
 

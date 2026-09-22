@@ -185,6 +185,24 @@ def run_bridge(
             str(inputs["secret_key"]),
             str(inputs["ciphertext"]),
         ])
+    elif operation == "dsa-keygen":
+        arguments.extend([
+            str(inputs["xi"]),
+        ])
+    elif operation == "dsa-sign":
+        arguments.extend([
+            str(inputs["secret_key"]),
+            str(inputs["message"]),
+            str(inputs["context"]),
+            str(inputs["randomness"]),
+        ])
+    elif operation == "dsa-verify":
+        arguments.extend([
+            str(inputs["public_key"]),
+            str(inputs["message"]),
+            str(inputs["context"]),
+            str(inputs["signature"]),
+        ])
     else:
         raise ValueError(
             f"unsupported Bouncy Castle operation {operation}"
@@ -223,6 +241,23 @@ def run_bridge(
     if operation == "kem-decaps":
         return {
             "shared_secret": value,
+        }
+
+    if operation == "dsa-keygen":
+        public_key, secret_key = value.split(":", 1)
+        return {
+            "public_key": public_key,
+            "secret_key": secret_key,
+        }
+
+    if operation == "dsa-sign":
+        return {
+            "signature": value,
+        }
+
+    if operation == "dsa-verify":
+        return {
+            "valid": value.lower() == "true",
         }
 
     raise AssertionError("unreachable")

@@ -1,5 +1,14 @@
 import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
+import org.bouncycastle.crypto.CipherParameters;
 import org.bouncycastle.crypto.SecretWithEncapsulation;
+import org.bouncycastle.crypto.generators.MLDSAKeyPairGenerator;
+import org.bouncycastle.crypto.params.MLDSAKeyGenerationParameters;
+import org.bouncycastle.crypto.params.MLDSAParameters;
+import org.bouncycastle.crypto.params.MLDSAPrivateKeyParameters;
+import org.bouncycastle.crypto.params.MLDSAPublicKeyParameters;
+import org.bouncycastle.crypto.params.ParametersWithContext;
+import org.bouncycastle.crypto.params.ParametersWithRandom;
+import org.bouncycastle.crypto.signers.MLDSASigner;
 import org.bouncycastle.crypto.kems.MLKEMExtractor;
 import org.bouncycastle.crypto.kems.MLKEMGenerator;
 import org.bouncycastle.crypto.params.MLKEMKeyGenerationParameters;
@@ -140,6 +149,123 @@ public final class BouncyCastleInterop {
         }
     }
 
+    private static MLDSAParameters dsaParameters(String name) {
+        switch (name) {
+        case "ML-DSA-44":
+            return MLDSAParameters.ml_dsa_44;
+        case "ML-DSA-65":
+            return MLDSAParameters.ml_dsa_65;
+        case "ML-DSA-87":
+            return MLDSAParameters.ml_dsa_87;
+        default:
+            throw new IllegalArgumentException(
+                "unsupported ML-DSA parameter set: " + name
+            );
+        }
+    }
+
+    private static void dsaKeygen(
+        MLDSAParameters params,
+        String xiHex
+    ) {
+        byte[] xi = decode(xiHex);
+        requireLength("xi", xi, 32);
+
+        MLDSAKeyPairGenerator generator = new MLDSAKeyPairGenerator();
+        generator.init(
+            new MLDSAKeyGenerationParameters(
+                new FixedSecureRandom(xi),
+                params
+            )
+        );
+
+        AsymmetricCipherKeyPair pair = generator.generateKeyPair();
+        MLDSAPublicKeyParameters publicKey =
+            (MLDSAPublicKeyParameters)pair.getPublic();
+        MLDSAPrivateKeyParameters privateKey =
+            (MLDSAPrivateKeyParameters)pair.getPrivate();
+
+        try {
+            System.out.println(
+                encode(publicKey.getEncoded()) + ":" +
+                encode(privateKey.getEncoded())
+            );
+        } finally {
+            privateKey.destroy();
+        }
+    }
+
+    private static void dsaSign(
+        MLDSAParameters params,
+        String privateKeyHex,
+        String messageHex,
+        String contextHex,
+        String randomnessHex
+    ) throws Exception {
+        byte[] privateKeyBytes = decode(privateKeyHex);
+        byte[] message = decode(messageHex);
+        byte[] context = decode(contextHex);
+        byte[] randomness = decode(randomnessHex);
+
+        requireLength("randomness", randomness, 32);
+
+        MLDSAPrivateKeyParameters privateKey =
+            new MLDSAPrivateKeyParameters(params, privateKeyBytes);
+
+        try {
+            CipherParameters signingParameters =
+                new ParametersWithRandom(
+                    privateKey,
+                    new FixedSecureRandom(randomness)
+                );
+
+            signingParameters =
+                new ParametersWithContext(
+                    signingParameters,
+                    context
+                );
+
+            MLDSASigner signer = new MLDSASigner();
+            signer.init(true, signingParameters);
+            signer.update(message, 0, message.length);
+
+            System.out.println(encode(signer.generateSignature()));
+        } finally {
+            privateKey.destroy();
+        }
+    }
+
+    private static void dsaVerify(
+        MLDSAParameters params,
+        String publicKeyHex,
+        String messageHex,
+        String contextHex,
+        String signatureHex
+    ) {
+        MLDSAPublicKeyParameters publicKey =
+            new MLDSAPublicKeyParameters(
+                params,
+                decode(publicKeyHex)
+            );
+
+        MLDSASigner verifier = new MLDSASigner();
+        verifier.init(
+            false,
+            new ParametersWithContext(
+                publicKey,
+                decode(contextHex)
+            )
+        );
+
+        byte[] message = decode(messageHex);
+        verifier.update(message, 0, message.length);
+
+        boolean valid =
+            verifier.verifySignature(decode(signatureHex));
+
+        System.out.println(valid ? "true" : "false");
+    }
+
     public static void main(String[] args) {
         if (args.length < 2) {
             throw new IllegalArgumentException(
@@ -148,7 +274,7 @@ public final class BouncyCastleInterop {
         }
 
         String operation = args[0];
-        MLKEMParameters params = parameters(args[1]);
+        String parameterSet = args[1];
 
         switch (operation) {
         case "kem-keygen":
@@ -157,7 +283,7 @@ public final class BouncyCastleInterop {
                     "kem-keygen requires d and z"
                 );
             }
-            keygen(params, args[2], args[3]);
+            keygen(parameters(parameterSet), args[2], args[3]);
             return;
 
         case "kem-encaps":
@@ -166,7 +292,7 @@ public final class BouncyCastleInterop {
                     "kem-encaps requires public key and m"
                 );
             }
-            encaps(params, args[2], args[3]);
+            encaps(parameters(parameterSet), args[2], args[3]);
             return;
 
         case "kem-decaps":
@@ -175,7 +301,56 @@ public final class BouncyCastleInterop {
                     "kem-decaps requires private key and ciphertext"
                 );
             }
-            decaps(params, args[2], args[3]);
+            decaps(parameters(parameterSet), args[2], args[3]);
+            return;
+
+        case "dsa-keygen":
+            if (args.length != 3) {
+                throw new IllegalArgumentException(
+                    "dsa-keygen requires xi"
+                );
+            }
+            dsaKeygen(
+                dsaParameters(parameterSet),
+                args[2]
+            );
+            return;
+
+        case "dsa-sign":
+            if (args.length != 6) {
+                throw new IllegalArgumentException(
+                    "dsa-sign requires private key, message, context, and randomness"
+                );
+            }
+            try {
+                dsaSign(
+                    dsaParameters(parameterSet),
+                    args[2],
+                    args[3],
+                    args[4],
+                    args[5]
+                );
+            } catch (Exception error) {
+                throw new IllegalStateException(
+                    "ML-DSA signing failed",
+                    error
+                );
+            }
+            return;
+
+        case "dsa-verify":
+            if (args.length != 6) {
+                throw new IllegalArgumentException(
+                    "dsa-verify requires public key, message, context, and signature"
+                );
+            }
+            dsaVerify(
+                dsaParameters(parameterSet),
+                args[2],
+                args[3],
+                args[4],
+                args[5]
+            );
             return;
 
         default:
