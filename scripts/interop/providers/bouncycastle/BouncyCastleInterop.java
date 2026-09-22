@@ -15,6 +15,14 @@ import org.bouncycastle.crypto.params.SLHDSAParameters;
 import org.bouncycastle.crypto.params.SLHDSAPrivateKeyParameters;
 import org.bouncycastle.crypto.params.SLHDSAPublicKeyParameters;
 import org.bouncycastle.crypto.signers.SLHDSASigner;
+import org.bouncycastle.crypto.digests.SHA224Digest;
+import org.bouncycastle.crypto.digests.SHA256Digest;
+import org.bouncycastle.crypto.digests.SHA384Digest;
+import org.bouncycastle.crypto.digests.SHA512Digest;
+import org.bouncycastle.crypto.digests.SHA512tDigest;
+import org.bouncycastle.crypto.digests.SHA3Digest;
+import org.bouncycastle.crypto.digests.SHAKEDigest;
+import org.bouncycastle.crypto.signers.slhdsa.SLHDSAEngine;
 import org.bouncycastle.crypto.kems.MLKEMExtractor;
 import org.bouncycastle.crypto.kems.MLKEMGenerator;
 import org.bouncycastle.crypto.params.MLKEMKeyGenerationParameters;
@@ -403,6 +411,227 @@ public final class BouncyCastleInterop {
         System.out.println(valid ? "true" : "false");
     }
 
+    private static byte[] hashSlhDigest(
+        String prehash,
+        byte[] message
+    ) {
+        org.bouncycastle.crypto.Digest digest;
+        int outputLength;
+
+        switch (prehash) {
+        case "SHA2-224":
+            digest = new SHA224Digest();
+            outputLength = 28;
+            break;
+        case "SHA2-256":
+            digest = SHA256Digest.newInstance();
+            outputLength = 32;
+            break;
+        case "SHA2-384":
+            digest = new SHA384Digest();
+            outputLength = 48;
+            break;
+        case "SHA2-512":
+            digest = new SHA512Digest();
+            outputLength = 64;
+            break;
+        case "SHA2-512/224":
+            digest = new SHA512tDigest(224);
+            outputLength = 28;
+            break;
+        case "SHA2-512/256":
+            digest = new SHA512tDigest(256);
+            outputLength = 32;
+            break;
+        case "SHA3-224":
+            digest = new SHA3Digest(224);
+            outputLength = 28;
+            break;
+        case "SHA3-256":
+            digest = new SHA3Digest(256);
+            outputLength = 32;
+            break;
+        case "SHA3-384":
+            digest = new SHA3Digest(384);
+            outputLength = 48;
+            break;
+        case "SHA3-512":
+            digest = new SHA3Digest(512);
+            outputLength = 64;
+            break;
+        case "SHAKE-128": {
+            SHAKEDigest shake = new SHAKEDigest(128);
+            shake.update(message, 0, message.length);
+            byte[] output = new byte[32];
+            shake.doFinal(output, 0, output.length);
+            return output;
+        }
+        case "SHAKE-256": {
+            SHAKEDigest shake = new SHAKEDigest(256);
+            shake.update(message, 0, message.length);
+            byte[] output = new byte[64];
+            shake.doFinal(output, 0, output.length);
+            return output;
+        }
+        default:
+            throw new IllegalArgumentException(
+                "unsupported HashSLH prehash: " + prehash
+            );
+        }
+
+        digest.update(message, 0, message.length);
+        byte[] output = new byte[outputLength];
+        digest.doFinal(output, 0);
+        return output;
+    }
+
+    private static int hashSlhOidArc(String prehash) {
+        switch (prehash) {
+        case "SHA2-256":
+            return 1;
+        case "SHA2-384":
+            return 2;
+        case "SHA2-512":
+            return 3;
+        case "SHA2-224":
+            return 4;
+        case "SHA2-512/224":
+            return 5;
+        case "SHA2-512/256":
+            return 6;
+        case "SHA3-224":
+            return 7;
+        case "SHA3-256":
+            return 8;
+        case "SHA3-384":
+            return 9;
+        case "SHA3-512":
+            return 10;
+        case "SHAKE-128":
+            return 11;
+        case "SHAKE-256":
+            return 12;
+        default:
+            throw new IllegalArgumentException(
+                "unsupported HashSLH prehash: " + prehash
+            );
+        }
+    }
+
+    private static byte[] hashSlhMessagePrime(
+        byte[] message,
+        byte[] context,
+        String prehash
+    ) {
+        if (context.length > 255) {
+            throw new IllegalArgumentException("context too long");
+        }
+
+        byte[] digest = hashSlhDigest(prehash, message);
+
+        byte[] oid = new byte[] {
+            0x06, 0x09, 0x60, (byte)0x86, 0x48,
+            0x01, 0x65, 0x03, 0x04, 0x02,
+            (byte)hashSlhOidArc(prehash)
+        };
+
+        byte[] output =
+            new byte[2 + context.length + oid.length + digest.length];
+
+        int offset = 0;
+        output[offset++] = 0x01;
+        output[offset++] = (byte)context.length;
+
+        System.arraycopy(
+            context, 0, output, offset, context.length
+        );
+        offset += context.length;
+
+        System.arraycopy(
+            oid, 0, output, offset, oid.length
+        );
+        offset += oid.length;
+
+        System.arraycopy(
+            digest, 0, output, offset, digest.length
+        );
+
+        return output;
+    }
+
+    private static void slhHashSign(
+        SLHDSAParameters params,
+        String privateKeyHex,
+        String messageHex,
+        String contextHex,
+        String prehash
+    ) {
+        SLHDSAPrivateKeyParameters privateKey =
+            new SLHDSAPrivateKeyParameters(
+                params,
+                decode(privateKeyHex)
+            );
+
+        try {
+            byte[] messagePrime = hashSlhMessagePrime(
+                decode(messageHex),
+                decode(contextHex),
+                prehash
+            );
+
+            byte[] optRand = privateKey.getPublicSeed();
+
+            byte[] signature =
+                SLHDSAEngine.internalGenerateSignature(
+                    params,
+                    privateKey.getSeed(),
+                    privateKey.getPrf(),
+                    privateKey.getPublicSeed(),
+                    privateKey.getRoot(),
+                    null,
+                    messagePrime,
+                    optRand
+                );
+
+            System.out.println(encode(signature));
+        } finally {
+            privateKey.destroy();
+        }
+    }
+
+    private static void slhHashVerify(
+        SLHDSAParameters params,
+        String publicKeyHex,
+        String messageHex,
+        String contextHex,
+        String signatureHex,
+        String prehash
+    ) {
+        SLHDSAPublicKeyParameters publicKey =
+            new SLHDSAPublicKeyParameters(
+                params,
+                decode(publicKeyHex)
+            );
+
+        byte[] messagePrime = hashSlhMessagePrime(
+            decode(messageHex),
+            decode(contextHex),
+            prehash
+        );
+
+        boolean valid =
+            SLHDSAEngine.internalVerifySignature(
+                params,
+                publicKey.getSeed(),
+                publicKey.getRoot(),
+                null,
+                messagePrime,
+                decode(signatureHex)
+            );
+
+        System.out.println(valid ? "true" : "false");
+    }
+
     public static void main(String[] args) {
         if (args.length < 2) {
             throw new IllegalArgumentException(
@@ -479,6 +708,37 @@ public final class BouncyCastleInterop {
                 args[3],
                 args[4],
                 args[5]
+            );
+            return;
+
+        case "slh-hash-sign":
+            if (args.length != 6) {
+                throw new IllegalArgumentException(
+                    "slh-hash-sign requires private key, message, context, and prehash"
+                );
+            }
+            slhHashSign(
+                slhParameters(parameterSet),
+                args[2],
+                args[3],
+                args[4],
+                args[5]
+            );
+            return;
+
+        case "slh-hash-verify":
+            if (args.length != 7) {
+                throw new IllegalArgumentException(
+                    "slh-hash-verify requires public key, message, context, signature, and prehash"
+                );
+            }
+            slhHashVerify(
+                slhParameters(parameterSet),
+                args[2],
+                args[3],
+                args[4],
+                args[5],
+                args[6]
             );
             return;
 

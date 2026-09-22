@@ -200,6 +200,21 @@ def run_bridge(
             str(inputs["context"]),
             str(inputs["signature"]),
         ])
+    elif operation == "slh-hash-sign":
+        arguments.extend([
+            str(inputs["secret_key"]),
+            str(inputs["message"]),
+            str(inputs["context"]),
+            str(inputs["prehash"]),
+        ])
+    elif operation == "slh-hash-verify":
+        arguments.extend([
+            str(inputs["public_key"]),
+            str(inputs["message"]),
+            str(inputs["context"]),
+            str(inputs["signature"]),
+            str(inputs["prehash"]),
+        ])
     elif operation == "dsa-keygen":
         arguments.extend([
             str(inputs["xi"]),
@@ -288,6 +303,16 @@ def run_bridge(
         }
 
     if operation == "slh-verify":
+        return {
+            "valid": value.lower() == "true",
+        }
+
+    if operation == "slh-hash-sign":
+        return {
+            "signature": value,
+        }
+
+    if operation == "slh-hash-verify":
         return {
             "valid": value.lower() == "true",
         }

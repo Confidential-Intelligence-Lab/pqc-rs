@@ -1493,19 +1493,26 @@ def run_slh_interop(
                 )
 
     for parameter_set, prehash in HASH_SLH_CASES:
+        hash_providers = (
+            "rust",
+            "liboqs",
+            "bouncycastle",
+        )
         for producer, consumer in (
-            ("rust", "liboqs"),
-            ("liboqs", "rust"),
+            (producer, consumer)
+            for producer in hash_providers
+            for consumer in hash_providers
+            if producer != consumer
         ):
             case = (
                 f"{parameter_set}:{prehash}:"
                 f"{producer}->{consumer}"
             )
             try:
-                if producer == "rust":
+                if producer in ("rust", "bouncycastle"):
                     keypair = call(
                         root,
-                        "rust",
+                        producer,
                         "slh-keygen",
                         parameter_set,
                         {
