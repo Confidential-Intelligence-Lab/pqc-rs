@@ -1,61 +1,77 @@
 # Documentation
 
-The documentation is organized by audience and assurance purpose.
+PQC-rs documentation is organized around the evidence needed to understand,
+use, evaluate, and release the stack.
 
-## Standards and compliance
+## Start here
 
-`docs/standards/` contains standards mappings, traceability policy, and generated-report guidance. The canonical structured source is `compliance/matrix.toml`.
+- [Project overview](../README.md) — capabilities, architecture, examples, and
+  current project status.
+- [Roadmap](../ROADMAP.md) — current development priorities.
+- [Implementation matrix](IMPLEMENTATION_MATRIX.md) — generated capability and
+  validation status.
+- [Security policy](../SECURITY.md) — supported versions, limitations, and
+  vulnerability reporting.
+- [Release process](../RELEASE.md) — publication and release requirements.
+
+## Standards
+
+[`standards/`](standards/) contains standards traceability and claim policy.
+The canonical machine-readable sources are maintained under `compliance/`.
+
+Current coverage includes FIPS 203 (ML-KEM), FIPS 204 (ML-DSA), FIPS 205
+(SLH-DSA), RFC 9180 (HPKE), and mapped engineering guidance from RFC 9958.
+Post-quantum and hybrid HPKE constructions remain explicitly revision-pinned
+where their specifications are not final.
+
+## Interoperability
+
+[`interoperability/`](interoperability/) documents cross-provider validation,
+including the canonical software-provider framework and HPKE KEM-provider
+substitution experiments.
+
+Interoperability evidence distinguishes byte-exact deterministic parity from
+semantic interoperability when independent provider APIs expose different
+controls.
+
+## Architecture and API
+
+- [Architecture](architecture/ARCHITECTURE.md)
+- [Public API inventory](api/API_INVENTORY.md)
+- Package-level rustdoc and crate READMEs
+
+PQC-Forge documentation describes the negotiation, policy, resolution, binding,
+activation, and provider boundaries used above the primitive cryptographic
+layer.
 
 ## Security and assurance
 
-Security methodology, side-channel experiments, machine-code reviews, zeroization reviews, and assurance reports are maintained in the existing security, audit, side-channel, and assurance directories.
+Security and assurance documentation records constant-time engineering,
+secret-dependency analysis, zeroization and secret-lifetime review, fuzzing,
+Miri and sanitizer analysis, cross-architecture validation, performance
+characterization, and release evidence.
 
-- [Stage 10B-5 cross-architecture validation](security/STAGE10B5_CROSS_ARCHITECTURE.md)
+These artifacts provide engineering evidence. They are not formal
+verification, FIPS validation, certification, or an independent security
+audit.
 
-## User and developer documentation
+## Performance and release evidence
 
-Current entry points include:
+- [`performance/`](performance/) — benchmark methodology and baselines.
+- [`release/`](release/) — release-specific records and review artifacts.
+- [`../paper/evaluation/`](../paper/evaluation/) — reproducibility artifacts
+  for research evaluations.
 
-- [installation and workspace overview](../README.md);
-- [public API inventory](api/API_INVENTORY.md) and package rustdoc;
-- [interoperability documentation](interoperability/README.md);
-- [architecture documentation](architecture/ARCHITECTURE.md);
-- [release process](../RELEASE.md) and
-  [ML-DSA 0.4.0 release record](release/ML_DSA_0.4.0.md);
-- [security policy](../SECURITY.md) and assurance documentation below.
+## Historical evidence
 
-## Release planning and external review
-
-- [Project roadmap](../ROADMAP.md)
-- [v0.4.0 release checklist](release-checklist.md)
-- [v0.4.0 external reviewer packet](release/V0.4.0_EXTERNAL_REVIEW.md)
-- [Personal outreach templates](release/EXTERNAL_REVIEW_OUTREACH.md)
-- [PQUIP and HPKE announcement drafts](release/IETF_REVIEW_ANNOUNCEMENTS.md)
+The repository retains stage-specific design, validation, and assurance
+documents as development provenance. They record how capabilities were
+established, but they are not the primary entry points for the current public
+project state.
 
 ## Documentation policy
 
-Documentation must distinguish normative requirements from informational guidance and distinguish test evidence from proof, certification, or independent audit.
-
-- [Implementation matrix](IMPLEMENTATION_MATRIX.md)
-
-## API governance
-
-- [B1.3.1 Public API Review](api/API_REVIEW.md)
-- [Generated Public API Inventory](api/API_INVENTORY.md)
-- [ML-DSA feature contract](api/ML_DSA_FEATURE_CONTRACT.md)
-- [ML-DSA public implementation boundary](api/ML_DSA_PUBLIC_BOUNDARY.md)
-- [ML-DSA SemVer contract](api/ML_DSA_SEMVER_CONTRACT.md)
-
-## Security assurance
-
-- [Secret inventory](security/SECRET_INVENTORY.md) and [zeroization audit](security/ZEROIZATION_AUDIT.md) — B1.3.2 secret-lifetime policy and review.
-
-## B1.3.3 security assurance
-
-- [Constant-time audit](security/CONSTANT_TIME_AUDIT.md)
-- [Secret-dependency register](security/SECRET_DEPENDENCY_REGISTER.md)
-
-## B1.3.5 performance assurance
-
-- [Performance baseline](performance/PERFORMANCE_BASELINE.md)
-- [Benchmark register](performance/BENCHMARK_REGISTER.md)
+Canonical documentation should remain concise, current, and evidence-linked.
+Normative requirements must be distinguished from informational guidance, and
+test evidence must not be described as proof, certification, or independent
+audit.
