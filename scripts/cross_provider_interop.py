@@ -1638,17 +1638,19 @@ def write_reports(
             "A pass demonstrates the tested software-provider interoperability "
             "properties for the providers and interfaces exercised by each "
             "campaign. ML-KEM deterministic equivalence covers PQC-rs, wolfSSL, "
-            "OpenSSL, liboqs, and AWS-LC across ML-KEM-512/768/1024, including "
-            "implicit rejection. ML-DSA exact seeded equivalence is limited to "
-            "providers whose public APIs expose the required deterministic "
-            "controls; broader semantic verification includes the supported "
-            "six-provider interfaces. SLH-DSA interoperability is separately "
-            "scoped to PQC-rs and liboqs: Pure SLH-DSA is exercised "
-            "bidirectionally for all twelve parameter sets, and HashSLH-DSA is "
-            "exercised bidirectionally for twelve representative "
-            "parameter-set/prehash pairs spanning all twelve standardized "
-            "prehash algorithms. The HashSLH campaign is representative, not "
-            "the full parameter-set/prehash Cartesian product."
+            "OpenSSL, liboqs, AWS-LC, and Bouncy Castle across "
+            "ML-KEM-512/768/1024, including cross-decapsulation and implicit "
+            "rejection. ML-DSA exact seeded equivalence is limited to providers "
+            "whose tested public APIs expose the required deterministic controls; "
+            "broader semantic verification covers all six provider interfaces. "
+            "SLH-DSA interoperability is separately scoped to PQC-rs, liboqs, "
+            "and Bouncy Castle: Pure SLH-DSA is exercised in all directed "
+            "cross-provider pairs for all twelve parameter sets, and "
+            "HashSLH-DSA is exercised in all directed cross-provider pairs for "
+            "twelve representative parameter-set/prehash pairs spanning the "
+            "twelve standardized prehash algorithms. The HashSLH-DSA campaign "
+            "is representative rather than the full parameter-set/prehash "
+            "Cartesian product."
         ),
     }
 
@@ -1679,8 +1681,8 @@ def write_reports(
         "",
         "## Provider capability matrix",
         "",
-        "| Capability | PQC-rs | wolfSSL | OpenSSL | liboqs | AWS-LC |",
-        "|---|---|---|---|---|---|",
+        "| Capability | PQC-rs | wolfSSL | OpenSSL | liboqs | AWS-LC | Bouncy Castle |",
+        "|---|---|---|---|---|---|---|",
     ]
 
     capability_labels = [
