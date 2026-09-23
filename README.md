@@ -27,7 +27,7 @@ PQC-rs develops these properties together:
 |---|---|---|
 | **Standards** | FIPS 203, FIPS 204, FIPS 205, RFC 9180, RFC 9958 | normative traceability, ACVP/vector validation, protocol transcripts |
 | **Cryptography** | ML-KEM, ML-DSA, SLH-DSA | typed Rust APIs, deterministic and randomized interfaces, negative testing |
-| **Interoperability** | independent providers | PQC-rs, OpenSSL, wolfSSL, liboqs, and AWS-LC integration/evaluation |
+| **Interoperability** | independent providers | PQC-rs, OpenSSL, wolfSSL, liboqs, AWS-LC, and Bouncy Castle integration/evaluation |
 | **Assurance** | implementation and release evidence | secret-lifetime review, timing analysis, Miri, sanitizers, fuzzing, SBOM and reproducibility |
 | **Agility** | algorithm, provider, policy, and execution substitution | PQC-Forge negotiation, resolution, binding, activation, and provider boundaries |
 | **Applications** | usable cryptographic composition | HPKE, hybrid composition, secure channels, and authentication |
@@ -194,8 +194,9 @@ Current standards work includes:
 Validation includes NIST ACVP/vector evidence, deterministic/reference checks,
 negative testing, and protocol transcript validation where applicable.
 
-Independent-provider evaluation spans **PQC-rs, OpenSSL, wolfSSL, liboqs, and
-AWS-LC** across the algorithms and interfaces supported by each provider.
+Independent-provider evaluation spans **PQC-rs, OpenSSL, wolfSSL, liboqs,
+AWS-LC, and Bouncy Castle** across the algorithms and interfaces supported by
+each provider.
 Evidence distinguishes byte-exact deterministic comparisons from semantic
 cross-provider interoperability when public APIs do not expose equivalent
 deterministic controls.

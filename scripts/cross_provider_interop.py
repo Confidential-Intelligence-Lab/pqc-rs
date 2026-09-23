@@ -76,6 +76,10 @@ PROVIDERS = {
         sys.executable,
         "scripts/interop/providers/awslc_provider.py",
     ],
+    "bouncycastle": [
+        sys.executable,
+        "scripts/interop/providers/bouncycastle_provider.py",
+    ],
 }
 
 # Providers exposing deterministic ML-DSA key generation.
@@ -84,6 +88,7 @@ EXACT_DSA_KEYGEN_PROVIDERS = [
     "wolfssl",
     "openssl",
     "awslc",
+    "bouncycastle",
 ]
 
 # Providers exposing caller-controlled per-signature randomness.
@@ -91,15 +96,30 @@ EXACT_DSA_SIGN_PROVIDERS = [
     "rust",
     "wolfssl",
     "openssl",
+    "bouncycastle",
 ]
 
-ALL_PROVIDERS = [
+KEM_PROVIDERS = [
     "rust",
     "wolfssl",
     "openssl",
     "liboqs",
     "awslc",
+    "bouncycastle",
 ]
+
+DSA_PROVIDERS = [
+    "rust",
+    "wolfssl",
+    "openssl",
+    "liboqs",
+    "awslc",
+    "bouncycastle",
+]
+
+REPORT_PROVIDERS = list(
+    dict.fromkeys(KEM_PROVIDERS + DSA_PROVIDERS)
+)
 
 KEM_SIZES = {
     "ML-KEM-512": {
@@ -174,6 +194,13 @@ CAPABILITY_MATRIX = {
         "ml_kem_deterministic_encaps": "supported",
         "ml_dsa_seeded_keygen": "supported",
         "ml_dsa_explicit_signing_randomness": "unsupported_by_public_api",
+        "ml_dsa_cross_verification": "supported",
+    },
+    "bouncycastle": {
+        "ml_kem_deterministic_keygen": "supported",
+        "ml_kem_deterministic_encaps": "supported",
+        "ml_dsa_seeded_keygen": "supported",
+        "ml_dsa_explicit_signing_randomness": "supported",
         "ml_dsa_cross_verification": "supported",
     },
 }
@@ -386,7 +413,7 @@ def run_capability_gate(
 
     observed: dict[str, Any] = {}
 
-    for provider in ALL_PROVIDERS:
+    for provider in KEM_PROVIDERS:
         try:
             capability = provider_capabilities(
                 root,
@@ -438,7 +465,7 @@ def run_ml_kem_exact(
 
         keypairs: dict[str, dict[str, Any]] = {}
 
-        for provider in ALL_PROVIDERS:
+        for provider in KEM_PROVIDERS:
             keypairs[provider] = call(
                 root,
                 provider,
@@ -478,7 +505,7 @@ def run_ml_kem_exact(
                 else "fail"
             ),
             parameter_set=ps,
-            providers=ALL_PROVIDERS,
+            providers=KEM_PROVIDERS,
             public_key_sha256=sha256_hex(
                 reference["public_key"]
             ),
@@ -492,7 +519,7 @@ def run_ml_kem_exact(
             dict[str, Any],
         ] = {}
 
-        for provider in ALL_PROVIDERS:
+        for provider in KEM_PROVIDERS:
             encapsulations[provider] = call(
                 root,
                 provider,
@@ -538,7 +565,7 @@ def run_ml_kem_exact(
                 else "fail"
             ),
             parameter_set=ps,
-            providers=ALL_PROVIDERS,
+            providers=KEM_PROVIDERS,
             ciphertext_sha256=sha256_hex(
                 enc_reference["ciphertext"]
             ),
@@ -547,7 +574,7 @@ def run_ml_kem_exact(
             ),
         )
 
-        for provider in ALL_PROVIDERS:
+        for provider in KEM_PROVIDERS:
             decapsulated = call(
                 root,
                 provider,
@@ -600,7 +627,7 @@ def run_ml_kem_exact(
 
             rejection: dict[str, str] = {}
 
-            for provider in ALL_PROVIDERS:
+            for provider in KEM_PROVIDERS:
                 output = call(
                     root,
                     provider,
@@ -645,7 +672,7 @@ def run_ml_kem_exact(
                 ),
                 parameter_set=ps,
                 ciphertext_offset=offset,
-                providers=ALL_PROVIDERS,
+                providers=KEM_PROVIDERS,
                 rejection_sha256=sha256_hex(
                     rust_rejection
                 ),
@@ -800,7 +827,7 @@ def run_ml_dsa_exact(
             ),
         )
 
-        for provider in ALL_PROVIDERS:
+        for provider in DSA_PROVIDERS:
             output = call(
                 root,
                 provider,
@@ -856,7 +883,7 @@ def run_ml_dsa_exact(
             ),
         )["signature"]
 
-        for provider in ALL_PROVIDERS:
+        for provider in DSA_PROVIDERS:
             output = call(
                 root,
                 provider,
@@ -975,7 +1002,7 @@ def run_ml_dsa_boundaries_and_negative(
             ),
         )["signature"]
 
-        for provider in ALL_PROVIDERS:
+        for provider in DSA_PROVIDERS:
             result = invoke(
                 root,
                 provider,
@@ -1069,7 +1096,7 @@ def run_ml_dsa_boundaries_and_negative(
         ]
 
         for name, inputs in negative_cases:
-            for provider in ALL_PROVIDERS:
+            for provider in DSA_PROVIDERS:
                 result = invoke(
                     root,
                     provider,
@@ -1130,7 +1157,7 @@ def run_ml_dsa_boundaries_and_negative(
                     modified.hex(),
             }
 
-            for provider in ALL_PROVIDERS:
+            for provider in DSA_PROVIDERS:
                 result = invoke(
                     root,
                     provider,
@@ -1185,7 +1212,7 @@ def run_ml_dsa_boundaries_and_negative(
                     signature,
             }
 
-            for provider in ALL_PROVIDERS:
+            for provider in DSA_PROVIDERS:
                 result = invoke(
                     root,
                     provider,
@@ -1228,7 +1255,7 @@ def run_ml_dsa_boundaries_and_negative(
                 baseline_sig,
         }
 
-        for provider in ALL_PROVIDERS:
+        for provider in DSA_PROVIDERS:
             result = invoke(
                 root,
                 provider,
@@ -1314,7 +1341,7 @@ def run_ml_dsa_cross_parameter(
             ),
         )["signature"]
 
-        for provider in ALL_PROVIDERS:
+        for provider in DSA_PROVIDERS:
 
             result = invoke(
                 root,
@@ -1381,17 +1408,24 @@ def run_slh_interop(
         return hashlib.shake_256(tag.encode()).hexdigest(3 * n)
 
     for parameter_set in PARAMS_SLH:
-        cases = (
-            ("rust", "liboqs"),
-            ("liboqs", "rust"),
+        pure_providers = (
+            "rust",
+            "liboqs",
+            "bouncycastle",
+        )
+        cases = tuple(
+            (producer, consumer)
+            for producer in pure_providers
+            for consumer in pure_providers
+            if producer != consumer
         )
         for producer, consumer in cases:
             case = f"{parameter_set}:{producer}->{consumer}"
             try:
-                if producer == "rust":
+                if producer in ("rust", "bouncycastle"):
                     keypair = call(
                         root,
-                        "rust",
+                        producer,
                         "slh-keygen",
                         parameter_set,
                         {"seed": slh_seed(parameter_set)},
@@ -1459,19 +1493,26 @@ def run_slh_interop(
                 )
 
     for parameter_set, prehash in HASH_SLH_CASES:
+        hash_providers = (
+            "rust",
+            "liboqs",
+            "bouncycastle",
+        )
         for producer, consumer in (
-            ("rust", "liboqs"),
-            ("liboqs", "rust"),
+            (producer, consumer)
+            for producer in hash_providers
+            for consumer in hash_providers
+            if producer != consumer
         ):
             case = (
                 f"{parameter_set}:{prehash}:"
                 f"{producer}->{consumer}"
             )
             try:
-                if producer == "rust":
+                if producer in ("rust", "bouncycastle"):
                     keypair = call(
                         root,
-                        "rust",
+                        producer,
                         "slh-keygen",
                         parameter_set,
                         {
@@ -1601,7 +1642,7 @@ def write_reports(
             "implicit rejection. ML-DSA exact seeded equivalence is limited to "
             "providers whose public APIs expose the required deterministic "
             "controls; broader semantic verification includes the supported "
-            "five-provider interfaces. SLH-DSA interoperability is separately "
+            "six-provider interfaces. SLH-DSA interoperability is separately "
             "scoped to PQC-rs and liboqs: Pure SLH-DSA is exercised "
             "bidirectionally for all twelve parameter sets, and HashSLH-DSA is "
             "exercised bidirectionally for twelve representative "
@@ -1675,7 +1716,7 @@ def write_reports(
                     provider
                 ][key]
                 for provider
-                in ALL_PROVIDERS
+                in REPORT_PROVIDERS
             )
             + " |"
         )
@@ -1831,7 +1872,7 @@ def main() -> int:
         )
 
         # SLH-DSA interoperability is currently scoped to PQC-rs <-> liboqs.
-        # Keep it additive to the broader five-provider ML-KEM/ML-DSA campaign.
+        # Keep it additive to the broader six-provider ML-KEM/ML-DSA campaign.
         run_slh_interop(
             root,
             results,

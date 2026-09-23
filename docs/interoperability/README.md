@@ -20,12 +20,16 @@ The current software-provider matrix contains:
 - wolfSSL / wolfCrypt;
 - OpenSSL 3.5 or later;
 - Open Quantum Safe liboqs;
-- AWS-LC.
+- AWS-LC;
+- Bouncy Castle Java.
 
-All providers expose the same primitive interoperability protocol for:
+All six providers expose the common primitive interoperability protocol for:
 
 - ML-KEM-512, ML-KEM-768, and ML-KEM-1024;
 - ML-DSA-44, ML-DSA-65, and ML-DSA-87.
+
+PQC-rs, liboqs, and Bouncy Castle additionally participate in SLH-DSA
+interoperability covering the Pure SLH-DSA and HashSLH-DSA interfaces.
 
 The framework distinguishes exact deterministic parity from semantic
 interoperability. A facility that is not exposed by a provider's tested public
@@ -34,19 +38,19 @@ an interoperability failure.
 
 ## Capability summary
 
-| Property | PQC-rs | wolfSSL | OpenSSL | liboqs | AWS-LC |
-| --- | --- | --- | --- | --- | --- |
-| ML-KEM 512/768/1024 | yes | yes | yes | yes | yes |
-| Seeded ML-KEM key generation | exact | exact | exact | exact | exact |
-| Deterministic ML-KEM encapsulation | exact | exact | exact | exact | exact |
-| Cross-decapsulation | yes | yes | yes | yes | yes |
-| Implicit rejection | exact | exact | exact | exact | exact |
-| ML-DSA 44/65/87 | yes | yes | yes | yes | yes |
-| Seeded ML-DSA key generation | exact | exact | exact | public API gap | exact |
-| Explicit ML-DSA signing randomness | yes | yes | yes | public API gap | public API gap |
-| Exact explicit-randomness signatures | exact | exact | exact | not tested | not tested |
-| Semantic signature interoperability | yes | yes | yes | yes | yes |
-| Context and negative semantics | yes | yes | yes | yes | yes |
+| Property | PQC-rs | wolfSSL | OpenSSL | liboqs | AWS-LC | Bouncy Castle |
+| --- | --- | --- | --- | --- | --- | --- |
+| ML-KEM 512/768/1024 | yes | yes | yes | yes | yes | yes |
+| Seeded ML-KEM key generation | exact | exact | exact | exact | exact | exact |
+| Deterministic ML-KEM encapsulation | exact | exact | exact | exact | exact | exact |
+| Cross-decapsulation | yes | yes | yes | yes | yes | yes |
+| Implicit rejection | exact | exact | exact | exact | exact | exact |
+| ML-DSA 44/65/87 | yes | yes | yes | yes | yes | yes |
+| Seeded ML-DSA key generation | exact | exact | exact | public API gap | exact | exact |
+| Explicit ML-DSA signing randomness | yes | yes | yes | public API gap | public API gap | yes |
+| Exact explicit-randomness signatures | exact | exact | exact | not tested | not tested | exact |
+| Semantic signature interoperability | yes | yes | yes | yes | yes | yes |
+| Context and negative semantics | yes | yes | yes | yes | yes | yes |
 
 Here, `public API gap` means `unsupported_by_public_api` for the tested provider
 interface. It does not imply that the underlying implementation lacks the
@@ -95,7 +99,7 @@ where they are not.
 
 ## ML-KEM coverage
 
-The canonical gate requires byte-for-byte agreement across all five software
+The canonical gate requires byte-for-byte agreement across all six software
 providers for all three ML-KEM parameter sets.
 
 Coverage includes:
@@ -109,14 +113,15 @@ Coverage includes:
 
 ## ML-DSA coverage
 
-PQC-rs, wolfSSL, OpenSSL, and AWS-LC expose deterministic ML-DSA key generation
-through the tested provider interface. The canonical gate therefore requires
-byte-for-byte agreement among those four providers for seeded public-key and
-expanded secret-key generation.
+PQC-rs, wolfSSL, OpenSSL, AWS-LC, and Bouncy Castle expose deterministic
+ML-DSA key generation through the tested provider interface. The canonical gate
+therefore requires byte-for-byte agreement among those five providers for
+seeded public-key and expanded secret-key generation.
 
-PQC-rs, wolfSSL, and OpenSSL additionally expose caller-controlled
-per-signature randomness through their tested public interfaces. Exact
-signature parity is therefore required among those three providers.
+PQC-rs, wolfSSL, OpenSSL, and Bouncy Castle additionally expose
+caller-controlled per-signature randomness through their tested public
+interfaces. Exact signature parity is therefore required among those four
+providers.
 
 liboqs does not expose deterministic ML-DSA key generation or caller-controlled
 per-signature randomness through its tested public API. AWS-LC exposes seeded
@@ -124,7 +129,7 @@ key generation but does not expose caller-controlled signing randomness through
 its tested public EVP/PQDSA interface. These capability boundaries are recorded
 as `unsupported_by_public_api`.
 
-All five providers participate in semantic interoperability tests covering:
+All six providers participate in semantic interoperability tests covering:
 
 - raw key interchange;
 - cross-provider signature verification;
@@ -158,7 +163,9 @@ Protocol version 1 supports:
 
 - capability discovery;
 - ML-KEM key generation, encapsulation, and decapsulation;
-- ML-DSA key generation, signing, and verification.
+- ML-DSA key generation, signing, and verification;
+- SLH-DSA key generation, Pure signing/verification, and external
+  HashSLH-DSA signing/verification for providers that expose those capabilities.
 
 Diagnostics belong on standard error.
 
@@ -266,13 +273,14 @@ gates, including:
 - provider-specific regression mechanisms;
 - HPKE interoperability.
 
-These focused gates complement the canonical five-provider parity gate.
+These focused gates complement the canonical six-provider primitive parity gate.
 
 ## Provider-specific documentation
 
 - [liboqs interoperability](liboqs.md)
 - [OpenSSL PQC interoperability](OPENSSL_ML_DSA.md)
 - [AWS-LC interoperability](aws-lc.md)
+- Bouncy Castle interoperability through the canonical provider framework
 
 ## Claim boundary
 

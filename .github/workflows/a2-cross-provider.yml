@@ -46,7 +46,8 @@ jobs:
             cmake \
             ninja-build \
             pkg-config \
-            libssl-dev
+            libssl-dev \
+            openjdk-21-jdk-headless
 
           openssl version -a
           dpkg --compare-versions \
@@ -110,13 +111,38 @@ jobs:
           make -j2
           make install
 
+      - name: Build Bouncy Castle Java
+        env:
+          BC_COMMIT: ab16374d37c7e18c4090eb8838ebbd72a92593f2
+        run: |
+          mkdir -p "$RUNNER_TEMP/bc-java"
+          git -C "$RUNNER_TEMP/bc-java" init
+          git -C "$RUNNER_TEMP/bc-java" remote add origin             https://github.com/bcgit/bc-java.git
+          git -C "$RUNNER_TEMP/bc-java" fetch             --depth 1             origin             "$BC_COMMIT"
+          git -C "$RUNNER_TEMP/bc-java" checkout             --detach             FETCH_HEAD
+
+          test "$(git -C "$RUNNER_TEMP/bc-java" rev-parse HEAD)" =             "$BC_COMMIT"
+
+          java -version
+          javac -version
+
+          cd "$RUNNER_TEMP/bc-java"
+
+          ./gradlew :prov:jar             -x :prov:compileJava25Java             -x :prov:processJava25Resources             -x :prov:java25Classes
+
+          BC_JAVA_JAR="$RUNNER_TEMP/bc-java/prov/build/libs/bcprov-jdk18on-1.87-SNAPSHOT.jar"
+
+          test -f "$BC_JAVA_JAR"
+
+          echo "BC_JAVA_JAR=$BC_JAVA_JAR" >> "$GITHUB_ENV"
+
       - name: Quality gates
         run: |
           cargo fmt --all -- --check
           cargo clippy --all-targets --all-features -- -D warnings
           cargo test --all-targets --all-features
 
-      - name: Five-provider parity
+      - name: Six-provider primitive parity
         env:
           OQS_PREFIX: ${{ runner.temp }}/oqs-install
           WOLFSSL_PREFIX: ${{ runner.temp }}/wolfssl-install
