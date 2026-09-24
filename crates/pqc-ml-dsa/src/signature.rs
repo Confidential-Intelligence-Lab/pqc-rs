@@ -198,6 +198,13 @@ fn sign_prepared(
     let matrix = expand_a(preparation.private_key().rho(), parameter_set)
         .map_err(|_| SignatureError::Arithmetic)?;
 
+    // These secret vectors are invariant across the rejection loop.
+    // Transform them once per signing invocation and reuse the NTT-domain
+    // representation for every challenge-product evaluation.
+    let s1_hat = ntt_vector(preparation.private_key().s1());
+    let s2_hat = ntt_vector(preparation.private_key().s2());
+    let t0_hat = ntt_vector(preparation.private_key().t0());
+
     let mut kappa = 0_u16;
 
     for _ in 0..MAX_SIGNING_ATTEMPTS {
@@ -219,8 +226,12 @@ fn sign_prepared(
         let (challenge_seed, challenge) =
             derive_challenge(parameter_set, preparation.mu(), &encoded_w1)?;
 
-        let challenge_s1 =
-            multiply_challenge_vector_centered(&challenge, preparation.private_key().s1());
+        // The same challenge is used against s1 and, for surviving
+        // attempts, s2 and t0. Transform it once for this attempt.
+        let mut challenge_hat = challenge.clone();
+        challenge_hat.ntt();
+
+        let challenge_s1 = multiply_challenge_vector_centered_ntt_from_hat(&challenge_hat, &s1_hat);
         let z = add_centered_vectors(&y, &challenge_s1)?;
 
         if !vector_infinity_norm_below(&z, parameters.gamma1 - beta) {
@@ -229,8 +240,7 @@ fn sign_prepared(
         }
 
         let w0 = low_bits_vector(&w, gamma2);
-        let challenge_s2 =
-            multiply_challenge_vector_centered(&challenge, preparation.private_key().s2());
+        let challenge_s2 = multiply_challenge_vector_centered_ntt_from_hat(&challenge_hat, &s2_hat);
         let r0 = subtract_centered_vectors(&w0, &challenge_s2)?;
 
         if !vector_infinity_norm_below(&r0, parameters.gamma2 - beta) {
@@ -238,8 +248,7 @@ fn sign_prepared(
             continue;
         }
 
-        let challenge_t0 =
-            multiply_challenge_vector_centered(&challenge, preparation.private_key().t0());
+        let challenge_t0 = multiply_challenge_vector_centered_ntt_from_hat(&challenge_hat, &t0_hat);
 
         if !vector_infinity_norm_below(&challenge_t0, parameters.gamma2) {
             trace_reject_ct0();
@@ -338,6 +347,7 @@ fn low_bits_vector(vector: &[Poly], gamma2: crate::rounding::Gamma2) -> Vec<Poly
         .collect()
 }
 
+#[cfg(test)]
 fn multiply_challenge_vector_centered(challenge: &Poly, vector: &[Poly]) -> Vec<Poly> {
     vector
         .iter()
@@ -345,6 +355,7 @@ fn multiply_challenge_vector_centered(challenge: &Poly, vector: &[Poly]) -> Vec<
         .collect()
 }
 
+#[cfg(test)]
 fn multiply_challenge_centered(challenge: &Poly, polynomial: &Poly) -> Poly {
     let mut output = [0_i64; N];
 
@@ -372,6 +383,43 @@ fn multiply_challenge_centered(challenge: &Poly, polynomial: &Poly) -> Poly {
     }
 
     Poly::from_coeffs(coefficients)
+}
+
+fn centered_from_ntt_product(challenge_hat: &Poly, polynomial_hat: &Poly) -> Poly {
+    let mut product = challenge_hat.pointwise_montgomery(polynomial_hat);
+
+    product.inv_ntt_to_mont();
+    product.reduce();
+    product.freeze();
+
+    let mut coefficients = [0_i32; N];
+
+    for (output, coefficient) in coefficients.iter_mut().zip(product.coeffs()) {
+        *output = centered(*coefficient);
+    }
+
+    Poly::from_coeffs(coefficients)
+}
+
+fn multiply_challenge_vector_centered_ntt_from_hat(
+    challenge_hat: &Poly,
+    vector_hat: &[Poly],
+) -> Vec<Poly> {
+    vector_hat
+        .iter()
+        .map(|polynomial_hat| centered_from_ntt_product(challenge_hat, polynomial_hat))
+        .collect()
+}
+
+fn ntt_vector(vector: &[Poly]) -> Vec<Poly> {
+    vector
+        .iter()
+        .map(|polynomial| {
+            let mut polynomial_hat = polynomial.clone();
+            polynomial_hat.ntt();
+            polynomial_hat
+        })
+        .collect()
 }
 
 fn add_centered_vectors(left: &[Poly], right: &[Poly]) -> Result<Vec<Poly>, SignatureError> {
@@ -478,5 +526,122 @@ fn centered(value: i32) -> i32 {
         canonical - Q
     } else {
         canonical
+    }
+}
+
+#[cfg(test)]
+mod production_ntt_challenge_equivalence {
+    use super::*;
+
+    use crate::keygen::keygen_internal;
+
+    #[test]
+    fn production_ntt_challenge_products_match_sparse_reference() {
+        let parameter_sets = [
+            (MlDsaParameterSet::MlDsa44, "ML-DSA-44"),
+            (MlDsaParameterSet::MlDsa65, "ML-DSA-65"),
+            (MlDsaParameterSet::MlDsa87, "ML-DSA-87"),
+        ];
+
+        for (parameter_index, (parameter_set, name)) in parameter_sets.into_iter().enumerate() {
+            let parameters = parameter_set.parameters();
+            let gamma2 = gamma2_for(parameter_set);
+
+            for case in 0_u8..4 {
+                let seed_byte = 0x31_u8
+                    .wrapping_add(parameter_index as u8 * 0x10)
+                    .wrapping_add(case);
+
+                let randomness_byte = 0x91_u8
+                    .wrapping_add(parameter_index as u8 * 0x10)
+                    .wrapping_add(case);
+
+                let xi = [seed_byte; 32];
+                let randomness = [randomness_byte; 32];
+
+                let message = format!("pqc-rs O3.5 equivalence {name} case {case}");
+
+                let key_pair = keygen_internal(parameter_set, &xi).expect("keygen");
+
+                let preparation = prepare_signing(
+                    parameter_set,
+                    key_pair.private_key(),
+                    message.as_bytes(),
+                    b"o35-equivalence",
+                    &randomness,
+                )
+                .expect("prepare signing");
+
+                let matrix =
+                    expand_a(preparation.private_key().rho(), parameter_set).expect("expand A");
+
+                let s1_hat = ntt_vector(preparation.private_key().s1());
+
+                let s2_hat = ntt_vector(preparation.private_key().s2());
+
+                let t0_hat = ntt_vector(preparation.private_key().t0());
+
+                let mut kappa = 0_u16;
+
+                // Exercise many valid challenges independently of whether
+                // a particular signing attempt would have been accepted.
+                for challenge_index in 0..16 {
+                    let y = sample_mask_vector(
+                        preparation.rho_double_prime(),
+                        kappa,
+                        parameters.l,
+                        parameters.gamma1,
+                    )
+                    .expect("sample y");
+
+                    kappa = kappa
+                        .checked_add(parameters.l as u16)
+                        .expect("kappa overflow");
+
+                    let w = matrix_vector_product(&matrix, &y).expect("A*y");
+
+                    let w1 = high_bits_vector(&w, gamma2);
+
+                    let encoded_w1 = encode_w1_vector(&w1, gamma2).expect("encode w1");
+
+                    let (_, challenge) =
+                        derive_challenge(parameter_set, preparation.mu(), &encoded_w1)
+                            .expect("derive challenge");
+
+                    let mut challenge_hat = challenge.clone();
+                    challenge_hat.ntt();
+
+                    for (class, vector, vector_hat) in [
+                        ("s1", preparation.private_key().s1(), s1_hat.as_slice()),
+                        ("s2", preparation.private_key().s2(), s2_hat.as_slice()),
+                        ("t0", preparation.private_key().t0(), t0_hat.as_slice()),
+                    ] {
+                        let reference = multiply_challenge_vector_centered(&challenge, vector);
+
+                        let optimized = multiply_challenge_vector_centered_ntt_from_hat(
+                            &challenge_hat,
+                            vector_hat,
+                        );
+
+                        assert_eq!(
+                            reference.len(),
+                            optimized.len(),
+                            "{name} case={case} challenge={challenge_index} \
+                             class={class} length"
+                        );
+
+                        for index in 0..reference.len() {
+                            assert_eq!(
+                                reference[index].coeffs(),
+                                optimized[index].coeffs(),
+                                "{name} case={case} \
+                                 challenge={challenge_index} \
+                                 class={class} polynomial={index}"
+                            );
+                        }
+                    }
+                }
+            }
+        }
     }
 }
