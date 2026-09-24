@@ -80,6 +80,21 @@ impl Poly {
         Self::from_coeffs(output)
     }
 
+    /// Accumulate a pointwise Montgomery product into this polynomial.
+    ///
+    /// Equivalent to computing `left.pointwise_montgomery(right)` followed
+    /// by `self.add_assign(&product)`, without materializing the temporary
+    /// product polynomial.
+    pub fn pointwise_montgomery_accumulate(&mut self, left: &Self, right: &Self) {
+        for ((accumulator, left_coefficient), right_coefficient) in
+            self.coeffs.iter_mut().zip(left.coeffs).zip(right.coeffs)
+        {
+            let product =
+                montgomery_reduce(i64::from(left_coefficient) * i64::from(right_coefficient));
+            *accumulator = accumulator.wrapping_add(product);
+        }
+    }
+
     /// Return true when every coefficient is canonical.
     pub fn is_canonical(&self) -> bool {
         self.coeffs.iter().all(|value| (0..Q).contains(value))

@@ -6,9 +6,12 @@ use sha3::{
 };
 
 use crate::encoding::{
-    decode_eta, decode_t0, decode_z, EncodingError, POLY_ETA2_BYTES, POLY_ETA4_BYTES,
-    POLY_T0_BYTES, POLY_Z_17_BYTES, POLY_Z_19_BYTES,
+    decode_eta, decode_t0, EncodingError, POLY_ETA2_BYTES, POLY_ETA4_BYTES, POLY_T0_BYTES,
+    POLY_Z_17_BYTES, POLY_Z_19_BYTES,
 };
+
+#[cfg(test)]
+use crate::encoding::decode_z;
 use crate::params::MlDsaParameterSet;
 use crate::poly::Poly;
 use crate::xof::{ExpandMaskReader, RHO_DOUBLE_PRIME_BYTES};
@@ -252,6 +255,77 @@ pub fn sample_mask_poly(
     nonce: u16,
     gamma1: i32,
 ) -> Result<Poly, SigningError> {
+    let mut reader = ExpandMaskReader::new(rho_double_prime, nonce);
+    let mut coefficients = [0_i32; 256];
+
+    match gamma1 {
+        value if value == 1 << 17 => {
+            let mut encoded = [0_u8; POLY_Z_17_BYTES];
+            reader.read(&mut encoded);
+
+            for (group, chunk) in encoded.chunks_exact(9).enumerate() {
+                let b0 = u32::from(chunk[0]);
+                let b1 = u32::from(chunk[1]);
+                let b2 = u32::from(chunk[2]);
+                let b3 = u32::from(chunk[3]);
+                let b4 = u32::from(chunk[4]);
+                let b5 = u32::from(chunk[5]);
+                let b6 = u32::from(chunk[6]);
+                let b7 = u32::from(chunk[7]);
+                let b8 = u32::from(chunk[8]);
+
+                let values = [
+                    b0 | (b1 << 8) | ((b2 & 0x03) << 16),
+                    (b2 >> 2) | (b3 << 6) | ((b4 & 0x0f) << 14),
+                    (b4 >> 4) | (b5 << 4) | ((b6 & 0x3f) << 12),
+                    (b6 >> 6) | (b7 << 2) | (b8 << 10),
+                ];
+
+                let base = group * 4;
+
+                for (offset, packed) in values.into_iter().enumerate() {
+                    coefficients[base + offset] = gamma1 - packed as i32;
+                }
+            }
+        }
+
+        value if value == 1 << 19 => {
+            let mut encoded = [0_u8; POLY_Z_19_BYTES];
+            reader.read(&mut encoded);
+
+            for (group, chunk) in encoded.chunks_exact(5).enumerate() {
+                let b0 = u32::from(chunk[0]);
+                let b1 = u32::from(chunk[1]);
+                let b2 = u32::from(chunk[2]);
+                let b3 = u32::from(chunk[3]);
+                let b4 = u32::from(chunk[4]);
+
+                let v0 = b0 | (b1 << 8) | ((b2 & 0x0f) << 16);
+
+                let v1 = (b2 >> 4) | (b3 << 4) | (b4 << 12);
+
+                let base = group * 2;
+
+                coefficients[base] = gamma1 - v0 as i32;
+
+                coefficients[base + 1] = gamma1 - v1 as i32;
+            }
+        }
+
+        _ => {
+            return Err(SigningError::InvalidPrivateKeyEncoding);
+        }
+    }
+
+    Ok(Poly::from_coeffs(coefficients))
+}
+
+#[cfg(test)]
+fn sample_mask_poly_reference(
+    rho_double_prime: &[u8; RHO_DOUBLE_PRIME_BYTES],
+    nonce: u16,
+    gamma1: i32,
+) -> Result<Poly, SigningError> {
     let byte_length = match gamma1 {
         value if value == 1 << 17 => POLY_Z_17_BYTES,
         value if value == 1 << 19 => POLY_Z_19_BYTES,
@@ -283,7 +357,6 @@ pub fn sample_mask_vector(
 
     Ok(output)
 }
-
 fn take_array<const LENGTH: usize>(
     input: &[u8],
     offset: &mut usize,
@@ -325,4 +398,57 @@ where
     }
 
     Ok(output)
+}
+
+#[cfg(test)]
+mod expand_mask_specialized_equivalence {
+    use super::*;
+
+    #[test]
+    fn specialized_expand_mask_matches_generic_decoder() {
+        let parameter_sets = [
+            (MlDsaParameterSet::MlDsa44, "ML-DSA-44"),
+            (MlDsaParameterSet::MlDsa65, "ML-DSA-65"),
+            (MlDsaParameterSet::MlDsa87, "ML-DSA-87"),
+        ];
+
+        let kappas = [0_u16, 1, 7, 31, 255, 1024, 4096];
+
+        for (parameter_index, (parameter_set, name)) in parameter_sets.into_iter().enumerate() {
+            let parameters = parameter_set.parameters();
+
+            for seed_case in 0_u8..8 {
+                let seed_byte = 0x21_u8
+                    .wrapping_add(parameter_index as u8 * 0x20)
+                    .wrapping_add(seed_case);
+
+                let rho_double_prime = [seed_byte; RHO_DOUBLE_PRIME_BYTES];
+
+                for &kappa in &kappas {
+                    for index in 0..parameters.l {
+                        let index = u16::try_from(index).expect("vector index");
+
+                        let nonce = kappa.checked_add(index).expect("nonce");
+
+                        let reference =
+                            sample_mask_poly_reference(&rho_double_prime, nonce, parameters.gamma1)
+                                .expect("reference mask");
+
+                        let specialized =
+                            sample_mask_poly(&rho_double_prime, nonce, parameters.gamma1)
+                                .expect("specialized mask");
+
+                        assert!(
+                            reference == specialized,
+                            "ExpandMask mismatch: \
+                             parameter_set={name} \
+                             seed_case={seed_case} \
+                             kappa={kappa} \
+                             polynomial={index}"
+                        );
+                    }
+                }
+            }
+        }
+    }
 }
