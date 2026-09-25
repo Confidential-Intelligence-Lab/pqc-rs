@@ -92,12 +92,20 @@ fn trace_reject_hint() {
 use crate::constants::{N, Q};
 use crate::encoding::{encode_z, EncodingError};
 use crate::expand_a::expand_a;
+
+#[cfg(feature = "internal-api")]
+use crate::expand_a::PolyMatrix;
 use crate::params::MlDsaParameterSet;
 use crate::poly::Poly;
 use crate::rounding::low_bits;
 use crate::signing::{
     prepare_internal_signing, prepare_signing, prepare_signing_from_mu, sample_mask_vector,
     SigningError, SigningPreparation, SIGNING_RANDOMNESS_BYTES,
+};
+
+#[cfg(feature = "internal-api")]
+use crate::signing::{
+    compute_message_representative, decode_private_key, derive_rho_double_prime, DecodedPrivateKey,
 };
 use crate::signing_core::{
     derive_challenge, encode_w1_vector, gamma2_for, high_bits_vector, matrix_vector_product,
@@ -187,51 +195,126 @@ pub fn sign_internal_mu(
     sign_prepared(parameter_set, preparation)
 }
 
+/// Key-dependent ML-DSA state prepared for repeated signing.
+///
+/// This is exposed only through the repository `internal-api` feature for
+/// performance evaluation. It is not part of the stable public API.
+///
+/// This type intentionally does not implement `Clone` or `Debug`.
+#[cfg(feature = "internal-api")]
+pub struct PreparedSigningState {
+    parameter_set: MlDsaParameterSet,
+    private_key: DecodedPrivateKey,
+    matrix: PolyMatrix,
+    s1_hat: Vec<Poly>,
+    s2_hat: Vec<Poly>,
+    t0_hat: Vec<Poly>,
+}
+
+/// Decode and precompute the key-dependent state used by repeated signing.
+#[cfg(feature = "internal-api")]
+pub fn prepare_signing_state(
+    parameter_set: MlDsaParameterSet,
+    encoded_private_key: &[u8],
+) -> Result<PreparedSigningState, SignatureError> {
+    let private_key = decode_private_key(parameter_set, encoded_private_key)?;
+
+    let matrix =
+        expand_a(private_key.rho(), parameter_set).map_err(|_| SignatureError::Arithmetic)?;
+
+    let s1_hat = ntt_vector(private_key.s1());
+    let s2_hat = ntt_vector(private_key.s2());
+    let t0_hat = ntt_vector(private_key.t0());
+
+    Ok(PreparedSigningState {
+        parameter_set,
+        private_key,
+        matrix,
+        s1_hat,
+        s2_hat,
+        t0_hat,
+    })
+}
+
+/// Sign using previously prepared key-dependent state.
+#[cfg(feature = "internal-api")]
+pub fn sign_internal_with_prepared_state(
+    state: &PreparedSigningState,
+    message: &[u8],
+    context: &[u8],
+    randomness: &[u8; SIGNING_RANDOMNESS_BYTES],
+) -> Result<Vec<u8>, SignatureError> {
+    let mu = compute_message_representative(state.private_key.tr(), context, message)?;
+
+    let rho_double_prime = derive_rho_double_prime(state.private_key.key(), randomness, &mu);
+
+    sign_precomputed(
+        state.parameter_set,
+        &mu,
+        &rho_double_prime,
+        &state.matrix,
+        &state.s1_hat,
+        &state.s2_hat,
+        &state.t0_hat,
+    )
+}
+
 fn sign_prepared(
     parameter_set: MlDsaParameterSet,
     preparation: SigningPreparation,
+) -> Result<Vec<u8>, SignatureError> {
+    let matrix = expand_a(preparation.private_key().rho(), parameter_set)
+        .map_err(|_| SignatureError::Arithmetic)?;
+
+    let s1_hat = ntt_vector(preparation.private_key().s1());
+    let s2_hat = ntt_vector(preparation.private_key().s2());
+    let t0_hat = ntt_vector(preparation.private_key().t0());
+
+    sign_precomputed(
+        parameter_set,
+        preparation.mu(),
+        preparation.rho_double_prime(),
+        &matrix,
+        &s1_hat,
+        &s2_hat,
+        &t0_hat,
+    )
+}
+
+fn sign_precomputed(
+    parameter_set: MlDsaParameterSet,
+    mu: &[u8; crate::signing::MU_BYTES],
+    rho_double_prime: &[u8; crate::xof::RHO_DOUBLE_PRIME_BYTES],
+    matrix: &crate::expand_a::PolyMatrix,
+    s1_hat: &[Poly],
+    s2_hat: &[Poly],
+    t0_hat: &[Poly],
 ) -> Result<Vec<u8>, SignatureError> {
     let parameters = parameter_set.parameters();
     let beta = parameters.tau as i32 * parameters.eta;
     let gamma2 = gamma2_for(parameter_set);
 
-    let matrix = expand_a(preparation.private_key().rho(), parameter_set)
-        .map_err(|_| SignatureError::Arithmetic)?;
-
-    // These secret vectors are invariant across the rejection loop.
-    // Transform them once per signing invocation and reuse the NTT-domain
-    // representation for every challenge-product evaluation.
-    let s1_hat = ntt_vector(preparation.private_key().s1());
-    let s2_hat = ntt_vector(preparation.private_key().s2());
-    let t0_hat = ntt_vector(preparation.private_key().t0());
-
     let mut kappa = 0_u16;
 
     for _ in 0..MAX_SIGNING_ATTEMPTS {
         trace_attempt();
-        let y = sample_mask_vector(
-            preparation.rho_double_prime(),
-            kappa,
-            parameters.l,
-            parameters.gamma1,
-        )?;
+        let y = sample_mask_vector(rho_double_prime, kappa, parameters.l, parameters.gamma1)?;
 
         kappa = kappa
             .checked_add(u16::try_from(parameters.l).map_err(|_| SignatureError::NonceOverflow)?)
             .ok_or(SignatureError::NonceOverflow)?;
 
-        let w = matrix_vector_product(&matrix, &y)?;
+        let w = matrix_vector_product(matrix, &y)?;
         let w1 = high_bits_vector(&w, gamma2);
         let encoded_w1 = encode_w1_vector(&w1, gamma2)?;
-        let (challenge_seed, challenge) =
-            derive_challenge(parameter_set, preparation.mu(), &encoded_w1)?;
+        let (challenge_seed, challenge) = derive_challenge(parameter_set, mu, &encoded_w1)?;
 
         // The same challenge is used against s1 and, for surviving
         // attempts, s2 and t0. Transform it once for this attempt.
         let mut challenge_hat = challenge.clone();
         challenge_hat.ntt();
 
-        let challenge_s1 = multiply_challenge_vector_centered_ntt_from_hat(&challenge_hat, &s1_hat);
+        let challenge_s1 = multiply_challenge_vector_centered_ntt_from_hat(&challenge_hat, s1_hat);
         let z = add_centered_vectors(&y, &challenge_s1)?;
 
         if !vector_infinity_norm_below(&z, parameters.gamma1 - beta) {
@@ -240,7 +323,7 @@ fn sign_prepared(
         }
 
         let w0 = low_bits_vector(&w, gamma2);
-        let challenge_s2 = multiply_challenge_vector_centered_ntt_from_hat(&challenge_hat, &s2_hat);
+        let challenge_s2 = multiply_challenge_vector_centered_ntt_from_hat(&challenge_hat, s2_hat);
         let r0 = subtract_centered_vectors(&w0, &challenge_s2)?;
 
         if !vector_infinity_norm_below(&r0, parameters.gamma2 - beta) {
@@ -248,7 +331,7 @@ fn sign_prepared(
             continue;
         }
 
-        let challenge_t0 = multiply_challenge_vector_centered_ntt_from_hat(&challenge_hat, &t0_hat);
+        let challenge_t0 = multiply_challenge_vector_centered_ntt_from_hat(&challenge_hat, t0_hat);
 
         if !vector_infinity_norm_below(&challenge_t0, parameters.gamma2) {
             trace_reject_ct0();

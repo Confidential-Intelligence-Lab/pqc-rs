@@ -69,7 +69,7 @@ impl DecodedPrivateKey {
     pub fn t0(&self) -> &[Poly] {
         &self.t0
     }
-    fn key(&self) -> &[u8; 32] {
+    pub(crate) fn key(&self) -> &[u8; 32] {
         &self.key
     }
 }
