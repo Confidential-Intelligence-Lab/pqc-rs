@@ -1,13 +1,17 @@
 //! Matrix expansion and rejection sampling helpers for ML-KEM.
 //!
-//! Stage 5A provides deterministic matrix expansion structure for K-PKE. It is
-//! suitable for API and harness validation, but Stage 5B should verify it against
-//! official FIPS 203 KATs.
+//! Public-matrix entries follow FIPS 203 SampleNTT semantics: SHAKE128 output
+//! is consumed incrementally until exactly 256 coefficients in `[0, q)` have
+//! been accepted by rejection sampling.
 
-use crate::arithmetic::{reduce, N, Q};
+use crate::arithmetic::{N, Q};
 use crate::poly::Poly;
 use crate::polyvec::MAX_K;
-use crate::symmetric;
+
+use sha3::{
+    digest::{ExtendableOutput, Update, XofReader},
+    Shake128,
+};
 
 /// Matrix of polynomials with rank at most 4.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -46,7 +50,13 @@ impl PolyMatrix {
     }
 }
 
+const SHAKE128_RATE_BYTES: usize = 168;
+
 /// Expand the public matrix from `rho`.
+///
+/// Each matrix entry is generated with FIPS 203 SampleNTT semantics:
+/// SHAKE128 output is consumed incrementally until exactly `N` coefficients
+/// in `[0, Q)` have been accepted.
 pub fn expand_matrix(rank: usize, rho: &[u8; 32], transposed: bool) -> PolyMatrix {
     let mut matrix = PolyMatrix::zero(rank);
 
@@ -57,9 +67,7 @@ pub fn expand_matrix(rank: usize, rho: &[u8; 32], transposed: bool) -> PolyMatri
             let x = if transposed { row as u8 } else { col as u8 };
             let y = if transposed { col as u8 } else { row as u8 };
 
-            let mut stream = [0u8; 672];
-            symmetric::xof(rho, x, y, &mut stream);
-            let poly = sample_uniform_from_xof(&stream);
+            let poly = sample_uniform(rho, x, y);
 
             matrix.set(row, col, poly);
             col += 1;
@@ -70,15 +78,39 @@ pub fn expand_matrix(rank: usize, rho: &[u8; 32], transposed: bool) -> PolyMatri
     matrix
 }
 
-/// Rejection sample a polynomial with coefficients in `[0, Q)`.
-pub fn sample_uniform_from_xof(input: &[u8]) -> Poly {
+/// Generate one SampleNTT polynomial from `rho || x || y`.
+fn sample_uniform(rho: &[u8; 32], x: u8, y: u8) -> Poly {
+    let mut hasher = Shake128::default();
+    hasher.update(rho);
+    hasher.update(&[x, y]);
+
+    let mut reader = hasher.finalize_xof();
+
     let mut coeffs = [0i16; N];
     let mut coeff_index = 0usize;
+
+    while coeff_index < N {
+        let mut block = [0u8; SHAKE128_RATE_BYTES];
+        reader.read(&mut block);
+
+        coeff_index = rejection_sample_into(&block, &mut coeffs, coeff_index);
+    }
+
+    Poly::from_coefficients(coeffs)
+}
+
+/// Rejection-sample candidates from `input` into `coeffs`.
+///
+/// Returns the next output coefficient index. Input is interpreted as pairs
+/// of 12-bit little-endian candidates from each three-byte group.
+fn rejection_sample_into(input: &[u8], coeffs: &mut [i16; N], mut coeff_index: usize) -> usize {
     let mut pos = 0usize;
 
     while coeff_index < N && pos + 3 <= input.len() {
         let d1 = u16::from(input[pos]) | ((u16::from(input[pos + 1]) & 0x0f) << 8);
+
         let d2 = (u16::from(input[pos + 1]) >> 4) | (u16::from(input[pos + 2]) << 4);
+
         pos += 3;
 
         if d1 < Q as u16 {
@@ -92,13 +124,23 @@ pub fn sample_uniform_from_xof(input: &[u8]) -> Poly {
         }
     }
 
-    // Stage 5A fallback: in practice the XOF stream length is chosen to make this
-    // overwhelmingly unlikely. The fallback keeps the API total and deterministic
-    // for scaffolding tests. Stage 5B should stream until full.
-    while coeff_index < N {
-        coeffs[coeff_index] = reduce(coeff_index as i32);
-        coeff_index += 1;
-    }
+    coeff_index
+}
+
+/// Rejection sample a polynomial from a finite XOF byte slice.
+///
+/// This helper remains available for tests and callers that already provide
+/// XOF output bytes. The input must contain enough accepted candidates to fill
+/// the polynomial.
+pub fn sample_uniform_from_xof(input: &[u8]) -> Poly {
+    let mut coeffs = [0i16; N];
+
+    let coeff_index = rejection_sample_into(input, &mut coeffs, 0);
+
+    assert_eq!(
+        coeff_index, N,
+        "insufficient XOF input for ML-KEM SampleNTT"
+    );
 
     Poly::from_coefficients(coeffs)
 }
