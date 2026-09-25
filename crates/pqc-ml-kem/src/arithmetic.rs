@@ -110,6 +110,100 @@ pub fn decompress_coefficient(y: u16, d: u32) -> i16 {
     (((y * q) + (scale / 2)) / scale) as i16
 }
 
+/// Add two canonical ML-KEM coefficients using bounded reduction.
+///
+/// Both inputs must be canonical coefficients in `[0, Q)`.
+#[inline(always)]
+pub fn add_bounded(a: i16, b: i16) -> i16 {
+    debug_assert!((0..Q).contains(&a));
+    debug_assert!((0..Q).contains(&b));
+
+    let x = i32::from(a) + i32::from(b);
+    let reduced = x - i32::from(Q);
+    let mask = reduced >> 31;
+
+    ((reduced & !mask) | (x & mask)) as i16
+}
+
+/// Subtract two canonical ML-KEM coefficients using bounded reduction.
+///
+/// Both inputs must be canonical coefficients in `[0, Q)`.
+#[inline(always)]
+pub fn sub_bounded(a: i16, b: i16) -> i16 {
+    debug_assert!((0..Q).contains(&a));
+    debug_assert!((0..Q).contains(&b));
+
+    let x = i32::from(a) - i32::from(b);
+    let mask = x >> 31;
+
+    (x + (i32::from(Q) & mask)) as i16
+}
+
+/// Montgomery-reduce a nonnegative product of two canonical ML-KEM
+/// coefficients using a single bounded final correction.
+///
+/// The input must satisfy `0 <= a <= (Q - 1)^2`.
+#[inline(always)]
+pub fn montgomery_reduce_bounded(a: i32) -> i16 {
+    debug_assert!(a >= 0);
+
+    let max_product = i32::from(Q - 1) * i32::from(Q - 1);
+
+    debug_assert!(a <= max_product);
+
+    let u = (i64::from(a) * i64::from(MONTGOMERY_QINV)) & 0xffff;
+
+    let t = ((i64::from(a) + u * i64::from(Q)) >> 16) as i32;
+
+    // For canonical ML-KEM coefficient products:
+    // 0 <= t < 2Q, so one conditional subtraction
+    // produces the canonical representative.
+    let reduced = t - i32::from(Q);
+    let mask = reduced >> 31;
+
+    ((reduced & !mask) | (t & mask)) as i16
+}
+
+/// Multiply two canonical ML-KEM coefficients in the Montgomery domain
+/// using bounded final reduction.
+///
+/// This diagnostic candidate assumes both operands are in `[0, Q)`.
+#[inline(always)]
+pub fn montgomery_mul_bounded(a: i16, b: i16) -> i16 {
+    debug_assert!((0..Q).contains(&a));
+    debug_assert!((0..Q).contains(&b));
+
+    montgomery_reduce_bounded(i32::from(a) * i32::from(b))
+}
+
+/// Convert a centered ML-KEM coefficient into its canonical representative.
+///
+/// The input is assumed to lie in `[-Q/2, Q/2]`.
+#[inline(always)]
+pub fn canonicalize_centered_bounded(x: i16) -> i16 {
+    debug_assert!((-(Q / 2)..=Q / 2).contains(&x));
+
+    let x32 = i32::from(x);
+    let mask = x32 >> 31;
+
+    (x32 + (i32::from(Q) & mask)) as i16
+}
+
+/// Multiply a centered Montgomery-domain coefficient by a canonical
+/// Montgomery-domain coefficient using bounded reduction.
+///
+/// The first operand is assumed to lie in `[-Q/2, Q/2]`; the second
+/// operand is assumed to lie in `[0, Q)`.
+#[inline(always)]
+pub fn montgomery_mul_centered_bounded(centered: i16, canonical: i16) -> i16 {
+    debug_assert!((-(Q / 2)..=Q / 2).contains(&centered));
+    debug_assert!((0..Q).contains(&canonical));
+
+    let centered = canonicalize_centered_bounded(centered);
+
+    montgomery_mul_bounded(centered, canonical)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -95,8 +95,8 @@ pub fn matrix_vector_product(
             let matrix_entry = matrix
                 .get(row, column)
                 .ok_or(SigningCoreError::InvalidDimensions)?;
-            let product = matrix_entry.pointwise_montgomery(polynomial_hat);
-            accumulator.add_assign(&product);
+
+            accumulator.pointwise_montgomery_accumulate(matrix_entry, polynomial_hat);
         }
 
         accumulator.reduce();

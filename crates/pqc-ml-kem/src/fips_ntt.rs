@@ -5,7 +5,13 @@
 //! standard order while multiplying by the Montgomery factor. The convenience
 //! `intt` function removes that factor to provide an ordinary round trip.
 
-use crate::arithmetic::{add, from_montgomery, montgomery_mul, reduce, sub, N};
+#[cfg(feature = "std")]
+use crate::arithmetic::montgomery_mul;
+use crate::arithmetic::{
+    add_bounded, from_montgomery, montgomery_mul_bounded, montgomery_mul_centered_bounded, reduce,
+    sub_bounded, N,
+};
+
 use crate::poly::Poly;
 use crate::zetas::ZETAS;
 
@@ -50,9 +56,9 @@ pub fn ntt(poly: &Poly) -> FipsNttPoly {
 
             let mut j = start;
             while j < start + len {
-                let t = montgomery_mul(zeta, r[j + len]);
-                r[j + len] = sub(r[j], t);
-                r[j] = add(r[j], t);
+                let t = montgomery_mul_centered_bounded(zeta, r[j + len]);
+                r[j + len] = sub_bounded(r[j], t);
+                r[j] = add_bounded(r[j], t);
                 j += 1;
             }
 
@@ -65,24 +71,183 @@ pub fn ntt(poly: &Poly) -> FipsNttPoly {
     FipsNttPoly::from_coefficients(r)
 }
 
+/// Diagnostic forward NTT using bounded canonical addition and subtraction.
+///
+/// This preserves the same canonical coefficient representation as `ntt`;
+/// only the reduction method for butterfly addition and subtraction differs.
+#[cfg(feature = "std")]
+pub fn ntt_bounded(poly: &Poly) -> FipsNttPoly {
+    let mut r = *poly.coefficients();
+    let mut k = 1usize;
+    let mut len = 128usize;
+
+    while len >= 2 {
+        let mut start = 0usize;
+
+        while start < N {
+            let zeta = ZETAS[k];
+            k += 1;
+
+            let mut j = start;
+
+            while j < start + len {
+                let t = montgomery_mul(zeta, r[j + len]);
+
+                r[j + len] = sub_bounded(r[j], t);
+
+                r[j] = add_bounded(r[j], t);
+
+                j += 1;
+            }
+
+            start += 2 * len;
+        }
+
+        len >>= 1;
+    }
+
+    FipsNttPoly::from_coefficients(r)
+}
+
+#[inline(always)]
+fn invntt_butterfly(r: &mut [i16; N], j: usize, len: usize, zeta: i16) {
+    let t = r[j];
+
+    r[j] = add_bounded(t, r[j + len]);
+    r[j + len] = sub_bounded(r[j + len], t);
+    r[j + len] = montgomery_mul_centered_bounded(zeta, r[j + len]);
+}
+
+#[inline(always)]
+fn invntt_stage_len2(r: &mut [i16; N], k: &mut usize) {
+    let mut start = 0usize;
+
+    while start < N {
+        let zeta = ZETAS[*k];
+        *k -= 1;
+
+        invntt_butterfly(r, start, 2, zeta);
+        invntt_butterfly(r, start + 1, 2, zeta);
+
+        start += 4;
+    }
+}
+
+#[inline(always)]
+fn invntt_stage_len4(r: &mut [i16; N], k: &mut usize) {
+    let mut start = 0usize;
+
+    while start < N {
+        let zeta = ZETAS[*k];
+        *k -= 1;
+
+        invntt_butterfly(r, start, 4, zeta);
+        invntt_butterfly(r, start + 1, 4, zeta);
+        invntt_butterfly(r, start + 2, 4, zeta);
+        invntt_butterfly(r, start + 3, 4, zeta);
+
+        start += 8;
+    }
+}
+
+#[inline(always)]
+fn invntt_stage_len8(r: &mut [i16; N], k: &mut usize) {
+    let mut start = 0usize;
+
+    while start < N {
+        let zeta = ZETAS[*k];
+        *k -= 1;
+
+        invntt_butterfly(r, start, 8, zeta);
+        invntt_butterfly(r, start + 1, 8, zeta);
+        invntt_butterfly(r, start + 2, 8, zeta);
+        invntt_butterfly(r, start + 3, 8, zeta);
+        invntt_butterfly(r, start + 4, 8, zeta);
+        invntt_butterfly(r, start + 5, 8, zeta);
+        invntt_butterfly(r, start + 6, 8, zeta);
+        invntt_butterfly(r, start + 7, 8, zeta);
+
+        start += 16;
+    }
+}
+
+#[inline(always)]
+fn invntt_stage_generic(r: &mut [i16; N], len: usize, k: &mut usize) {
+    let mut start = 0usize;
+
+    while start < N {
+        let zeta = ZETAS[*k];
+        *k -= 1;
+
+        let mut j = start;
+
+        while j < start + len {
+            invntt_butterfly(r, j, len, zeta);
+            j += 1;
+        }
+
+        start += 2 * len;
+    }
+}
+
 /// Compute the reference-compatible inverse NTT and multiply by `R`.
 pub fn invntt_tomont(poly: &FipsNttPoly) -> Poly {
+    let mut r = *poly.coefficients();
+    let mut k = 127usize;
+
+    // The first three stages have very small inner-loop trip counts.
+    // Specializing them removes loop/control overhead while preserving
+    // exactly the same butterfly and zeta ordering.
+    invntt_stage_len2(&mut r, &mut k);
+    invntt_stage_len4(&mut r, &mut k);
+    invntt_stage_len8(&mut r, &mut k);
+
+    let mut len = 16usize;
+
+    while len <= 128 {
+        invntt_stage_generic(&mut r, len, &mut k);
+        len <<= 1;
+    }
+
+    let mut i = 0usize;
+
+    while i < N {
+        r[i] = montgomery_mul_bounded(r[i], INTT_SCALE);
+        i += 1;
+    }
+
+    Poly::from_coefficients(r)
+}
+
+/// Diagnostic inverse NTT using bounded canonical addition and subtraction.
+///
+/// This preserves the same canonical coefficient representation as
+/// `invntt_tomont`; only the reduction method for butterfly addition and
+/// subtraction differs.
+#[cfg(feature = "std")]
+pub fn invntt_tomont_bounded(poly: &FipsNttPoly) -> Poly {
     let mut r = *poly.coefficients();
     let mut k = 127usize;
     let mut len = 2usize;
 
     while len <= 128 {
         let mut start = 0usize;
+
         while start < N {
             let zeta = ZETAS[k];
             k -= 1;
 
             let mut j = start;
+
             while j < start + len {
                 let t = r[j];
-                r[j] = add(t, r[j + len]);
-                r[j + len] = sub(r[j + len], t);
+
+                r[j] = add_bounded(t, r[j + len]);
+
+                r[j + len] = sub_bounded(r[j + len], t);
+
                 r[j + len] = montgomery_mul(zeta, r[j + len]);
+
                 j += 1;
             }
 
@@ -93,12 +258,146 @@ pub fn invntt_tomont(poly: &FipsNttPoly) -> Poly {
     }
 
     let mut i = 0;
+
     while i < N {
         r[i] = montgomery_mul(r[i], INTT_SCALE);
         i += 1;
     }
 
     Poly::from_coefficients(r)
+}
+
+/// Diagnostic forward NTT using bounded addition/subtraction and bounded
+/// Montgomery multiplication for centered twiddle factors.
+pub fn ntt_bounded_montgomery(poly: &Poly) -> FipsNttPoly {
+    let mut r = *poly.coefficients();
+    let mut k = 1usize;
+    let mut len = 128usize;
+
+    while len >= 2 {
+        let mut start = 0usize;
+
+        while start < N {
+            let zeta = ZETAS[k];
+            k += 1;
+
+            let mut j = start;
+
+            while j < start + len {
+                let t = montgomery_mul_centered_bounded(zeta, r[j + len]);
+
+                r[j + len] = sub_bounded(r[j], t);
+
+                r[j] = add_bounded(r[j], t);
+
+                j += 1;
+            }
+
+            start += 2 * len;
+        }
+
+        len >>= 1;
+    }
+
+    FipsNttPoly::from_coefficients(r)
+}
+
+/// Diagnostic inverse NTT using bounded addition/subtraction and bounded
+/// Montgomery multiplication.
+pub fn invntt_tomont_bounded_montgomery(poly: &FipsNttPoly) -> Poly {
+    let mut r = *poly.coefficients();
+    let mut k = 127usize;
+    let mut len = 2usize;
+
+    while len <= 128 {
+        let mut start = 0usize;
+
+        while start < N {
+            let zeta = ZETAS[k];
+            k -= 1;
+
+            let mut j = start;
+
+            while j < start + len {
+                let t = r[j];
+
+                r[j] = add_bounded(t, r[j + len]);
+
+                r[j + len] = sub_bounded(r[j + len], t);
+
+                r[j + len] = montgomery_mul_centered_bounded(zeta, r[j + len]);
+
+                j += 1;
+            }
+
+            start += 2 * len;
+        }
+
+        len <<= 1;
+    }
+
+    let mut i = 0usize;
+
+    while i < N {
+        r[i] = montgomery_mul_bounded(r[i], INTT_SCALE);
+
+        i += 1;
+    }
+
+    Poly::from_coefficients(r)
+}
+
+/// Diagnostic degree-one base multiplication using bounded Montgomery
+/// arithmetic.
+///
+/// Inputs are canonical NTT coefficients; `zeta` is centered.
+pub fn basemul_bounded(a0: i16, a1: i16, b0: i16, b1: i16, zeta: i16) -> (i16, i16) {
+    let mut c0 = montgomery_mul_bounded(a1, b1);
+
+    c0 = montgomery_mul_centered_bounded(zeta, c0);
+
+    c0 = add_bounded(c0, montgomery_mul_bounded(a0, b0));
+
+    let c1 = add_bounded(
+        montgomery_mul_bounded(a0, b1),
+        montgomery_mul_bounded(a1, b0),
+    );
+
+    (c0, c1)
+}
+
+/// Diagnostic complete polynomial base multiplication using bounded
+/// Montgomery arithmetic.
+pub fn basemul_polynomials_bounded(lhs: &FipsNttPoly, rhs: &FipsNttPoly) -> FipsNttPoly {
+    let a = lhs.coefficients();
+    let b = rhs.coefficients();
+
+    let mut r = [0i16; N];
+    let mut i = 0usize;
+
+    while i < N / 4 {
+        let zeta = ZETAS[64 + i];
+
+        let (r0, r1) = basemul_bounded(a[4 * i], a[4 * i + 1], b[4 * i], b[4 * i + 1], zeta);
+
+        r[4 * i] = r0;
+        r[4 * i + 1] = r1;
+
+        let (r2, r3) = basemul_bounded(
+            a[4 * i + 2],
+            a[4 * i + 3],
+            b[4 * i + 2],
+            b[4 * i + 3],
+            -zeta,
+        );
+
+        r[4 * i + 2] = r2;
+        r[4 * i + 3] = r3;
+
+        i += 1;
+    }
+
+    FipsNttPoly::from_coefficients(r)
 }
 
 /// Compute an ordinary inverse transform by removing the Montgomery factor.
@@ -117,11 +416,16 @@ pub fn intt(poly: &FipsNttPoly) -> Poly {
 
 /// Multiply two degree-one factors in `Z_q[X] / (X^2 - zeta)`.
 pub fn basemul(a0: i16, a1: i16, b0: i16, b1: i16, zeta: i16) -> (i16, i16) {
-    let mut c0 = montgomery_mul(a1, b1);
-    c0 = montgomery_mul(c0, zeta);
-    c0 = add(c0, montgomery_mul(a0, b0));
+    let mut c0 = montgomery_mul_bounded(a1, b1);
 
-    let c1 = add(montgomery_mul(a0, b1), montgomery_mul(a1, b0));
+    c0 = montgomery_mul_centered_bounded(zeta, c0);
+
+    c0 = add_bounded(c0, montgomery_mul_bounded(a0, b0));
+
+    let c1 = add_bounded(
+        montgomery_mul_bounded(a0, b1),
+        montgomery_mul_bounded(a1, b0),
+    );
 
     (c0, c1)
 }

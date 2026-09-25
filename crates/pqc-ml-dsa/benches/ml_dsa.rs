@@ -18,7 +18,7 @@ fn cases() -> [(MlDsaParameterSet, &'static str, [u8; 32]); 3] {
 
 fn bench_keygen(c: &mut Criterion) {
     let mut group = c.benchmark_group("ml_dsa/keygen");
-    group.sample_size(10);
+    group.sample_size(100);
     for (parameter_set, name, seed) in cases() {
         group.bench_with_input(BenchmarkId::from_parameter(name), &seed, |b, input| {
             b.iter(|| keygen_internal(parameter_set, black_box(input)).unwrap())
@@ -29,7 +29,7 @@ fn bench_keygen(c: &mut Criterion) {
 
 fn bench_sign_verify(c: &mut Criterion) {
     let mut sign_group = c.benchmark_group("ml_dsa/sign");
-    sign_group.sample_size(10);
+    sign_group.sample_size(100);
     let mut prepared = Vec::new();
 
     for (parameter_set, name, seed) in cases() {
@@ -65,7 +65,7 @@ fn bench_sign_verify(c: &mut Criterion) {
     sign_group.finish();
 
     let mut verify_group = c.benchmark_group("ml_dsa/verify");
-    verify_group.sample_size(10);
+    verify_group.sample_size(100);
     for (parameter_set, name, key_pair, signature) in &prepared {
         verify_group.bench_with_input(BenchmarkId::from_parameter(*name), signature, |b, sig| {
             b.iter(|| {

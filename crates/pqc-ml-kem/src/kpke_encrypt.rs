@@ -101,6 +101,28 @@ pub fn compute_u_vector(
     crate::kpke_ntt_domain::matrix_vector_mul_add_to_polyvec(&matrix_ntt, &randomness_ntt, e1)
 }
 
+/// Compute `u = A^T r + e1` using an already transformed
+/// ephemeral secret vector.
+///
+/// This avoids repeating the forward NTT when the same `r_hat` is also
+/// consumed by the `v` computation.
+pub fn compute_u_vector_from_ntt(
+    parameter_set: MlKemParameterSet,
+    rho: &[u8; 32],
+    randomness_ntt: &NttPolyVec,
+    e1: &PolyVec,
+) -> PolyVec {
+    let rank = parameter_set.k();
+
+    assert_eq!(randomness_ntt.rank(), rank);
+    assert_eq!(e1.rank(), rank);
+
+    let transposed_matrix = expand_matrix(rank, rho, true);
+    let matrix_ntt = NttPolyMatrix::from_sampled_ntt_matrix(&transposed_matrix);
+
+    crate::kpke_ntt_domain::matrix_vector_mul_add_to_polyvec(&matrix_ntt, randomness_ntt, e1)
+}
+
 /// Compute structural `v = t^T r + e2 + m`.
 pub fn compute_v_poly(t_hat: &PolyVec, r: &PolyVec, e2: &Poly, message: &Message) -> Poly {
     assert_eq!(t_hat.rank(), r.rank());
@@ -108,6 +130,24 @@ pub fn compute_v_poly(t_hat: &PolyVec, r: &PolyVec, e2: &Poly, message: &Message
     let public_ntt = NttPolyVec::from_sampled_ntt_polyvec(t_hat);
     let randomness_ntt = NttPolyVec::from_polyvec(r);
     let mut acc = crate::kpke_ntt_domain::dot_to_poly(&public_ntt, &randomness_ntt);
+    acc = acc.add(e2);
+    acc.add(&message_to_poly(message))
+}
+
+/// Compute `v = t^T r + e2 + m` using an already transformed
+/// ephemeral secret vector.
+pub fn compute_v_poly_from_ntt(
+    t_hat: &PolyVec,
+    randomness_ntt: &NttPolyVec,
+    e2: &Poly,
+    message: &Message,
+) -> Poly {
+    assert_eq!(t_hat.rank(), randomness_ntt.rank());
+
+    let public_ntt = NttPolyVec::from_sampled_ntt_polyvec(t_hat);
+
+    let mut acc = crate::kpke_ntt_domain::dot_to_poly(&public_ntt, randomness_ntt);
+
     acc = acc.add(e2);
     acc.add(&message_to_poly(message))
 }
@@ -136,8 +176,11 @@ pub fn encrypt_from_randomness<const CT_BYTES: usize>(
     let e1 = sample_eta2_vector(parameter_set, &sigma, parameter_set.k() as u8);
     let e2 = sample_eta2_poly(&sigma, (2 * parameter_set.k()) as u8);
 
-    let u = compute_u_vector(parameter_set, &rho, &r, &e1);
-    let v = compute_v_poly(&t_hat, &r, &e2, message);
+    let randomness_ntt = NttPolyVec::from_polyvec(&r);
+
+    let u = compute_u_vector_from_ntt(parameter_set, &rho, &randomness_ntt, &e1);
+
+    let v = compute_v_poly_from_ntt(&t_hat, &randomness_ntt, &e2, message);
 
     let ciphertext = encode_ciphertext_components::<CT_BYTES>(parameter_set, &u, &v)?;
 
