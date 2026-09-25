@@ -173,6 +173,9 @@ pub fn dot_to_poly(lhs: &NttPolyVec, rhs: &NttPolyVec) -> Poly {
 
 /// Add a coefficient-domain error vector after NTT-domain matrix-vector
 /// multiplication.
+///
+/// Products are accumulated in the NTT domain so each output row requires
+/// only one inverse NTT before the coefficient-domain error is added.
 pub fn matrix_vector_mul_add_to_polyvec(
     matrix: &NttPolyMatrix,
     vector: &NttPolyVec,
@@ -181,7 +184,41 @@ pub fn matrix_vector_mul_add_to_polyvec(
     assert_eq!(matrix.rank(), vector.rank());
     assert_eq!(vector.rank(), error.rank());
 
-    matrix_vector_mul_to_polyvec(matrix, vector).add(error)
+    let rank = vector.rank();
+    let mut output = [Poly::zero(), Poly::zero(), Poly::zero(), Poly::zero()];
+
+    let mut row = 0usize;
+
+    while row < rank {
+        let mut accumulator = [0i16; N];
+        let mut column = 0usize;
+
+        while column < rank {
+            let product =
+                fips_ntt::basemul_polynomials(matrix.get(row, column), &vector.as_slice()[column]);
+
+            let mut coefficient = 0usize;
+
+            while coefficient < N {
+                accumulator[coefficient] = crate::arithmetic::add(
+                    accumulator[coefficient],
+                    product.coefficients()[coefficient],
+                );
+
+                coefficient += 1;
+            }
+
+            column += 1;
+        }
+
+        let product = fips_ntt::invntt_tomont(&FipsNttPoly::from_coefficients(accumulator));
+
+        output[row] = product.add(&error.as_slice()[row]);
+
+        row += 1;
+    }
+
+    PolyVec::from_slice(&output[..rank])
 }
 
 /// Compute `matrix * vector` and retain the result in the NTT domain.
