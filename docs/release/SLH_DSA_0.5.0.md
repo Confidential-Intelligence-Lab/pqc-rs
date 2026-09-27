@@ -108,18 +108,16 @@ security audit, or a universal constant-time guarantee.
 [dependencies]
 pqc-rs-slh-dsa = "0.5.0"
 rand_core = { version = "0.6", features = ["getrandom"] }
-The Rust library name is pqc_slh_dsa.
+```
 
-Release provenance
-
-This document describes the release candidate before registry publication.
-
-Source commit, crate-specific tag, crates.io checksum, archive size, publication
-date, and yank status must be recorded only after the final release candidate
-passes all release gates and the registry publication is independently
-verified.
+The Rust library name is `pqc_slh_dsa`.
 
 ## Release provenance
+
+The `0.5.0` release was published after completion of the applicable release
+gates. The source revision, immutable crate-specific tag, registry identity,
+and archive digest below record the independently verified publication
+provenance.
 
 - source revision: `c446714f9ae5a9210b1fb7959d8e640c03a15d39`;
 - crate-specific tag: `pqc-rs-slh-dsa-v0.5.0`;

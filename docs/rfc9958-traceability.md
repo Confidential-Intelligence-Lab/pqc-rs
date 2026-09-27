@@ -7,7 +7,7 @@ to concrete Rust crates, validation targets, and protocol harnesses.
 |---|---|---:|---|
 | KEM migration | `pqc-ml-kem`, `pqc-core::Kem` | 2-6 | API scaffold + arithmetic + NTT schedule assets |
 | Signature migration | `pqc-ml-dsa`, `pqc-core::SignatureScheme` | 7 | Planned |
-| Hash-based signatures | `pqc-slh-dsa` | 8 | Planned |
+| Hash-based signatures | `pqc-slh-dsa` | 8 | Implemented and validated against FIPS 205 evidence |
 | PQ/T hybrid key agreement | `pqc-hybrid` | 9 | Planned |
 | HPKE integration | `pqc-hpke` | 10 | Planned |
 | Validation guidance | `pqc-test-harness`, `tests/*`, `fuzz/*` | Continuous | Started |

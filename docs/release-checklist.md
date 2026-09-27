@@ -33,6 +33,19 @@ later crate is published independently.
   [`docs/release/ML_DSA_0.4.0.md`](release/ML_DSA_0.4.0.md)
 - Closeout status: publication audited and closed.
 
+## pqc-rs-slh-dsa 0.5.0
+
+- Immutable annotated tag: `pqc-rs-slh-dsa-v0.5.0`
+- Publication source: `c446714f9ae5a9210b1fb7959d8e640c03a15d39`
+- Published crate: `pqc-rs-slh-dsa`
+- Published version: `0.5.0`
+- Release record:
+  [`docs/release/SLH_DSA_0.5.0.md`](release/SLH_DSA_0.5.0.md)
+- Registry archive verified byte-for-byte against the local release archive.
+- Closeout status: FIPS 205 implementation, validation, interoperability,
+  assurance, performance/footprint characterization, and publication audited
+  and closed.
+
 ## Current published baseline
 
 The following crates are published on crates.io at `0.4.0`:
@@ -42,8 +55,7 @@ The following crates are published on crates.io at `0.4.0`:
 - `pqc-rs-ml-dsa`
 - `pqc-rs-hpke`
 
-`pqc-rs-slh-dsa`, `pqc-rs-hybrid`, and `pqc-rs-test-harness` remain
-unpublished.
+`pqc-rs-hybrid` and `pqc-rs-test-harness` remain unpublished.
 
 ## Open assurance and maintenance work
 
