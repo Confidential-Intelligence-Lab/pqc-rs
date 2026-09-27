@@ -1,4 +1,4 @@
-use pqc_ml_dsa::keygen::keygen_internal;
+use pqc_ml_dsa::internal_api::keygen::keygen_internal;
 use pqc_ml_dsa::params::MlDsaParameterSet;
 use serde_json::{json, Value};
 use std::{env, fs, path::Path};

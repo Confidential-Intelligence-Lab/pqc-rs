@@ -8,13 +8,13 @@ use std::{
 };
 
 use pqc_ml_dsa::{
-    challenge::sample_in_ball_bytes,
-    constants::N,
-    encoding::{decode_t1, encode_t1},
-    poly::Poly,
-    rounding::{high_bits, low_bits, Gamma2},
-    sample::sample_eta_poly,
-    signing_core::multiply_challenge,
+    internal_api::challenge::sample_in_ball_bytes,
+    internal_api::constants::N,
+    internal_api::encoding::{decode_t1, encode_t1},
+    internal_api::poly::Poly,
+    internal_api::rounding::{high_bits, low_bits, Gamma2},
+    internal_api::sample::sample_eta_poly,
+    internal_api::signing_core::multiply_challenge,
 };
 use sha3::{
     digest::{ExtendableOutput, Update, XofReader},

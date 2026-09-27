@@ -1,11 +1,11 @@
 #![cfg(feature = "internal-api")]
 
-use pqc_ml_dsa::keygen::keygen_internal;
-use pqc_ml_dsa::params::MlDsaParameterSet;
-use pqc_ml_dsa::signing::{
+use pqc_ml_dsa::internal_api::keygen::keygen_internal;
+use pqc_ml_dsa::internal_api::signing::{
     compute_message_representative, decode_private_key, prepare_signing, sample_mask_vector,
     SigningError,
 };
+use pqc_ml_dsa::params::MlDsaParameterSet;
 
 #[test]
 fn generated_private_keys_decode_for_all_parameter_sets() {

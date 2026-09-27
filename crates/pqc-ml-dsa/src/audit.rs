@@ -1,9 +1,14 @@
 //! Audit-only instrumentation for sparse challenge multiplication.
 
-use crate::{constants::N, poly::Poly, signing_core::multiply_challenge};
+#[cfg(feature = "internal-api")]
+use crate::constants::N;
+
+#[cfg(feature = "internal-api")]
+use crate::{poly::Poly, signing_core::multiply_challenge};
 
 /// Operation counts for sparse challenge multiplication.
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[cfg(feature = "internal-api")]
 pub struct ChallengeMultiplyCounts {
     /// Challenge coefficients inspected.
     pub challenge_coefficients_scanned: usize,
@@ -21,6 +26,7 @@ pub struct ChallengeMultiplyCounts {
     pub modular_reductions: usize,
 }
 
+#[cfg(feature = "internal-api")]
 impl ChallengeMultiplyCounts {
     /// Total accumulation operations.
     pub const fn total_accumulations(self) -> usize {
@@ -39,6 +45,7 @@ impl ChallengeMultiplyCounts {
 }
 
 /// Return the production result together with audit operation counts.
+#[cfg(feature = "internal-api")]
 pub fn multiply_challenge_counted(
     challenge: &Poly,
     polynomial: &Poly,

@@ -9,6 +9,7 @@ use crate::constants::N;
 use crate::poly::Poly;
 
 /// Seed length used by `SampleInBall`.
+#[cfg(any(feature = "internal-api", test))]
 pub const CHALLENGE_SEED_BYTES: usize = 32;
 
 /// Error returned by sparse challenge sampling.
@@ -22,6 +23,7 @@ pub enum ChallengeError {
 ///
 /// The resulting polynomial has exactly `tau` nonzero coefficients, each
 /// equal to `-1` or `1`.
+#[cfg(any(feature = "internal-api", test))]
 pub fn sample_in_ball(
     seed: &[u8; CHALLENGE_SEED_BYTES],
     tau: usize,
@@ -65,6 +67,7 @@ pub fn sample_in_ball_bytes(seed: &[u8], tau: usize) -> Result<Poly, ChallengeEr
 }
 
 /// Return the Hamming weight of a sparse challenge polynomial.
+#[cfg(any(feature = "internal-api", test))]
 pub fn challenge_weight(polynomial: &Poly) -> usize {
     polynomial
         .coeffs()
@@ -74,6 +77,7 @@ pub fn challenge_weight(polynomial: &Poly) -> usize {
 }
 
 /// Return true when every coefficient is in `{ -1, 0, 1 }`.
+#[cfg(any(feature = "internal-api", test))]
 pub fn is_sparse_signed(polynomial: &Poly) -> bool {
     polynomial
         .coeffs()

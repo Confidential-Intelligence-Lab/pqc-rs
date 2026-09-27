@@ -6,16 +6,16 @@
 use std::hint::black_box;
 
 use pqc_ml_dsa::{
-    challenge::sample_in_ball_bytes,
-    encoding::{decode_t0, decode_z, encode_t0, encode_z},
-    keygen::keygen_internal,
+    internal_api::challenge::sample_in_ball_bytes,
+    internal_api::encoding::{decode_t0, decode_z, encode_t0, encode_z},
+    internal_api::keygen::keygen_internal,
+    internal_api::poly::Poly,
+    internal_api::rounding::{high_bits, low_bits, power2round, Gamma2},
+    internal_api::sample::sample_eta_poly,
+    internal_api::signature::sign_internal,
+    internal_api::signing_core::multiply_challenge,
+    internal_api::verification::verify_internal,
     params::MlDsaParameterSet,
-    poly::Poly,
-    rounding::{high_bits, low_bits, power2round, Gamma2},
-    sample::sample_eta_poly,
-    signature::sign_internal,
-    signing_core::multiply_challenge,
-    verification::verify_internal,
 };
 
 #[inline(never)]

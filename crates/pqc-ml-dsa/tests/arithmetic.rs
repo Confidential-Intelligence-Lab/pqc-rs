@@ -1,7 +1,7 @@
 #![cfg(feature = "internal-api")]
 
-use pqc_ml_dsa::constants::{N, Q};
-use pqc_ml_dsa::poly::Poly;
+use pqc_ml_dsa::internal_api::constants::{N, Q};
+use pqc_ml_dsa::internal_api::poly::Poly;
 
 fn sample_poly() -> Poly {
     let mut coefficients = [0_i32; N];

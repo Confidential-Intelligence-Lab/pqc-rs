@@ -1,6 +1,6 @@
 #![cfg(feature = "internal-api")]
 
-use pqc_ml_dsa::keygen::{derive_keygen_seeds, keygen_internal};
+use pqc_ml_dsa::internal_api::keygen::{derive_keygen_seeds, keygen_internal};
 use pqc_ml_dsa::params::MlDsaParameterSet;
 
 #[test]

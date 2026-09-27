@@ -30,11 +30,13 @@ pub struct MlDsaKeyPair {
 
 impl MlDsaKeyPair {
     /// Borrow the encoded public key.
+    #[cfg(feature = "internal-api")]
     pub fn public_key(&self) -> &[u8] {
         &self.public_key
     }
 
     /// Borrow the encoded private key.
+    #[cfg(feature = "internal-api")]
     pub fn private_key(&self) -> &[u8] {
         self.private_key.as_bytes()
     }

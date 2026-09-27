@@ -1,7 +1,7 @@
 #![cfg(feature = "internal-api")]
 
-use pqc_ml_dsa::constants::Q;
-use pqc_ml_dsa::rounding::{decompose, high_bits, low_bits, power2round, Gamma2, D};
+use pqc_ml_dsa::internal_api::constants::Q;
+use pqc_ml_dsa::internal_api::rounding::{decompose, high_bits, low_bits, power2round, Gamma2, D};
 
 #[test]
 fn power2round_recombines_representative_inputs() {

@@ -1,9 +1,9 @@
 #![cfg(feature = "internal-api")]
 
-use pqc_ml_dsa::keygen::keygen_internal;
+use pqc_ml_dsa::internal_api::keygen::keygen_internal;
+use pqc_ml_dsa::internal_api::poly::Poly;
+use pqc_ml_dsa::internal_api::signature::{encode_hint_vector, sign_internal, SignatureError};
 use pqc_ml_dsa::params::MlDsaParameterSet;
-use pqc_ml_dsa::poly::Poly;
-use pqc_ml_dsa::signature::{encode_hint_vector, sign_internal, SignatureError};
 
 #[test]
 fn deterministic_signing_produces_standardized_lengths() {

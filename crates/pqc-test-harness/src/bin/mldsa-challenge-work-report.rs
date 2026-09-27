@@ -6,7 +6,8 @@ use std::{
 };
 
 use pqc_ml_dsa::{
-    audit::multiply_challenge_counted, challenge::sample_in_ball_bytes, constants::N, poly::Poly,
+    internal_api::audit::multiply_challenge_counted, internal_api::challenge::sample_in_ball_bytes,
+    internal_api::constants::N, internal_api::poly::Poly,
 };
 
 const TAU: usize = 39;

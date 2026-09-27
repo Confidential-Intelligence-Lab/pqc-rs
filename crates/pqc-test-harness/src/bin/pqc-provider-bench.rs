@@ -1,6 +1,7 @@
 use pqc_ml_dsa::{
-    keygen::keygen_internal as dsa_keygen, signature::sign_internal as dsa_sign,
-    verification::verify_internal as dsa_verify, MlDsaParameterSet,
+    internal_api::keygen::keygen_internal as dsa_keygen,
+    internal_api::signature::sign_internal as dsa_sign,
+    internal_api::verification::verify_internal as dsa_verify, MlDsaParameterSet,
 };
 use pqc_ml_kem::{
     integration::{decaps, encaps, keygen_768},

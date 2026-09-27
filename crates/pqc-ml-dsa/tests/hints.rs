@@ -1,9 +1,9 @@
 #![cfg(feature = "internal-api")]
 
-use pqc_ml_dsa::constants::{N, Q};
-use pqc_ml_dsa::hint::{make_hint, make_hint_poly, use_hint, use_hint_poly};
-use pqc_ml_dsa::poly::Poly;
-use pqc_ml_dsa::rounding::{high_bits, Gamma2};
+use pqc_ml_dsa::internal_api::constants::{N, Q};
+use pqc_ml_dsa::internal_api::hint::{make_hint, make_hint_poly, use_hint, use_hint_poly};
+use pqc_ml_dsa::internal_api::poly::Poly;
+use pqc_ml_dsa::internal_api::rounding::{high_bits, Gamma2};
 
 #[test]
 fn scalar_hint_reproduces_adjusted_high_bits() {

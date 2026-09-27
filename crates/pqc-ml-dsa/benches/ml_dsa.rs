@@ -1,7 +1,7 @@
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
-use pqc_ml_dsa::keygen::keygen_internal;
-use pqc_ml_dsa::signature::sign_internal;
-use pqc_ml_dsa::verification::verify_internal;
+use pqc_ml_dsa::internal_api::keygen::keygen_internal;
+use pqc_ml_dsa::internal_api::signature::sign_internal;
+use pqc_ml_dsa::internal_api::verification::verify_internal;
 use pqc_ml_dsa::MlDsaParameterSet;
 
 const MESSAGE: &[u8] = b"pqc-rfc9958-rs B1.3.5 performance baseline";

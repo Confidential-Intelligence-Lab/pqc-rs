@@ -222,6 +222,7 @@ pub fn verify_internal_message(
 }
 
 /// Verify through `ML-DSA.Verify_internal` from externally supplied `mu`.
+#[cfg(feature = "internal-api")]
 pub fn verify_internal_mu(
     parameter_set: MlDsaParameterSet,
     encoded_public_key: &[u8],

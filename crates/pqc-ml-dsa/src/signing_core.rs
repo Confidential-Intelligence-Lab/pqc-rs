@@ -190,30 +190,6 @@ pub fn multiply_challenge(challenge: &Poly, polynomial: &Poly) -> Poly {
     Poly::from_coeffs(coefficients)
 }
 
-/// Compute `left + challenge * right` for polynomial vectors.
-pub fn add_challenge_product(
-    left: &[Poly],
-    challenge: &Poly,
-    right: &[Poly],
-) -> Result<Vec<Poly>, SigningCoreError> {
-    if left.len() != right.len() {
-        return Err(SigningCoreError::InvalidDimensions);
-    }
-
-    let mut output = Vec::with_capacity(left.len());
-
-    for (left_polynomial, right_polynomial) in left.iter().zip(right) {
-        let mut result = left_polynomial.clone();
-        let product = multiply_challenge(challenge, right_polynomial);
-        result.add_assign(&product);
-        result.reduce();
-        result.freeze();
-        output.push(result);
-    }
-
-    Ok(output)
-}
-
 /// Compute `left - challenge * right` for polynomial vectors.
 pub fn subtract_challenge_product(
     left: &[Poly],
