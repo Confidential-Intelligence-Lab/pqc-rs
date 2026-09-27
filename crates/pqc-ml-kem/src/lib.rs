@@ -36,6 +36,13 @@ pub mod conformance;
 pub mod encoding;
 pub mod fips_ntt;
 pub mod intermediate_values;
+
+/// Protocol-integration primitives for deterministic ML-KEM composition.
+///
+/// This module exposes the FIPS 203 deterministic operations needed by
+/// higher-level protocols such as HPKE. Application code should normally
+/// use [`MlKem512`], [`MlKem768`], or [`MlKem1024`] instead.
+pub mod integration;
 pub mod kpke;
 pub mod kpke_arithmetic;
 pub mod kpke_decrypt;

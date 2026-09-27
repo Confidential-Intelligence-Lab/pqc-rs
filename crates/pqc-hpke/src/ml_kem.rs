@@ -4,13 +4,13 @@
 //! decapsulation keys in the draft's 64-byte seed format.
 
 use pqc_core::secret::{SecretBytes, SecretVec};
-use pqc_ml_kem::ml_kem_decaps::decaps_internal;
-use pqc_ml_kem::ml_kem_encaps::encaps_internal;
-use pqc_ml_kem::ml_kem_key_check::{decapsulation_key_is_valid, encapsulation_key_is_valid};
-use pqc_ml_kem::ml_kem_keygen::{
-    ml_kem_1024_keygen_internal, ml_kem_512_keygen_internal, ml_kem_768_keygen_internal,
+use pqc_ml_kem::{
+    integration::{
+        decaps, decapsulation_key_is_valid, encaps, encapsulation_key_is_valid, keygen_1024,
+        keygen_512, keygen_768,
+    },
+    MlKemParameterSet,
 };
-use pqc_ml_kem::MlKemParameterSet;
 use rand_core::{CryptoRng, RngCore};
 use sha3::{
     digest::{ExtendableOutput, Update, XofReader},
@@ -125,24 +125,21 @@ impl MlKemHpke {
 
         let (public_key, expanded_private_key) = match self {
             Self::MlKem512 => {
-                let output = ml_kem_512_keygen_internal(&d, &z)
-                    .map_err(|_| MlKemHpkeError::KeyGeneration)?;
+                let output = keygen_512(&d, &z).map_err(|_| MlKemHpkeError::KeyGeneration)?;
                 (
                     output.encapsulation_key.to_vec(),
                     output.decapsulation_key.to_vec(),
                 )
             }
             Self::MlKem768 => {
-                let output = ml_kem_768_keygen_internal(&d, &z)
-                    .map_err(|_| MlKemHpkeError::KeyGeneration)?;
+                let output = keygen_768(&d, &z).map_err(|_| MlKemHpkeError::KeyGeneration)?;
                 (
                     output.encapsulation_key.to_vec(),
                     output.decapsulation_key.to_vec(),
                 )
             }
             Self::MlKem1024 => {
-                let output = ml_kem_1024_keygen_internal(&d, &z)
-                    .map_err(|_| MlKemHpkeError::KeyGeneration)?;
+                let output = keygen_1024(&d, &z).map_err(|_| MlKemHpkeError::KeyGeneration)?;
                 (
                     output.encapsulation_key.to_vec(),
                     output.decapsulation_key.to_vec(),
@@ -171,7 +168,7 @@ impl MlKemHpke {
             return Err(MlKemHpkeError::EncapError);
         }
 
-        let output = encaps_internal(self.parameter_set(), public_key, randomness)
+        let output = encaps(self.parameter_set(), public_key, randomness)
             .map_err(|_| MlKemHpkeError::EncapError)?;
 
         Ok(MlKemHpkeEncapsulation {
@@ -206,7 +203,7 @@ impl MlKemHpke {
             return Err(MlKemHpkeError::DecapError);
         }
 
-        let output = decaps_internal(
+        let output = decaps(
             self.parameter_set(),
             key_pair.expanded_private_key.as_bytes(),
             encapsulated_key,
