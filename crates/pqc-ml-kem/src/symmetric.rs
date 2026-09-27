@@ -2,8 +2,11 @@
 
 use sha3::{
     digest::{ExtendableOutput, Update, XofReader},
-    Digest, Sha3_256, Sha3_512, Shake128, Shake256,
+    Digest, Sha3_256, Sha3_512, Shake256,
 };
+
+#[cfg(test)]
+use sha3::Shake128;
 
 /// SHA3-256 digest.
 pub fn h(input: &[u8]) -> [u8; 32] {
@@ -32,6 +35,7 @@ pub fn j(input: &[u8]) -> [u8; 32] {
 }
 
 /// SHAKE128 XOF expansion with two domain bytes.
+#[cfg(test)]
 pub fn xof(seed: &[u8; 32], x: u8, y: u8, out: &mut [u8]) {
     let mut hasher = Shake128::default();
     hasher.update(seed);

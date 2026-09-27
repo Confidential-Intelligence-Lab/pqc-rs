@@ -5,7 +5,6 @@
 
 use pqc_core::{PqcError, PqcResult};
 
-use crate::kpke::Message;
 use crate::kpke_ntt_domain::NttPolyVec;
 use crate::poly::Poly;
 use crate::polyvec::PolyVec;
@@ -16,12 +15,6 @@ pub const POLY_12_BYTES: usize = 384;
 
 /// Public matrix seed length.
 pub const RHO_BYTES: usize = 32;
-
-/// Hash length used by ML-KEM public-key hash fields.
-pub const HASH_BYTES: usize = 32;
-
-/// Secret fallback value length used by ML-KEM CCA transform.
-pub const Z_BYTES: usize = 32;
 
 /// Return the byte length of an encoded polynomial vector.
 pub fn polyvec_12_bytes(parameter_set: MlKemParameterSet) -> usize {
@@ -54,6 +47,7 @@ pub fn ciphertext_component_bytes(parameter_set: MlKemParameterSet) -> usize {
 }
 
 /// Encode an ML-KEM public key component from `t_hat` and `rho`.
+#[cfg(test)]
 pub fn encode_public_key_component<const BYTES: usize>(
     parameter_set: MlKemParameterSet,
     t_hat: &PolyVec,
@@ -192,6 +186,7 @@ pub fn split_public_key_component(
 }
 
 /// Encode the CPA secret-key component from `s_hat`.
+#[cfg(test)]
 pub fn encode_secret_key_component<const BYTES: usize>(
     parameter_set: MlKemParameterSet,
     s_hat: &PolyVec,
@@ -348,13 +343,6 @@ fn decode_polyvec_compressed_into<const PER_POLY_BYTES: usize>(
     Ok(())
 }
 
-/// Encode a message object into bytes.
-pub fn encode_message(message: &Message) -> [u8; 32] {
-    let mut out = [0u8; 32];
-    out.copy_from_slice(message.as_bytes());
-    out
-}
-
 fn encode_ntt_polyvec_12_into(polyvec: &NttPolyVec, out: &mut [u8]) -> PqcResult<()> {
     let expected = polyvec.rank() * POLY_12_BYTES;
     if out.len() != expected {
@@ -373,6 +361,7 @@ fn encode_ntt_polyvec_12_into(polyvec: &NttPolyVec, out: &mut [u8]) -> PqcResult
     Ok(())
 }
 
+#[cfg(test)]
 fn encode_polyvec_12_into(polyvec: &PolyVec, out: &mut [u8]) -> PqcResult<()> {
     let expected = polyvec.rank() * POLY_12_BYTES;
     if out.len() != expected {

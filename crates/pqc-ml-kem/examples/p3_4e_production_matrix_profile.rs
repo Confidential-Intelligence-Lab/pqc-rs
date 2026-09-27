@@ -1,11 +1,7 @@
 use std::hint::black_box;
 use std::time::Instant;
 
-use pqc_ml_kem::{
-    arithmetic::{N, Q},
-    matrix::{expand_matrix, PolyMatrix},
-    poly::Poly,
-};
+use pqc_ml_kem::internal_api::{expand_matrix, Poly, PolyMatrix, N, Q};
 
 use sha3::{
     digest::{ExtendableOutput, Update, XofReader},

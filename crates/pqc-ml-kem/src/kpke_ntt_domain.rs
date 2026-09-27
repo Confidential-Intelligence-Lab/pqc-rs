@@ -69,6 +69,7 @@ impl NttPolyVec {
     }
 
     /// Convert back to coefficient-domain polynomials.
+    #[cfg(test)]
     pub fn to_polyvec(&self) -> PolyVec {
         let mut polys = [Poly::zero(), Poly::zero(), Poly::zero(), Poly::zero()];
         let mut index = 0usize;
@@ -91,6 +92,7 @@ pub struct NttPolyMatrix {
 
 impl NttPolyMatrix {
     /// Transform a coefficient-domain matrix into NTT representation.
+    #[cfg(any(test, feature = "internal-api"))]
     pub fn from_matrix(matrix: &PolyMatrix) -> Self {
         let rank = matrix.rank();
         let mut entries = core::array::from_fn(|_| {
@@ -275,6 +277,7 @@ pub fn matrix_vector_mul_add_to_ntt(
 
 /// Compute `matrix * vector` in the NTT domain and return coefficient-domain
 /// output.
+#[cfg(test)]
 pub fn matrix_vector_mul_to_polyvec(matrix: &NttPolyMatrix, vector: &NttPolyVec) -> PolyVec {
     assert_eq!(matrix.rank(), vector.rank());
 

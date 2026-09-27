@@ -3,8 +3,8 @@ use pqc_ml_dsa::{
     verification::verify_internal as dsa_verify, MlDsaParameterSet,
 };
 use pqc_ml_kem::{
-    ml_kem_decaps::decaps_internal, ml_kem_encaps::encaps_internal,
-    ml_kem_keygen::ml_kem_768_keygen_internal, MlKemParameterSet,
+    integration::{decaps, encaps, keygen_768},
+    MlKemParameterSet,
 };
 use serde_json::json;
 use std::hint::black_box;
@@ -38,10 +38,9 @@ struct Bench {
 
 impl Bench {
     fn new() -> Self {
-        let kem_keypair =
-            ml_kem_768_keygen_internal(&KEM_D, &KEM_Z).expect("ML-KEM setup keygen failed");
+        let kem_keypair = keygen_768(&KEM_D, &KEM_Z).expect("ML-KEM setup keygen failed");
 
-        let kem_enc = encaps_internal(
+        let kem_enc = encaps(
             MlKemParameterSet::MlKem768,
             kem_keypair.encapsulation_key.as_ref(),
             &KEM_M,
@@ -85,15 +84,14 @@ impl Bench {
     }
 
     fn kem_keygen(&mut self) {
-        let out = ml_kem_768_keygen_internal(black_box(&KEM_D), black_box(&KEM_Z))
-            .expect("ML-KEM keygen failed");
+        let out = keygen_768(black_box(&KEM_D), black_box(&KEM_Z)).expect("ML-KEM keygen failed");
 
         self.sink ^= out.encapsulation_key[0];
         self.sink ^= out.decapsulation_key[0];
     }
 
     fn kem_encaps(&mut self) {
-        let out = encaps_internal(
+        let out = encaps(
             MlKemParameterSet::MlKem768,
             black_box(&self.kem_public_key),
             black_box(&KEM_M),
@@ -105,7 +103,7 @@ impl Bench {
     }
 
     fn kem_decaps(&mut self) {
-        let out = decaps_internal(
+        let out = decaps(
             MlKemParameterSet::MlKem768,
             black_box(&self.kem_private_key),
             black_box(&self.kem_ciphertext),

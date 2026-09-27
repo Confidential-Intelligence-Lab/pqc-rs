@@ -3,10 +3,8 @@
 //! Values are stored in centered Montgomery representation, matching the
 //! CRYSTALS-Kyber reference implementation from which FIPS 203 is derived.
 
+#[cfg(test)]
 use crate::arithmetic::Q;
-
-/// Primitive root used by the ML-KEM NTT schedule.
-pub const ZETA_GENERATOR: i16 = 17;
 
 /// Number of entries in the compact NTT schedule.
 pub const ZETAS_LEN: usize = 128;
@@ -23,12 +21,8 @@ pub const ZETAS: [i16; ZETAS_LEN] = [
     -1530, -1278, 794, -1510, -854, -870, 478, -108, -308, 996, 991, 958, -1460, 1522, 1628,
 ];
 
-/// Return a scheduled zeta.
-pub fn zeta(index: usize) -> i16 {
-    ZETAS[index]
-}
-
 /// Return whether all values are centered representatives modulo `q`.
+#[cfg(test)]
 pub fn all_zetas_are_centered() -> bool {
     ZETAS.iter().all(|z| *z >= -(Q / 2) && *z <= Q / 2)
 }

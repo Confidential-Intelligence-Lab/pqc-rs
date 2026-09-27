@@ -1,7 +1,11 @@
 //! K-PKE abstraction for ML-KEM.
 
-use pqc_core::{PqcResult, SharedSecretBytes};
+use pqc_core::SharedSecretBytes;
 
+#[cfg(test)]
+use pqc_core::PqcResult;
+
+#[cfg(test)]
 use crate::MlKemParameterSet;
 
 /// K-PKE plaintext message size in bytes.
@@ -17,6 +21,7 @@ pub type Message = SharedSecretBytes<MESSAGE_BYTES>;
 pub type EncryptionRandomness = SharedSecretBytes<RANDOMNESS_BYTES>;
 
 /// Trait implemented by parameter-set-specific K-PKE backends.
+#[cfg(test)]
 pub trait Kpke {
     /// Public encryption key.
     type PublicKey;

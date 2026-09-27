@@ -132,6 +132,7 @@ fn rejection_sample_into(input: &[u8], coeffs: &mut [i16; N], mut coeff_index: u
 /// This helper remains available for tests and callers that already provide
 /// XOF output bytes. The input must contain enough accepted candidates to fill
 /// the polynomial.
+#[cfg(test)]
 pub fn sample_uniform_from_xof(input: &[u8]) -> Poly {
     let mut coeffs = [0i16; N];
 

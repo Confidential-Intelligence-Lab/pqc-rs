@@ -8,9 +8,6 @@
 use crate::arithmetic::{mul, reduce, N, Q};
 use crate::poly::Poly;
 
-/// Placeholder root marker retained for the Stage 5 FIPS 203 NTT handoff.
-pub const BASELINE_ROOT_256: i16 = 17;
-
 /// Polynomial represented at the Stage 4 NTT boundary.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct NttPoly {
@@ -27,18 +24,6 @@ impl NttPoly {
             i += 1;
         }
         Self { coeffs: out }
-    }
-
-    /// Borrow NTT-boundary coefficients.
-    pub fn coefficients(&self) -> &[i16; N] {
-        &self.coeffs
-    }
-
-    /// Boundary-domain coefficient-wise addition.
-    pub fn add(&self, rhs: &Self) -> Self {
-        let lhs = Poly::from_coefficients(self.coeffs);
-        let rhs = Poly::from_coefficients(rhs.coeffs);
-        Self::from_poly(&lhs.add(&rhs))
     }
 
     /// Boundary-domain multiplication.

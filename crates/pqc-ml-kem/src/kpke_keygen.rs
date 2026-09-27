@@ -44,6 +44,7 @@ pub struct KpkeKeygenOutput<const PK_BYTES: usize, const SK_BYTES: usize> {
 ///
 /// This helper preserves the original structural behavior for internal fixtures.
 /// FIPS 203 key generation must use [`expand_keygen_seed_for_parameter_set`].
+#[cfg(test)]
 pub fn expand_keygen_seed(seed: &[u8; 32]) -> KpkeSeedMaterial {
     let expanded = symmetric::g(seed);
     split_keygen_seed_material(&expanded)
@@ -111,6 +112,7 @@ pub fn sample_noise_vector(
 }
 
 /// Compute a structural public vector `t = A * s + e`.
+#[cfg(any(test, feature = "internal-api"))]
 pub fn compute_public_vector(
     matrix_rank: usize,
     a: &crate::matrix::PolyMatrix,
