@@ -52,7 +52,7 @@ fn baseline_poly(rho: &[u8; 32], x: u8, y: u8) -> Poly {
     }
 
     while coeff_index < N {
-        coeffs[coeff_index] = pqc_ml_kem::arithmetic::reduce(coeff_index as i32);
+        coeffs[coeff_index] = pqc_ml_kem::internal_api::reduce(coeff_index as i32);
         coeff_index += 1;
     }
 

@@ -1,4 +1,4 @@
-use pqc_ml_kem::ml_kem_encaps::encaps_internal;
+use pqc_ml_kem::integration::encaps;
 use pqc_ml_kem::MlKemParameterSet;
 use pqc_test_harness::acvp::NIST_ACVP_SOURCE;
 use pqc_test_harness::acvp_encap_decap::{
@@ -133,7 +133,7 @@ fn execute_case(case: &EncapDecapCase) -> Result<(), String> {
         .try_into()
         .map_err(|_| format_case_error(case, "m is not 32 bytes"))?;
 
-    let actual = encaps_internal(parameter_set, ek, &m)
+    let actual = encaps(parameter_set, ek, &m)
         .map_err(|error| format_case_error(case, &format!("{error:?}")))?;
 
     let ciphertext_matches = actual.ciphertext == expected_ciphertext;

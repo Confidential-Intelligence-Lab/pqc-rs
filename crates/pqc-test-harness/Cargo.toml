@@ -20,7 +20,7 @@ bench = ["pqc-core/bench"]
 
 [dependencies]
 pqc-core = { workspace = true, features = ["std"] }
-pqc-ml-kem = { workspace = true, features = ["std"] }
+pqc-ml-kem = { workspace = true, features = ["std", "internal-api"] }
 rand_core = { workspace = true }
 hex = { workspace = true }
 serde = { workspace = true }

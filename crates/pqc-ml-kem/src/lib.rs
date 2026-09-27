@@ -43,6 +43,9 @@ pub mod intermediate_values;
 /// higher-level protocols such as HPKE. Application code should normally
 /// use [`MlKem512`], [`MlKem768`], or [`MlKem1024`] instead.
 pub mod integration;
+
+#[cfg(feature = "internal-api")]
+pub mod internal_api;
 pub mod kpke;
 pub mod kpke_arithmetic;
 pub mod kpke_decrypt;

@@ -1,4 +1,4 @@
-use pqc_ml_kem::ml_kem_key_check::{decapsulation_key_is_valid, encapsulation_key_is_valid};
+use pqc_ml_kem::integration::{decapsulation_key_is_valid, encapsulation_key_is_valid};
 use pqc_ml_kem::MlKemParameterSet;
 use pqc_test_harness::acvp::NIST_ACVP_SOURCE;
 use pqc_test_harness::acvp_encap_decap::{

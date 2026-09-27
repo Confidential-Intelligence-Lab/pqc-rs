@@ -4,9 +4,7 @@ use std::env;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use pqc_ml_kem::ml_kem_keygen::{
-    ml_kem_1024_keygen_internal, ml_kem_512_keygen_internal, ml_kem_768_keygen_internal,
-};
+use pqc_ml_kem::integration::{keygen_1024, keygen_512, keygen_768};
 use pqc_test_harness::acvp::{load_keygen_cases, MlKemKeygenCase};
 
 const PROMPT_RELATIVE: &str = "gen-val/json-files/ML-KEM-keyGen-FIPS203/prompt.json";
@@ -98,17 +96,17 @@ fn execute_case(case: &MlKemKeygenCase) -> Result<(), String> {
 
     match case.parameter_set.as_str() {
         "ML-KEM-512" => {
-            let output = ml_kem_512_keygen_internal(&d, &z)
+            let output = keygen_512(&d, &z)
                 .map_err(|error| format_case_error(case, &format!("{error:?}")))?;
             compare_case(case, &output.encapsulation_key, &output.decapsulation_key)
         }
         "ML-KEM-768" => {
-            let output = ml_kem_768_keygen_internal(&d, &z)
+            let output = keygen_768(&d, &z)
                 .map_err(|error| format_case_error(case, &format!("{error:?}")))?;
             compare_case(case, &output.encapsulation_key, &output.decapsulation_key)
         }
         "ML-KEM-1024" => {
-            let output = ml_kem_1024_keygen_internal(&d, &z)
+            let output = keygen_1024(&d, &z)
                 .map_err(|error| format_case_error(case, &format!("{error:?}")))?;
             compare_case(case, &output.encapsulation_key, &output.decapsulation_key)
         }
