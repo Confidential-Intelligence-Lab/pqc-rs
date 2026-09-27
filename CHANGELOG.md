@@ -6,6 +6,36 @@ The project follows the principles of Keep a Changelog and intends to adopt Sema
 
 ## [Unreleased]
 
+## [1.0.0-rc.1] - 2026-09-27
+
+### Added
+
+- established the first coordinated 1.0 release-candidate line for
+  `pqc-rs-core`, `pqc-rs-ml-kem`, `pqc-rs-ml-dsa`, `pqc-rs-slh-dsa`, and
+  `pqc-rs-hpke`;
+- added the repository-wide PQC-rs 1.0 SemVer compatibility contract;
+- consolidated the hardened FIPS 203, FIPS 204, FIPS 205, and RFC 9180
+  cryptographic foundation under one release boundary.
+
+### Changed
+
+- moved the five cryptographic-foundation crates to `1.0.0-rc.1` while keeping
+  PQC-Forge/application and assurance crates separately versioned;
+- excluded feature-gated `internal-api` interfaces from the supported 1.x
+  compatibility commitment;
+- deferred the standalone hybrid placeholder beyond the 1.0 compatibility
+  boundary;
+- updated release tooling for the five-crate dependency-ordered publication
+  sequence.
+
+### Security
+
+- retained conservative security qualifications: repository validation,
+  interoperability, fuzzing, timing, and assurance evidence do not constitute
+  an independent security audit, formal verification, certification, or FIPS
+  module validation.
+
+
 ### Added
 
 - prepared `pqc-rs-slh-dsa` `0.5.0` as the hardened FIPS 205 release line,

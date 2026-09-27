@@ -5,9 +5,10 @@
 It provides parameter-bound key generation, signing, verification, strict
 encoded-object decoding, and HashML-DSA through a typed crate-root API.
 
-> **Status:** This is pre-1.0 software. It has not received an independent
-> security audit and is not a FIPS-validated cryptographic module. Evaluate it
-> under the security limitations described below before deployment.
+> **Status:** This crate is in the PQC-rs `1.0.0-rc.1` release-candidate
+> cycle. It has not received an independent security audit and is not a
+> FIPS-validated cryptographic module. Evaluate it under the security
+> limitations described below before deployment.
 
 ## Supported parameter sets
 
@@ -27,7 +28,7 @@ Install the published crate from crates.io:
 
 ```toml
 [dependencies]
-pqc-rs-ml-dsa = "0.4.0"
+pqc-rs-ml-dsa = "1.0.0-rc.1"
 rand_core = { version = "0.6", features = ["getrandom"] }
 ```
 

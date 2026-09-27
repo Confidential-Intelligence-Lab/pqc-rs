@@ -46,6 +46,20 @@ later crate is published independently.
   assurance, performance/footprint characterization, and publication audited
   and closed.
 
+## PQC-rs 1.0.0-rc.1 candidate
+
+- Candidate cryptographic crates: `pqc-rs-core`, `pqc-rs-ml-kem`,
+  `pqc-rs-ml-dsa`, `pqc-rs-slh-dsa`, and `pqc-rs-hpke`.
+- Candidate version: `1.0.0-rc.1`.
+- Compatibility contract:
+  [`docs/api/PQC_RS_1_0_SEMVER_CONTRACT.md`](api/PQC_RS_1_0_SEMVER_CONTRACT.md).
+- Release record:
+  [`docs/release/V1.0.0_RC1.md`](release/V1.0.0_RC1.md).
+- Publication status: pending final candidate validation and registry
+  publication.
+- PQC-Forge/application crates remain separately versioned.
+- Standalone `pqc-rs-hybrid` remains deferred beyond the 1.0 boundary.
+
 ## Current published baseline
 
 The current independently published cryptographic crates are:

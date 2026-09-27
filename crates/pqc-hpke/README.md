@@ -106,9 +106,9 @@ and servers with explicit serialization and framing.
 
 ## Status
 
-This is a pre-1.0 cryptographic library. Review the repository security policy,
-standards traceability, release audits, and interoperability evidence before
-production deployment.
+This crate is in the PQC-rs `1.0.0-rc.1` release-candidate cycle. Review the
+repository security policy, standards traceability, release audits, and
+interoperability evidence before production deployment.
 
 ## License
 
