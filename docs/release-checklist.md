@@ -48,14 +48,21 @@ later crate is published independently.
 
 ## Current published baseline
 
-The following crates are published on crates.io at `0.4.0`:
+The current independently published cryptographic crates are:
 
-- `pqc-rs-core`
-- `pqc-rs-ml-kem`
-- `pqc-rs-ml-dsa`
-- `pqc-rs-hpke`
+- `pqc-rs-core` `0.5.0`;
+- `pqc-rs-ml-kem` `0.4.1`;
+- `pqc-rs-ml-dsa` `0.4.0`;
+- `pqc-rs-slh-dsa` `0.5.0`; and
+- `pqc-rs-hpke` `0.4.1`.
 
-`pqc-rs-hybrid` and `pqc-rs-test-harness` remain unpublished.
+These independent pre-1.0 versions record each crate's publication history.
+They are the baseline from which the coordinated PQC-rs 1.0 cryptographic
+release line is prepared.
+
+`pqc-rs-hybrid` and `pqc-rs-test-harness` remain unpublished. PQC-Forge and
+application-layer workspace crates are outside the PQC-rs 1.0 cryptographic
+compatibility boundary and are released separately.
 
 ## Open assurance and maintenance work
 

@@ -6,6 +6,7 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Conformance, interoperability, vector, and assurance support infrastructure for PQC-rs."
+publish = false
 readme = "README.md"
 categories = ["cryptography", "development-tools::testing"]
 keywords = ["post-quantum", "cryptography", "testing", "pqc", "rust"]
