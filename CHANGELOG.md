@@ -137,6 +137,7 @@ The project follows the principles of Keep a Changelog and intends to adopt Sema
 - Added environment and toolchain provenance capture for reproducible benchmark campaigns.
 - Added `cargo xtask performance-audit --check` and benchmark smoke enforcement in CI.
 
-[Unreleased]: https://github.com/Confidential-Intelligence-Lab/pqc-rs/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/Confidential-Intelligence-Lab/pqc-rs/compare/v1.0.0-rc.1...HEAD
+[1.0.0-rc.1]: https://github.com/Confidential-Intelligence-Lab/pqc-rs/releases/tag/v1.0.0-rc.1
 [0.4.0]: https://github.com/Confidential-Intelligence-Lab/pqc-rs/compare/v0.4.0-rc.1...v0.4.0
 [0.4.0-rc.1]: https://github.com/Confidential-Intelligence-Lab/pqc-rs/releases/tag/v0.4.0-rc.1

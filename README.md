@@ -128,10 +128,9 @@ another.
 
 ## Get started
 
-The five PQC-rs cryptographic-foundation crates are prepared in this repository
-at `1.0.0-rc.1`. The currently published crates.io versions remain the
-independent pre-1.0 baselines until the coordinated release candidate is
-published. PQC-Forge/application crates remain separately versioned.
+The five PQC-rs cryptographic-foundation crates are published at
+`1.0.0-rc.1` as the first coordinated 1.0 release candidate.
+PQC-Forge/application crates remain separately versioned.
 
 The supported 1.x compatibility boundary is defined by the
 [`PQC-rs 1.0 SemVer contract`](docs/api/PQC_RS_1_0_SEMVER_CONTRACT.md).
@@ -155,7 +154,7 @@ Add only the crates required by your application. For example:
 
 ```toml
 [dependencies]
-# Use these versions after the coordinated release candidate is published.
+# Coordinated PQC-rs 1.0 release-candidate versions.
 pqc-rs-ml-kem = "1.0.0-rc.1"
 pqc-rs-ml-dsa = "1.0.0-rc.1"
 pqc-rs-slh-dsa = "1.0.0-rc.1"
