@@ -14,8 +14,10 @@ pub enum HpkeMode {
     /// PSK mode.
     Psk = 0x01,
     /// Auth mode.
+    #[cfg(feature = "internal-api")]
     Auth = 0x02,
     /// AuthPSK mode.
+    #[cfg(feature = "internal-api")]
     AuthPsk = 0x03,
 }
 
@@ -26,7 +28,12 @@ impl HpkeMode {
     }
 
     const fn requires_psk(self) -> bool {
-        matches!(self, Self::Psk | Self::AuthPsk)
+        match self {
+            Self::Psk => true,
+            #[cfg(feature = "internal-api")]
+            Self::AuthPsk => true,
+            _ => false,
+        }
     }
 }
 
@@ -89,8 +96,10 @@ pub struct KeyScheduleOutput {
     /// Exporter secret.
     pub exporter_secret: SecretVec,
     /// Serialized key-schedule context.
+    #[cfg(any(feature = "internal-api", test))]
     pub key_schedule_context: Vec<u8>,
     /// Intermediate secret retained for validation.
+    #[cfg(any(feature = "internal-api", test))]
     pub secret: SecretVec,
 }
 
@@ -165,7 +174,9 @@ pub fn key_schedule(
         base_nonce,
         sequence_number: 0,
         exporter_secret: SecretVec::new(exporter_secret),
+        #[cfg(any(feature = "internal-api", test))]
         key_schedule_context,
+        #[cfg(any(feature = "internal-api", test))]
         secret: SecretVec::new(secret),
     })
 }

@@ -51,14 +51,21 @@
 //! locally; future examples will introduce separate processes and explicit
 //! transport serialization.
 //!
-pub mod aead;
+mod aead;
 pub mod context;
 pub mod error;
 pub mod hybrid_kem;
 pub mod hybrid_setup;
 pub mod identifiers;
-pub mod kdf;
-pub mod key_schedule;
+
+/// Unstable engineering and interoperability API.
+///
+/// This surface is feature-gated and excluded from the crate's SemVer
+/// compatibility commitment.
+#[cfg(feature = "internal-api")]
+pub mod internal_api;
+mod kdf;
+mod key_schedule;
 pub mod ml_kem;
 pub mod setup;
 pub mod suite;

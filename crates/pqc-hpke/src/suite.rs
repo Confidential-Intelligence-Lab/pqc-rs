@@ -54,17 +54,17 @@ impl HpkeSuite {
     }
 
     /// Return the resolved KDF implementation.
-    pub const fn kdf(self) -> KdfAlgorithm {
+    pub(crate) const fn kdf(self) -> KdfAlgorithm {
         self.kdf
     }
 
     /// Return the resolved AEAD implementation.
-    pub const fn aead(self) -> AeadAlgorithm {
+    pub(crate) const fn aead(self) -> AeadAlgorithm {
         self.aead
     }
 
     /// Return the AEAD key and nonce dimensions.
-    pub const fn aead_parameters(self) -> AeadParameters {
+    pub(crate) const fn aead_parameters(self) -> AeadParameters {
         self.aead_parameters
     }
 }

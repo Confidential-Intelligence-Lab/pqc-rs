@@ -2,11 +2,16 @@
 
 use rand_core::{CryptoRng, RngCore};
 
+#[cfg(feature = "internal-api")]
 use crate::aead::AeadAlgorithm;
 use crate::context::{ReceiverContext, SenderContext};
 use crate::identifiers::HpkeSuiteId;
+#[cfg(feature = "internal-api")]
 use crate::kdf::KdfAlgorithm;
-use crate::key_schedule::{key_schedule, AeadParameters, HpkeMode, KeyScheduleInputs};
+use crate::key_schedule::{key_schedule, HpkeMode, KeyScheduleInputs};
+
+#[cfg(feature = "internal-api")]
+use crate::key_schedule::AeadParameters;
 use crate::ml_kem::{MlKemHpke, MlKemHpkeError};
 use crate::suite::HpkeSuite;
 use crate::HpkeError;
@@ -99,7 +104,8 @@ pub fn setup_base_sender_deterministic(
 ///
 /// This entry point is intended for interoperability harnesses and protocol
 /// integrations that obtain the KEM shared secret from an external provider.
-pub fn setup_base_sender_from_shared_secret(
+#[cfg(feature = "internal-api")]
+pub(crate) fn setup_base_sender_from_shared_secret(
     suite: HpkeSuiteId,
     shared_secret: &[u8],
     info: &[u8],
@@ -126,7 +132,8 @@ pub fn setup_base_sender_from_shared_secret(
 ///
 /// This is the receiver-side counterpart to
 /// [`setup_base_sender_from_shared_secret`].
-pub fn setup_base_receiver_from_shared_secret(
+#[cfg(feature = "internal-api")]
+pub(crate) fn setup_base_receiver_from_shared_secret(
     suite: HpkeSuiteId,
     shared_secret: &[u8],
     info: &[u8],

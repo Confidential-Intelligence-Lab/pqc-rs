@@ -16,6 +16,7 @@ std = ["pqc-core/std"]
 alloc = ["pqc-core/alloc"]
 acvp = ["pqc-core/acvp"]
 bench = ["pqc-core/bench"]
+internal-api = []
 
 [dependencies]
 pqc-core = { workspace = true }
