@@ -768,14 +768,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pqc-rs-hybrid"
-version = "0.4.0"
-dependencies = [
- "pqc-rs-core",
- "rand_core",
-]
-
-[[package]]
 name = "pqc-rs-ml-dsa"
 version = "0.4.0"
 dependencies = [
