@@ -144,6 +144,7 @@ pub fn encode_w1(poly: &Poly, gamma2: Gamma2) -> Result<Vec<u8>, EncodingError> 
 }
 
 /// Strictly decode a `w1` polynomial for the selected `gamma2`.
+#[cfg(feature = "internal-api")]
 pub fn decode_w1(input: &[u8], gamma2: Gamma2) -> Result<Poly, EncodingError> {
     match gamma2 {
         Gamma2::QMinusOneOver88 => decode_unsigned(input, 6, POLY_W1_88_BYTES, 44),

@@ -14,16 +14,15 @@ pub const Q: i16 = 3329;
 pub const MONTGOMERY_R: i32 = 1 << 16;
 
 /// `R mod Q`.
+#[cfg(test)]
 pub const MONTGOMERY_R_MOD_Q: i16 = 2285;
 
 /// `R^-1 mod Q`.
+#[cfg(test)]
 pub const MONTGOMERY_R_INV_MOD_Q: i16 = 169;
 
 /// `-Q^-1 mod 2^16`, used by word-level Montgomery reduction.
 pub const MONTGOMERY_QINV: i32 = 3327;
-
-/// Barrett reduction multiplier for q = 3329.
-pub const BARRETT_V: i32 = 20159;
 
 /// Reduce an integer modulo `Q` into `[0, Q)`.
 pub fn reduce(x: i32) -> i16 {
@@ -35,6 +34,7 @@ pub fn reduce(x: i32) -> i16 {
 }
 
 /// Center an integer modulo `Q` into approximately `[-Q/2, Q/2]`.
+#[cfg(test)]
 pub fn reduce_centered(x: i32) -> i16 {
     let r = i32::from(reduce(x));
     if r > i32::from(Q) / 2 {
@@ -48,6 +48,7 @@ pub fn reduce_centered(x: i32) -> i16 {
 ///
 /// This function currently delegates to canonical reduction. The public API is
 /// stable; the optimized bounded Barrett path can replace the body later.
+#[cfg(test)]
 pub fn barrett_reduce(x: i32) -> i16 {
     reduce(x)
 }
@@ -56,6 +57,7 @@ pub fn barrett_reduce(x: i32) -> i16 {
 ///
 /// This follows the `u = a * (-q^-1) mod R; (a + u*q) / R` form and returns a
 /// canonical representative in `[0, Q)`.
+#[cfg(any(test, feature = "internal-api"))]
 pub fn montgomery_reduce(a: i32) -> i16 {
     let u = (i64::from(a) * i64::from(MONTGOMERY_QINV)) & 0xffff;
     let t = (i64::from(a) + u * i64::from(Q)) >> 16;
@@ -68,11 +70,13 @@ pub fn to_montgomery(x: i16) -> i16 {
 }
 
 /// Convert a Montgomery-domain coefficient back to standard representation.
+#[cfg(test)]
 pub fn from_montgomery(x: i16) -> i16 {
     montgomery_reduce(i32::from(x))
 }
 
 /// Multiply two Montgomery-domain values and return a Montgomery-domain value.
+#[cfg(any(test, feature = "internal-api"))]
 pub fn montgomery_mul(a: i16, b: i16) -> i16 {
     montgomery_reduce(i32::from(a) * i32::from(b))
 }
@@ -88,6 +92,7 @@ pub fn sub(a: i16, b: i16) -> i16 {
 }
 
 /// Multiply two field elements modulo `Q`.
+#[cfg(any(test, feature = "internal-api"))]
 pub fn mul(a: i16, b: i16) -> i16 {
     reduce(i32::from(a) * i32::from(b))
 }

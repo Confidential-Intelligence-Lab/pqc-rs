@@ -1,4 +1,4 @@
-use pqc_ml_kem::ml_kem_decaps::decaps_internal;
+use pqc_ml_kem::integration::decaps;
 use pqc_ml_kem::MlKemParameterSet;
 use pqc_test_harness::acvp::NIST_ACVP_SOURCE;
 use pqc_test_harness::acvp_encap_decap::{
@@ -106,7 +106,7 @@ fn execute_case(case: &EncapDecapCase) -> Result<(), String> {
         .as_deref()
         .ok_or_else(|| format_case_error(case, "missing expected shared secret"))?;
 
-    let actual = decaps_internal(parameter_set, dk, ciphertext)
+    let actual = decaps(parameter_set, dk, ciphertext)
         .map_err(|error| format_case_error(case, &format!("{error:?}")))?;
 
     if actual.shared_secret.as_bytes() != expected {

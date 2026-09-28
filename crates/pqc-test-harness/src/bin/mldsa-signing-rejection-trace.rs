@@ -8,9 +8,9 @@ use std::{
 };
 
 use pqc_ml_dsa::{
-    keygen::keygen_internal,
+    internal_api::keygen::keygen_internal,
+    internal_api::signature::{clear_signing_trace, sign_internal, signing_trace},
     params::MlDsaParameterSet,
-    signature::{clear_signing_trace, sign_internal, signing_trace},
 };
 use sha3::{
     digest::{ExtendableOutput, Update, XofReader},

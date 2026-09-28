@@ -12,27 +12,27 @@ use crate::error::{PqcError, PqcResult};
 
 /// Public-key bytes.
 #[derive(Clone, Eq, PartialEq)]
-pub struct PublicKeyBytes<const N: usize>(pub [u8; N]);
+pub struct PublicKeyBytes<const N: usize>([u8; N]);
 
 /// Secret-key bytes. Zeroized on drop.
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
-pub struct SecretKeyBytes<const N: usize>(pub [u8; N]);
+pub struct SecretKeyBytes<const N: usize>([u8; N]);
 
 /// Ciphertext bytes.
 #[derive(Clone, Eq, PartialEq)]
-pub struct CiphertextBytes<const N: usize>(pub [u8; N]);
+pub struct CiphertextBytes<const N: usize>([u8; N]);
 
 /// Shared-secret bytes. Zeroized on drop and compared in constant time.
 #[derive(Clone, Zeroize, ZeroizeOnDrop)]
-pub struct SharedSecretBytes<const N: usize>(pub [u8; N]);
+pub struct SharedSecretBytes<const N: usize>([u8; N]);
 
 /// Signature bytes.
 #[derive(Clone, Eq, PartialEq)]
-pub struct SignatureBytes<const N: usize>(pub [u8; N]);
+pub struct SignatureBytes<const N: usize>([u8; N]);
 
 /// Signature or protocol context bytes.
 #[derive(Clone, Eq, PartialEq)]
-pub struct ContextBytes<const N: usize>(pub [u8; N]);
+pub struct ContextBytes<const N: usize>([u8; N]);
 
 macro_rules! impl_public_like {
     ($name:ident) => {

@@ -8,10 +8,10 @@ use sha3::{
 };
 use x25519_dalek::{PublicKey as X25519PublicKey, StaticSecret};
 
-use pqc_ml_kem::ml_kem_decaps::decaps_internal;
-use pqc_ml_kem::ml_kem_encaps::encaps_internal;
-use pqc_ml_kem::ml_kem_keygen::{ml_kem_1024_keygen_internal, ml_kem_768_keygen_internal};
-use pqc_ml_kem::MlKemParameterSet;
+use pqc_ml_kem::{
+    integration::{decaps, encaps, keygen_1024, keygen_768},
+    MlKemParameterSet,
+};
 
 use crate::identifiers::{KemId, KemSuiteId};
 
@@ -195,16 +195,14 @@ impl HybridKem {
 
         match self {
             Self::MlKem768P256 | Self::MlKem768X25519 => {
-                let output =
-                    ml_kem_768_keygen_internal(&d, &z).map_err(|_| HybridKemError::PqOperation)?;
+                let output = keygen_768(&d, &z).map_err(|_| HybridKemError::PqOperation)?;
                 Ok((
                     output.encapsulation_key.to_vec(),
                     output.decapsulation_key.to_vec(),
                 ))
             }
             Self::MlKem1024P384 => {
-                let output =
-                    ml_kem_1024_keygen_internal(&d, &z).map_err(|_| HybridKemError::PqOperation)?;
+                let output = keygen_1024(&d, &z).map_err(|_| HybridKemError::PqOperation)?;
                 Ok((
                     output.encapsulation_key.to_vec(),
                     output.decapsulation_key.to_vec(),
@@ -218,7 +216,7 @@ impl HybridKem {
         public_key: &[u8],
         randomness: &[u8; 32],
     ) -> Result<(Vec<u8>, Vec<u8>), HybridKemError> {
-        let output = encaps_internal(self.parameter_set(), public_key, randomness)
+        let output = encaps(self.parameter_set(), public_key, randomness)
             .map_err(|_| HybridKemError::PqOperation)?;
         Ok((output.shared_secret.as_bytes().to_vec(), output.ciphertext))
     }
@@ -228,7 +226,7 @@ impl HybridKem {
         private_key: &[u8],
         ciphertext: &[u8],
     ) -> Result<Vec<u8>, HybridKemError> {
-        let output = decaps_internal(self.parameter_set(), private_key, ciphertext)
+        let output = decaps(self.parameter_set(), private_key, ciphertext)
             .map_err(|_| HybridKemError::PqOperation)?;
         Ok(output.shared_secret.as_bytes().to_vec())
     }

@@ -31,32 +31,47 @@
 //!
 extern crate alloc;
 
-pub mod arithmetic;
-pub mod conformance;
-pub mod encoding;
-pub mod fips_ntt;
-pub mod intermediate_values;
-pub mod kpke;
-pub mod kpke_arithmetic;
-pub mod kpke_decrypt;
-pub mod kpke_encrypt;
-pub mod kpke_keygen;
-pub mod kpke_ntt_domain;
-pub mod kpke_structural;
-pub mod matrix;
-pub mod ml_kem_decaps;
-pub mod ml_kem_encaps;
-pub mod ml_kem_key_check;
-pub mod ml_kem_keygen;
-#[cfg(feature = "std")]
-pub mod ml_kem_trace;
-pub mod ntt;
-pub mod packing;
-pub mod poly;
-pub mod polyvec;
-pub mod sampling;
-pub mod symmetric;
-pub mod zetas;
+mod arithmetic;
+#[cfg(feature = "internal-api")]
+mod conformance;
+mod encoding;
+mod fips_ntt;
+#[cfg(test)]
+mod intermediate_values;
+
+/// Protocol-integration primitives for deterministic ML-KEM composition.
+///
+/// This module exposes the FIPS 203 deterministic operations needed by
+/// higher-level protocols such as HPKE. Application code should normally
+/// use [`MlKem512`], [`MlKem768`], or [`MlKem1024`] instead.
+pub mod integration;
+
+#[cfg(feature = "internal-api")]
+pub mod internal_api;
+mod kpke;
+#[cfg(test)]
+mod kpke_arithmetic;
+mod kpke_decrypt;
+mod kpke_encrypt;
+mod kpke_keygen;
+mod kpke_ntt_domain;
+#[cfg(test)]
+mod kpke_structural;
+mod matrix;
+mod ml_kem_decaps;
+mod ml_kem_encaps;
+mod ml_kem_key_check;
+mod ml_kem_keygen;
+#[cfg(all(feature = "std", feature = "internal-api"))]
+mod ml_kem_trace;
+#[cfg(test)]
+mod ntt;
+mod packing;
+mod poly;
+mod polyvec;
+mod sampling;
+mod symmetric;
+mod zetas;
 
 use pqc_core::{
     CiphertextBytes, Kem, PqcError, PqcResult, PublicKeyBytes, SecretKeyBytes, SharedSecretBytes,

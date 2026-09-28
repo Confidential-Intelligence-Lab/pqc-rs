@@ -1,7 +1,7 @@
 #![cfg(feature = "internal-api")]
 
+use pqc_ml_dsa::internal_api::sample::{sample_eta_poly, sample_eta_polyvec, SamplingError};
 use pqc_ml_dsa::params::MlDsaParameterSet;
-use pqc_ml_dsa::sample::{sample_eta_poly, sample_eta_polyvec, SamplingError};
 
 #[test]
 fn eta2_samples_are_deterministic_and_bounded() {

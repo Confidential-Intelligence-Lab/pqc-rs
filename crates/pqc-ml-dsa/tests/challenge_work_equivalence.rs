@@ -1,8 +1,9 @@
 #![cfg(feature = "internal-api")]
 
 use pqc_ml_dsa::{
-    audit::multiply_challenge_counted, challenge::sample_in_ball_bytes, constants::N, poly::Poly,
-    signing_core::multiply_challenge,
+    internal_api::audit::multiply_challenge_counted, internal_api::challenge::sample_in_ball_bytes,
+    internal_api::constants::N, internal_api::poly::Poly,
+    internal_api::signing_core::multiply_challenge,
 };
 
 fn polynomial(tag: i32) -> Poly {
@@ -32,7 +33,7 @@ fn counted_result_matches_production_implementation() {
 #[test]
 fn total_work_is_identical_across_support_patterns() {
     let polynomial = polynomial(29);
-    let mut reference: Option<pqc_ml_dsa::audit::ChallengeMultiplyCounts> = None;
+    let mut reference: Option<pqc_ml_dsa::internal_api::audit::ChallengeMultiplyCounts> = None;
 
     for seed_byte in 0_u8..64 {
         let challenge = sample_in_ball_bytes(&[seed_byte; 32], 39).unwrap();

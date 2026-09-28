@@ -1,12 +1,12 @@
 #![cfg(feature = "internal-api")]
 
-use pqc_ml_dsa::constants::N;
-use pqc_ml_dsa::encoding::{
+use pqc_ml_dsa::internal_api::constants::N;
+use pqc_ml_dsa::internal_api::encoding::{
     decode_eta, decode_t0, decode_t1, decode_w1, decode_z, encode_eta, encode_t0, encode_t1,
     encode_w1, encode_z, EncodingError,
 };
-use pqc_ml_dsa::poly::Poly;
-use pqc_ml_dsa::rounding::{Gamma2, D};
+use pqc_ml_dsa::internal_api::poly::Poly;
+use pqc_ml_dsa::internal_api::rounding::{Gamma2, D};
 
 #[test]
 fn coefficient_encodings_round_trip() {

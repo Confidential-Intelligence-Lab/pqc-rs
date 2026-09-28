@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, env, fs, path::Path};
 
 use pqc_ml_dsa::{
-    hash_mldsa::{hash_verify, PreHashAlgorithm},
+    internal_api::hash_mldsa::{hash_verify, PreHashAlgorithm},
     params::MlDsaParameterSet,
 };
 use serde_json::{json, Map, Value};

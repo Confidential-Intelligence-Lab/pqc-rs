@@ -1,7 +1,7 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use pqc_ml_kem::ml_kem_decaps::decaps_internal;
+use pqc_ml_kem::integration::decaps;
 use pqc_ml_kem::MlKemParameterSet;
 
 struct Dimensions {
@@ -36,11 +36,11 @@ fuzz_target!(|data: &[u8]| {
 
     if payload.len() < dimensions.dk + dimensions.ct {
         let split = payload.len().min(dimensions.dk);
-        let _ = decaps_internal(set, &payload[..split], &payload[split..]);
+        let _ = decaps(set, &payload[..split], &payload[split..]);
         return;
     }
 
     let dk = &payload[..dimensions.dk];
     let ct = &payload[dimensions.dk..dimensions.dk + dimensions.ct];
-    let _ = decaps_internal(set, dk, ct);
+    let _ = decaps(set, dk, ct);
 });

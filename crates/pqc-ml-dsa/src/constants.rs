@@ -6,9 +6,6 @@ pub const N: usize = 256;
 /// ML-DSA prime modulus.
 pub const Q: i32 = 8_380_417;
 
-/// Montgomery factor `2^32 mod Q`.
-pub const MONT: i32 = -4_186_625;
-
 /// `Q^{-1} mod 2^32` represented for Montgomery reduction.
 pub const Q_INV: i32 = 58_728_449;
 

@@ -6,6 +6,7 @@ license.workspace = true
 repository.workspace = true
 rust-version.workspace = true
 description = "Conformance, interoperability, vector, and assurance support infrastructure for PQC-rs."
+publish = false
 readme = "README.md"
 categories = ["cryptography", "development-tools::testing"]
 keywords = ["post-quantum", "cryptography", "testing", "pqc", "rust"]
@@ -20,14 +21,14 @@ bench = ["pqc-core/bench"]
 
 [dependencies]
 pqc-core = { workspace = true, features = ["std"] }
-pqc-ml-kem = { workspace = true, features = ["std"] }
+pqc-ml-kem = { workspace = true, features = ["std", "internal-api"] }
 rand_core = { workspace = true }
 hex = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-pqc-hpke = { workspace = true }
+pqc-hpke = { workspace = true, features = ["internal-api"] }
 pqc-ml-dsa = { workspace = true, features = ["internal-api"] }
-pqc-slh-dsa = { package = "pqc-rs-slh-dsa", version = "0.5.0", path = "../pqc-slh-dsa", features = ["internal-api"] }
+pqc-slh-dsa = { workspace = true, features = ["internal-api"] }
 sha3 = { workspace = true }
 
 [lib]

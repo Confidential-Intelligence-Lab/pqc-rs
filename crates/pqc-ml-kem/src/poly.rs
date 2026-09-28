@@ -1,6 +1,9 @@
 //! Polynomial representation and byte encoding helpers for ML-KEM.
 
-use crate::arithmetic::{add, compress_coefficient, decompress_coefficient, mul, reduce, sub, N};
+use crate::arithmetic::{add, compress_coefficient, decompress_coefficient, reduce, sub, N};
+
+#[cfg(any(test, feature = "internal-api"))]
+use crate::arithmetic::mul;
 
 /// Polynomial in `Z_q[x] / (x^256 + 1)`.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -56,6 +59,7 @@ impl Poly {
     ///
     /// This is a correctness-oriented portable baseline. Stage 4 should replace
     /// high-throughput paths with NTT-based multiplication.
+    #[cfg(any(test, feature = "internal-api"))]
     pub fn mul_schoolbook(&self, rhs: &Self) -> Self {
         let mut acc = [0i32; N];
 

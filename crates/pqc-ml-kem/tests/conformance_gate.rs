@@ -1,5 +1,7 @@
+#![cfg(feature = "internal-api")]
+
 use pqc_core::Decode;
-use pqc_ml_kem::conformance::{parameter_set_status, ConformanceLevel, COMPONENT_STATUS};
+use pqc_ml_kem::internal_api::{parameter_set_status, ConformanceLevel, COMPONENT_STATUS};
 use pqc_ml_kem::{
     MlKem1024PublicKey, MlKem512PublicKey, MlKem768PublicKey, MlKemParameterSet,
     ML_KEM_1024_PUBLIC_KEY_BYTES, ML_KEM_512_PUBLIC_KEY_BYTES, ML_KEM_768_PUBLIC_KEY_BYTES,

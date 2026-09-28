@@ -46,12 +46,8 @@ impl PolyVec {
         &self.polys[..self.rank]
     }
 
-    /// Mutable active polynomial slice.
-    pub fn as_mut_slice(&mut self) -> &mut [Poly] {
-        &mut self.polys[..self.rank]
-    }
-
     /// Add two polynomial vectors of equal rank.
+    #[cfg(test)]
     pub fn add(&self, rhs: &Self) -> Self {
         assert_eq!(self.rank, rhs.rank);
 
@@ -65,6 +61,7 @@ impl PolyVec {
     }
 
     /// Dot product using schoolbook polynomial multiplication.
+    #[cfg(test)]
     pub fn dot_schoolbook(&self, rhs: &Self) -> Poly {
         assert_eq!(self.rank, rhs.rank);
 
@@ -75,22 +72,6 @@ impl PolyVec {
             i += 1;
         }
         acc
-    }
-
-    /// Encode as concatenated 12-bit polynomials.
-    pub fn encode_12<const BYTES: usize>(&self) -> [u8; BYTES] {
-        let expected = self.rank * 384;
-        assert_eq!(BYTES, expected);
-
-        let mut out = [0u8; BYTES];
-        let mut i = 0;
-        while i < self.rank {
-            let encoded = self.polys[i].encode_12();
-            let start = i * 384;
-            out[start..start + 384].copy_from_slice(&encoded);
-            i += 1;
-        }
-        out
     }
 }
 

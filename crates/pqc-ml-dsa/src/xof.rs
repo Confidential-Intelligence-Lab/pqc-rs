@@ -79,16 +79,19 @@ impl ExpandMaskReader {
 }
 
 /// Expand bytes for `ExpandA`.
+#[cfg(feature = "internal-api")]
 pub fn expand_a_bytes(rho: &[u8; RHO_BYTES], row: u8, column: u8, output: &mut [u8]) {
     ExpandAReader::new(rho, row, column).read(output);
 }
 
 /// Expand bytes for `ExpandS`.
+#[cfg(feature = "internal-api")]
 pub fn expand_s_bytes(rho_prime: &[u8; RHO_PRIME_BYTES], nonce: u16, output: &mut [u8]) {
     ExpandSReader::new(rho_prime, nonce).read(output);
 }
 
 /// Expand bytes for `ExpandMask`.
+#[cfg(feature = "internal-api")]
 pub fn expand_mask_bytes(
     rho_double_prime: &[u8; RHO_DOUBLE_PRIME_BYTES],
     nonce: u16,

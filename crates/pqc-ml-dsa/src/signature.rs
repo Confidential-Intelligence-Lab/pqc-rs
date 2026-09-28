@@ -34,17 +34,20 @@ impl SigningTrace {
     }
 
     /// Return the total number of rejected attempts.
+    #[cfg(feature = "internal-api")]
     pub const fn total_rejections(self) -> u64 {
         self.reject_z + self.reject_r0 + self.reject_ct0 + self.reject_hint
     }
 }
 
 /// Reset the thread-local signing trace.
+#[cfg(feature = "internal-api")]
 pub fn clear_signing_trace() {
     SIGNING_TRACE.with(|trace| trace.set(SigningTrace::new()));
 }
 
 /// Read the thread-local signing trace.
+#[cfg(feature = "internal-api")]
 pub fn signing_trace() -> SigningTrace {
     SIGNING_TRACE.with(Cell::get)
 }
@@ -99,9 +102,12 @@ use crate::params::MlDsaParameterSet;
 use crate::poly::Poly;
 use crate::rounding::low_bits;
 use crate::signing::{
-    prepare_internal_signing, prepare_signing, prepare_signing_from_mu, sample_mask_vector,
-    SigningError, SigningPreparation, SIGNING_RANDOMNESS_BYTES,
+    prepare_internal_signing, prepare_signing, sample_mask_vector, SigningError,
+    SigningPreparation, SIGNING_RANDOMNESS_BYTES,
 };
+
+#[cfg(feature = "internal-api")]
+use crate::signing::prepare_signing_from_mu;
 
 #[cfg(feature = "internal-api")]
 use crate::signing::{
@@ -185,6 +191,7 @@ pub fn sign_internal_message(
 }
 
 /// Generate a signature through `ML-DSA.Sign_internal` from supplied `mu`.
+#[cfg(feature = "internal-api")]
 pub fn sign_internal_mu(
     parameter_set: MlDsaParameterSet,
     encoded_private_key: &[u8],

@@ -1,11 +1,11 @@
 #![cfg(feature = "internal-api")]
 
-use pqc_ml_dsa::keygen::keygen_internal;
-use pqc_ml_dsa::params::MlDsaParameterSet;
-use pqc_ml_dsa::signature::sign_internal;
-use pqc_ml_dsa::verification::{
+use pqc_ml_dsa::internal_api::keygen::keygen_internal;
+use pqc_ml_dsa::internal_api::signature::sign_internal;
+use pqc_ml_dsa::internal_api::verification::{
     decode_hint_vector, decode_public_key, decode_signature, verify_internal, VerificationError,
 };
+use pqc_ml_dsa::params::MlDsaParameterSet;
 
 #[test]
 fn generated_signatures_verify_for_all_parameter_sets() {

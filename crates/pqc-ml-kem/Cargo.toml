@@ -1,6 +1,6 @@
 [package]
 name = "pqc-rs-ml-kem"
-version = "0.4.1"
+version = "1.0.0-rc.1"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
@@ -16,6 +16,7 @@ std = ["pqc-core/std", "sha3/std"]
 alloc = ["pqc-core/alloc"]
 acvp = ["pqc-core/acvp"]
 bench = ["pqc-core/bench"]
+internal-api = []
 
 [dependencies]
 pqc-core = { workspace = true }
@@ -36,3 +37,7 @@ harness = false
 
 [lib]
 name = "pqc_ml_kem"
+
+[[example]]
+name = "p3_4e_production_matrix_profile"
+required-features = ["internal-api"]

@@ -6,11 +6,14 @@
 //! `intt` function removes that factor to provide an ordinary round trip.
 
 #[cfg(feature = "std")]
+#[cfg(any(test, feature = "internal-api"))]
 use crate::arithmetic::montgomery_mul;
 use crate::arithmetic::{
-    add_bounded, from_montgomery, montgomery_mul_bounded, montgomery_mul_centered_bounded, reduce,
-    sub_bounded, N,
+    add_bounded, montgomery_mul_bounded, montgomery_mul_centered_bounded, reduce, sub_bounded, N,
 };
+
+#[cfg(test)]
+use crate::arithmetic::from_montgomery;
 
 use crate::poly::Poly;
 use crate::zetas::ZETAS;
@@ -75,7 +78,7 @@ pub fn ntt(poly: &Poly) -> FipsNttPoly {
 ///
 /// This preserves the same canonical coefficient representation as `ntt`;
 /// only the reduction method for butterfly addition and subtraction differs.
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "internal-api"))]
 pub fn ntt_bounded(poly: &Poly) -> FipsNttPoly {
     let mut r = *poly.coefficients();
     let mut k = 1usize;
@@ -224,7 +227,7 @@ pub fn invntt_tomont(poly: &FipsNttPoly) -> Poly {
 /// This preserves the same canonical coefficient representation as
 /// `invntt_tomont`; only the reduction method for butterfly addition and
 /// subtraction differs.
-#[cfg(feature = "std")]
+#[cfg(all(feature = "std", feature = "internal-api"))]
 pub fn invntt_tomont_bounded(poly: &FipsNttPoly) -> Poly {
     let mut r = *poly.coefficients();
     let mut k = 127usize;
@@ -269,6 +272,7 @@ pub fn invntt_tomont_bounded(poly: &FipsNttPoly) -> Poly {
 
 /// Diagnostic forward NTT using bounded addition/subtraction and bounded
 /// Montgomery multiplication for centered twiddle factors.
+#[cfg(feature = "internal-api")]
 pub fn ntt_bounded_montgomery(poly: &Poly) -> FipsNttPoly {
     let mut r = *poly.coefficients();
     let mut k = 1usize;
@@ -304,6 +308,7 @@ pub fn ntt_bounded_montgomery(poly: &Poly) -> FipsNttPoly {
 
 /// Diagnostic inverse NTT using bounded addition/subtraction and bounded
 /// Montgomery multiplication.
+#[cfg(feature = "internal-api")]
 pub fn invntt_tomont_bounded_montgomery(poly: &FipsNttPoly) -> Poly {
     let mut r = *poly.coefficients();
     let mut k = 127usize;
@@ -351,6 +356,7 @@ pub fn invntt_tomont_bounded_montgomery(poly: &FipsNttPoly) -> Poly {
 /// arithmetic.
 ///
 /// Inputs are canonical NTT coefficients; `zeta` is centered.
+#[cfg(feature = "internal-api")]
 pub fn basemul_bounded(a0: i16, a1: i16, b0: i16, b1: i16, zeta: i16) -> (i16, i16) {
     let mut c0 = montgomery_mul_bounded(a1, b1);
 
@@ -368,6 +374,7 @@ pub fn basemul_bounded(a0: i16, a1: i16, b0: i16, b1: i16, zeta: i16) -> (i16, i
 
 /// Diagnostic complete polynomial base multiplication using bounded
 /// Montgomery arithmetic.
+#[cfg(feature = "internal-api")]
 pub fn basemul_polynomials_bounded(lhs: &FipsNttPoly, rhs: &FipsNttPoly) -> FipsNttPoly {
     let a = lhs.coefficients();
     let b = rhs.coefficients();
@@ -401,6 +408,7 @@ pub fn basemul_polynomials_bounded(lhs: &FipsNttPoly, rhs: &FipsNttPoly) -> Fips
 }
 
 /// Compute an ordinary inverse transform by removing the Montgomery factor.
+#[cfg(test)]
 pub fn intt(poly: &FipsNttPoly) -> Poly {
     let mont = invntt_tomont(poly);
     let mut out = [0i16; N];
@@ -461,6 +469,7 @@ pub fn basemul_polynomials(lhs: &FipsNttPoly, rhs: &FipsNttPoly) -> FipsNttPoly 
 }
 
 /// Multiply two coefficient-domain polynomials through the ML-KEM NTT path.
+#[cfg(test)]
 pub fn multiply(lhs: &Poly, rhs: &Poly) -> Poly {
     let lhs_ntt = ntt(lhs);
     let rhs_ntt = ntt(rhs);

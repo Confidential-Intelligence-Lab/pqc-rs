@@ -8,10 +8,12 @@ to validation evidence, independent-provider interoperability, protocol
 composition, and applications—while keeping cryptographic implementations and
 execution providers replaceable behind stable boundaries.
 
-> **Status:** PQC-rs is pre-1.0 and has not been independently audited.
-> It is intended for research, evaluation, interoperability work, and
-> integration testing. Security-critical deployment requires independent
-> review and application-specific risk assessment.
+> **Status:** The PQC-rs cryptographic foundation is in its `1.0.0-rc.1`
+> release-candidate cycle and has not been independently audited. The candidate
+> compatibility boundary covers `pqc-rs-core`, `pqc-rs-ml-kem`,
+> `pqc-rs-ml-dsa`, `pqc-rs-slh-dsa`, and `pqc-rs-hpke`. Security-critical
+> deployment requires independent review and application-specific risk
+> assessment.
 
 ## Why PQC-rs?
 
@@ -126,30 +128,37 @@ another.
 
 ## Get started
 
-All project crates are published on crates.io. APIs remain pre-1.0 and may
-change before version 1.0.
+The five PQC-rs cryptographic-foundation crates are published at
+`1.0.0-rc.1` as the first coordinated 1.0 release candidate.
+PQC-Forge/application crates remain separately versioned.
+
+The supported 1.x compatibility boundary is defined by the
+[`PQC-rs 1.0 SemVer contract`](docs/api/PQC_RS_1_0_SEMVER_CONTRACT.md).
+Feature-gated `internal-api` interfaces and repository assurance tooling are
+outside that compatibility commitment.
 
 | Crate | Layer | Purpose | Version |
 |---|---|---|---|
-| [`pqc-rs-core`](https://crates.io/crates/pqc-rs-core) | PQC-rs | Core traits, byte types, errors, and secret containers | `0.5.0` |
-| [`pqc-rs-ml-kem`](https://crates.io/crates/pqc-rs-ml-kem) | PQC-rs | ML-KEM (FIPS 203) | `0.4.1` |
-| [`pqc-rs-ml-dsa`](https://crates.io/crates/pqc-rs-ml-dsa) | PQC-rs | ML-DSA (FIPS 204) | `0.4.0` |
-| [`pqc-rs-slh-dsa`](https://crates.io/crates/pqc-rs-slh-dsa) | PQC-rs | SLH-DSA (FIPS 205) | `0.5.0` |
-| [`pqc-rs-hybrid`](https://crates.io/crates/pqc-rs-hybrid) | PQC-rs | PQ/traditional hybrid composition | `0.4.0` |
-| [`pqc-rs-hpke`](https://crates.io/crates/pqc-rs-hpke) | PQC-rs | HPKE with post-quantum and hybrid KEM integration | `0.4.1` |
+| [`pqc-rs-core`](https://crates.io/crates/pqc-rs-core) | PQC-rs | Core traits, byte types, errors, and secret containers | `1.0.0-rc.1` candidate |
+| [`pqc-rs-ml-kem`](https://crates.io/crates/pqc-rs-ml-kem) | PQC-rs | ML-KEM (FIPS 203) | `1.0.0-rc.1` candidate |
+| [`pqc-rs-ml-dsa`](https://crates.io/crates/pqc-rs-ml-dsa) | PQC-rs | ML-DSA (FIPS 204) | `1.0.0-rc.1` candidate |
+| [`pqc-rs-slh-dsa`](https://crates.io/crates/pqc-rs-slh-dsa) | PQC-rs | SLH-DSA (FIPS 205) | `1.0.0-rc.1` candidate |
+| [`pqc-rs-hpke`](https://crates.io/crates/pqc-rs-hpke) | PQC-rs | HPKE with post-quantum and hybrid KEM integration | `1.0.0-rc.1` candidate |
+| `pqc-rs-hybrid` | Deferred | Standalone hybrid placeholder excluded from the 1.0 compatibility boundary | not published |
 | [`pqc-rs-protocol`](https://crates.io/crates/pqc-rs-protocol) | PQC-Forge | Negotiation, policy binding, and protocol state | `0.4.1` |
 | [`pqc-rs-secure-channel`](https://crates.io/crates/pqc-rs-secure-channel) | PQC-Forge | HPKE secure-channel resolution and activation | `0.4.0` |
 | [`pqc-rs-authentication`](https://crates.io/crates/pqc-rs-authentication) | PQC-Forge | ML-DSA challenge-response authentication | `0.4.0` |
-| [`pqc-rs-test-harness`](https://crates.io/crates/pqc-rs-test-harness) | Assurance | Conformance, interoperability, and validation infrastructure | `0.4.0` |
+| `pqc-rs-test-harness` | Assurance | Conformance, interoperability, and validation infrastructure | not published |
 
 Add only the crates required by your application. For example:
 
 ```toml
 [dependencies]
-pqc-rs-ml-kem = "0.4.1"
-pqc-rs-ml-dsa = "0.4.0"
-pqc-rs-slh-dsa = "0.5.0"
-pqc-rs-hpke = "0.4.1"
+# Coordinated PQC-rs 1.0 release-candidate versions.
+pqc-rs-ml-kem = "1.0.0-rc.1"
+pqc-rs-ml-dsa = "1.0.0-rc.1"
+pqc-rs-slh-dsa = "1.0.0-rc.1"
+pqc-rs-hpke = "1.0.0-rc.1"
 ```
 ### Try the crypto-agile secure channel
 

@@ -1,11 +1,7 @@
 use std::hint::black_box;
 use std::time::Instant;
 
-use pqc_ml_kem::{
-    arithmetic::{N, Q},
-    matrix::{expand_matrix, PolyMatrix},
-    poly::Poly,
-};
+use pqc_ml_kem::internal_api::{expand_matrix, Poly, PolyMatrix, N, Q};
 
 use sha3::{
     digest::{ExtendableOutput, Update, XofReader},
@@ -52,7 +48,7 @@ fn baseline_poly(rho: &[u8; 32], x: u8, y: u8) -> Poly {
     }
 
     while coeff_index < N {
-        coeffs[coeff_index] = pqc_ml_kem::arithmetic::reduce(coeff_index as i32);
+        coeffs[coeff_index] = pqc_ml_kem::internal_api::reduce(coeff_index as i32);
         coeff_index += 1;
     }
 

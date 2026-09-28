@@ -739,7 +739,7 @@ dependencies = [
 
 [[package]]
 name = "pqc-rs-core"
-version = "0.5.0"
+version = "1.0.0-rc.1"
 dependencies = [
  "rand_core",
  "subtle",
@@ -749,7 +749,7 @@ dependencies = [
 
 [[package]]
 name = "pqc-rs-hpke"
-version = "0.4.1"
+version = "1.0.0-rc.1"
 dependencies = [
  "aes-gcm",
  "chacha20poly1305",
@@ -768,16 +768,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "pqc-rs-hybrid"
-version = "0.4.0"
-dependencies = [
- "pqc-rs-core",
- "rand_core",
-]
-
-[[package]]
 name = "pqc-rs-ml-dsa"
-version = "0.4.0"
+version = "1.0.0-rc.1"
 dependencies = [
  "criterion",
  "pqc-rs-core",
@@ -788,7 +780,7 @@ dependencies = [
 
 [[package]]
 name = "pqc-rs-ml-kem"
-version = "0.4.1"
+version = "1.0.0-rc.1"
 dependencies = [
  "chacha20poly1305",
  "criterion",
@@ -820,7 +812,7 @@ dependencies = [
 
 [[package]]
 name = "pqc-rs-slh-dsa"
-version = "0.5.0"
+version = "1.0.0-rc.1"
 dependencies = [
  "criterion",
  "pqc-rs-core",

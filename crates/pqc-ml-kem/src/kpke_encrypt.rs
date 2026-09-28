@@ -83,24 +83,6 @@ pub fn sample_eta2_vector(
     PolyVec::from_slice(&polys[..rank])
 }
 
-/// Compute structural `u = A^T r + e1`.
-pub fn compute_u_vector(
-    parameter_set: MlKemParameterSet,
-    rho: &[u8; 32],
-    r: &PolyVec,
-    e1: &PolyVec,
-) -> PolyVec {
-    let rank = parameter_set.k();
-    assert_eq!(r.rank(), rank);
-    assert_eq!(e1.rank(), rank);
-
-    let transposed_matrix = expand_matrix(rank, rho, true);
-    let matrix_ntt = NttPolyMatrix::from_sampled_ntt_matrix(&transposed_matrix);
-    let randomness_ntt = NttPolyVec::from_polyvec(r);
-
-    crate::kpke_ntt_domain::matrix_vector_mul_add_to_polyvec(&matrix_ntt, &randomness_ntt, e1)
-}
-
 /// Compute `u = A^T r + e1` using an already transformed
 /// ephemeral secret vector.
 ///
@@ -121,17 +103,6 @@ pub fn compute_u_vector_from_ntt(
     let matrix_ntt = NttPolyMatrix::from_sampled_ntt_matrix(&transposed_matrix);
 
     crate::kpke_ntt_domain::matrix_vector_mul_add_to_polyvec(&matrix_ntt, randomness_ntt, e1)
-}
-
-/// Compute structural `v = t^T r + e2 + m`.
-pub fn compute_v_poly(t_hat: &PolyVec, r: &PolyVec, e2: &Poly, message: &Message) -> Poly {
-    assert_eq!(t_hat.rank(), r.rank());
-
-    let public_ntt = NttPolyVec::from_sampled_ntt_polyvec(t_hat);
-    let randomness_ntt = NttPolyVec::from_polyvec(r);
-    let mut acc = crate::kpke_ntt_domain::dot_to_poly(&public_ntt, &randomness_ntt);
-    acc = acc.add(e2);
-    acc.add(&message_to_poly(message))
 }
 
 /// Compute `v = t^T r + e2 + m` using an already transformed

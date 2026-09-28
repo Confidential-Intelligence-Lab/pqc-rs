@@ -179,6 +179,7 @@ pub fn compute_internal_message_representative(
 }
 
 /// Decode a private key and prepare signing from an externally supplied `mu`.
+#[cfg(feature = "internal-api")]
 pub fn prepare_signing_from_mu(
     parameter_set: MlDsaParameterSet,
     encoded_private_key: &[u8],

@@ -1,15 +1,15 @@
 #![cfg(feature = "internal-api")]
 
-use pqc_ml_dsa::challenge::{challenge_weight, is_sparse_signed};
-use pqc_ml_dsa::constants::{N, Q};
-use pqc_ml_dsa::expand_a::expand_a;
-use pqc_ml_dsa::params::MlDsaParameterSet;
-use pqc_ml_dsa::poly::Poly;
-use pqc_ml_dsa::signing::sample_mask_vector;
-use pqc_ml_dsa::signing_core::{
+use pqc_ml_dsa::internal_api::challenge::{challenge_weight, is_sparse_signed};
+use pqc_ml_dsa::internal_api::constants::{N, Q};
+use pqc_ml_dsa::internal_api::expand_a::expand_a;
+use pqc_ml_dsa::internal_api::poly::Poly;
+use pqc_ml_dsa::internal_api::signing::sample_mask_vector;
+use pqc_ml_dsa::internal_api::signing_core::{
     challenge_seed_bytes, derive_challenge, encode_w1_vector, gamma2_for, high_bits_vector,
     infinity_norm_below, matrix_vector_product, multiply_challenge, vector_infinity_norm_below,
 };
+use pqc_ml_dsa::params::MlDsaParameterSet;
 
 #[test]
 fn challenge_seed_lengths_match_fips_security_strengths() {

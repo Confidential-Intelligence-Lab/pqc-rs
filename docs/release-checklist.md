@@ -46,16 +46,43 @@ later crate is published independently.
   assurance, performance/footprint characterization, and publication audited
   and closed.
 
+## PQC-rs 1.0.0-rc.1 checkpoint
+
+- Candidate cryptographic crates: `pqc-rs-core`, `pqc-rs-ml-kem`,
+  `pqc-rs-ml-dsa`, `pqc-rs-slh-dsa`, and `pqc-rs-hpke`.
+- Candidate version: `1.0.0-rc.1`.
+- Compatibility contract:
+  [`docs/api/PQC_RS_1_0_SEMVER_CONTRACT.md`](api/PQC_RS_1_0_SEMVER_CONTRACT.md).
+- Release record:
+  [`docs/release/V1.0.0_RC1.md`](release/V1.0.0_RC1.md).
+- Immutable annotated tag: `v1.0.0-rc.1`.
+- Publication source: `57b492ab5e98e08a376ad3a2584ecf4be51537cd`.
+- Publication status: all five coordinated cryptographic crates published on
+  crates.io and verified through a clean external registry-only build.
+- Registry archives verified byte-for-byte against the locally recorded RC
+  artifacts.
+- PQC-Forge/application crates remain separately versioned.
+- Standalone `pqc-rs-hybrid` remains deferred beyond the 1.0 boundary.
+- Closeout status: registry publication and post-publication reconstruction
+  verified.
+
 ## Current published baseline
 
-The following crates are published on crates.io at `0.4.0`:
+The current independently published cryptographic crates are:
 
-- `pqc-rs-core`
-- `pqc-rs-ml-kem`
-- `pqc-rs-ml-dsa`
-- `pqc-rs-hpke`
+- `pqc-rs-core` `0.5.0`;
+- `pqc-rs-ml-kem` `0.4.1`;
+- `pqc-rs-ml-dsa` `0.4.0`;
+- `pqc-rs-slh-dsa` `0.5.0`; and
+- `pqc-rs-hpke` `0.4.1`.
 
-`pqc-rs-hybrid` and `pqc-rs-test-harness` remain unpublished.
+These independent pre-1.0 versions record each crate's publication history.
+They are the baseline from which the coordinated PQC-rs 1.0 cryptographic
+release line is prepared.
+
+`pqc-rs-hybrid` and `pqc-rs-test-harness` remain unpublished. PQC-Forge and
+application-layer workspace crates are outside the PQC-rs 1.0 cryptographic
+compatibility boundary and are released separately.
 
 ## Open assurance and maintenance work
 

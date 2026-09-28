@@ -1,6 +1,10 @@
+#![cfg(feature = "internal-api")]
+
 use pqc_hpke::identifiers::{AeadId, HpkeSuiteId, KdfId, KemId};
-use pqc_hpke::kdf::KdfAlgorithm;
-use pqc_hpke::key_schedule::{key_schedule, AeadParameters, HpkeMode, KeyScheduleInputs};
+use pqc_hpke::internal_api::kdf::KdfAlgorithm;
+use pqc_hpke::internal_api::key_schedule::{
+    key_schedule, AeadParameters, HpkeMode, KeyScheduleInputs,
+};
 
 #[test]
 fn suite_and_key_schedule_are_stable() {

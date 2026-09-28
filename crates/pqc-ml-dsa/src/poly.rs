@@ -1,6 +1,9 @@
 //! ML-DSA polynomial representation and arithmetic.
 
-use crate::constants::{N, Q};
+use crate::constants::N;
+
+#[cfg(feature = "internal-api")]
+use crate::constants::Q;
 use crate::ntt;
 use crate::reduce::{freeze, montgomery_reduce, reduce32};
 
@@ -24,11 +27,6 @@ impl Poly {
     /// Borrow all coefficients.
     pub const fn coeffs(&self) -> &[i32; N] {
         &self.coeffs
-    }
-
-    /// Mutably borrow all coefficients.
-    pub fn coeffs_mut(&mut self) -> &mut [i32; N] {
-        &mut self.coeffs
     }
 
     /// Reduce every coefficient.
@@ -96,6 +94,7 @@ impl Poly {
     }
 
     /// Return true when every coefficient is canonical.
+    #[cfg(feature = "internal-api")]
     pub fn is_canonical(&self) -> bool {
         self.coeffs.iter().all(|value| (0..Q).contains(value))
     }

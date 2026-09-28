@@ -1,7 +1,7 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use pqc_ml_kem::ml_kem_key_check::{
+use pqc_ml_kem::integration::{
     decapsulation_key_is_valid, encapsulation_key_is_valid,
 };
 use pqc_ml_kem::MlKemParameterSet;

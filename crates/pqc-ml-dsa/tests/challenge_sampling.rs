@@ -1,6 +1,8 @@
 #![cfg(feature = "internal-api")]
 
-use pqc_ml_dsa::challenge::{challenge_weight, is_sparse_signed, sample_in_ball, ChallengeError};
+use pqc_ml_dsa::internal_api::challenge::{
+    challenge_weight, is_sparse_signed, sample_in_ball, ChallengeError,
+};
 use pqc_ml_dsa::params::MlDsaParameterSet;
 
 #[test]

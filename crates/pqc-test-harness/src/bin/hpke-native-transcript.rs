@@ -1,9 +1,11 @@
 use std::io::{self, Read};
 
 use pqc_hpke::identifiers::{AeadId, HpkeSuiteId, KdfId, KemId};
-use pqc_hpke::kdf::KdfAlgorithm;
-use pqc_hpke::key_schedule::{key_schedule, AeadParameters, HpkeMode, KeyScheduleInputs};
-use pqc_hpke::setup::{
+use pqc_hpke::internal_api::kdf::KdfAlgorithm;
+use pqc_hpke::internal_api::key_schedule::{
+    key_schedule, AeadParameters, HpkeMode, KeyScheduleInputs,
+};
+use pqc_hpke::internal_api::setup::{
     setup_base_receiver_from_shared_secret, setup_base_sender_from_shared_secret,
 };
 use serde::{Deserialize, Serialize};

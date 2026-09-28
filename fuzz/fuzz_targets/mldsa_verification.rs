@@ -1,7 +1,7 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use pqc_ml_dsa::verification::verify_internal_message;
+use pqc_ml_dsa::internal_api::verification::verify_internal_message;
 use pqc_ml_dsa::MlDsaParameterSet;
 
 fn parameter_set(selector: u8) -> MlDsaParameterSet {

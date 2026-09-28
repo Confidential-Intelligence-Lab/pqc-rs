@@ -52,6 +52,7 @@ impl PolyMatrix {
     }
 
     /// Borrow all matrix entries in row-major order.
+    #[cfg(feature = "internal-api")]
     pub fn entries(&self) -> &[Poly] {
         &self.entries
     }

@@ -5,7 +5,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
-use pqc_ml_kem::ml_kem_trace::{
+use pqc_ml_kem::internal_api::{
     trace_ml_kem_1024_keygen, trace_ml_kem_512_keygen, trace_ml_kem_768_keygen, MlKemKeygenTrace,
 };
 use pqc_test_harness::acvp::{load_keygen_cases, MlKemKeygenCase};
@@ -128,8 +128,8 @@ fn write_if_mismatched<const EK_BYTES: usize, const DK_PKE_BYTES: usize>(
         "errorHat0Digest": hex::encode_upper(trace.error_hat_0_digest),
         "public0Digest": hex::encode_upper(trace.public_0_digest),
         "publicHat0Digest": hex::encode_upper(trace.public_hat_0_digest),
-        "actualEkSha3_256": hex::encode_upper(pqc_ml_kem::symmetric::h(&trace.encapsulation_key)),
-        "expectedEkSha3_256": hex::encode_upper(pqc_ml_kem::symmetric::h(&case.ek)),
+        "actualEkSha3_256": hex::encode_upper(pqc_ml_kem::internal_api::h(&trace.encapsulation_key)),
+        "expectedEkSha3_256": hex::encode_upper(pqc_ml_kem::internal_api::h(&case.ek)),
     });
 
     let report_path = case_dir.join("trace.json");

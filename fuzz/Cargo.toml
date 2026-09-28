@@ -11,10 +11,10 @@ cargo-fuzz = true
 libfuzzer-sys = "0.4"
 serde_json = "1"
 
-pqc-hpke = { package = "pqc-rs-hpke", path = "../crates/pqc-hpke", version = "0.4.1" }
-pqc-ml-kem = { package = "pqc-rs-ml-kem", path = "../crates/pqc-ml-kem", version = "0.4.0" }
+pqc-hpke = { package = "pqc-rs-hpke", path = "../crates/pqc-hpke", version = "1.0.0-rc.1" }
+pqc-ml-kem = { package = "pqc-rs-ml-kem", path = "../crates/pqc-ml-kem", version = "1.0.0-rc.1" }
 pqc-test-harness = { package = "pqc-rs-test-harness", path = "../crates/pqc-test-harness", version = "0.4.0" }
-pqc-ml-dsa = { version = "0.4.0", package = "pqc-rs-ml-dsa", path = "../crates/pqc-ml-dsa", features = ["internal-api"] }
+pqc-ml-dsa = { version = "1.0.0-rc.1", package = "pqc-rs-ml-dsa", path = "../crates/pqc-ml-dsa", features = ["internal-api"] }
 pqc-slh-dsa = { package = "pqc-rs-slh-dsa", path = "../crates/pqc-slh-dsa", features = ["internal-api"] }
 
 [[bin]]

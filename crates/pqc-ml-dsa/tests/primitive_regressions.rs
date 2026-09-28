@@ -1,10 +1,10 @@
 #![cfg(feature = "internal-api")]
 
-use pqc_ml_dsa::challenge::{challenge_weight, is_sparse_signed, sample_in_ball};
-use pqc_ml_dsa::constants::Q;
-use pqc_ml_dsa::hint::{make_hint, use_hint};
-use pqc_ml_dsa::rounding::{decompose, high_bits, low_bits, power2round, Gamma2, D};
-use pqc_ml_dsa::sample::sample_eta_poly;
+use pqc_ml_dsa::internal_api::challenge::{challenge_weight, is_sparse_signed, sample_in_ball};
+use pqc_ml_dsa::internal_api::constants::Q;
+use pqc_ml_dsa::internal_api::hint::{make_hint, use_hint};
+use pqc_ml_dsa::internal_api::rounding::{decompose, high_bits, low_bits, power2round, Gamma2, D};
+use pqc_ml_dsa::internal_api::sample::sample_eta_poly;
 
 #[test]
 fn exhaustive_power2round_recombination_over_one_radix() {

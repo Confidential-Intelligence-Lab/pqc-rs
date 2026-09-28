@@ -1,7 +1,7 @@
 use std::{env, fs, path::Path};
 
+use pqc_ml_dsa::internal_api::signature::sign_internal;
 use pqc_ml_dsa::params::MlDsaParameterSet;
-use pqc_ml_dsa::signature::sign_internal;
 use serde_json::{json, Map, Value};
 type CaseMap<'a> = std::collections::BTreeMap<(u64, u64), &'a Map<String, Value>>;
 type AcvpEnvelope<'a> = (Option<Value>, &'a Map<String, Value>, bool);

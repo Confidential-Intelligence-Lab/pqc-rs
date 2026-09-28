@@ -1,13 +1,10 @@
 use pqc_ml_dsa::{
-    keygen::keygen_internal as dsa_keygen, signature::sign_internal as dsa_sign,
-    verification::verify_internal as dsa_verify, MlDsaParameterSet,
+    internal_api::keygen::keygen_internal as dsa_keygen,
+    internal_api::signature::sign_internal as dsa_sign,
+    internal_api::verification::verify_internal as dsa_verify, MlDsaParameterSet,
 };
 use pqc_ml_kem::{
-    ml_kem_decaps::decaps_internal,
-    ml_kem_encaps::encaps_internal,
-    ml_kem_keygen::{
-        ml_kem_1024_keygen_internal, ml_kem_512_keygen_internal, ml_kem_768_keygen_internal,
-    },
+    integration::{decaps, encaps, keygen_1024, keygen_512, keygen_768},
     MlKemParameterSet,
 };
 use pqc_slh_dsa::{
@@ -131,15 +128,15 @@ fn execute(req: &Value) -> Result<Value, String> {
             let z = array32(hex_field(inputs, "z")?, "z")?;
             let (pk, sk) = match kem_param(ps)? {
                 MlKemParameterSet::MlKem512 => {
-                    let o = ml_kem_512_keygen_internal(&d, &z).map_err(|e| format!("{e:?}"))?;
+                    let o = keygen_512(&d, &z).map_err(|e| format!("{e:?}"))?;
                     (o.encapsulation_key.to_vec(), o.decapsulation_key.to_vec())
                 }
                 MlKemParameterSet::MlKem768 => {
-                    let o = ml_kem_768_keygen_internal(&d, &z).map_err(|e| format!("{e:?}"))?;
+                    let o = keygen_768(&d, &z).map_err(|e| format!("{e:?}"))?;
                     (o.encapsulation_key.to_vec(), o.decapsulation_key.to_vec())
                 }
                 MlKemParameterSet::MlKem1024 => {
-                    let o = ml_kem_1024_keygen_internal(&d, &z).map_err(|e| format!("{e:?}"))?;
+                    let o = keygen_1024(&d, &z).map_err(|e| format!("{e:?}"))?;
                     (o.encapsulation_key.to_vec(), o.decapsulation_key.to_vec())
                 }
             };
@@ -148,7 +145,7 @@ fn execute(req: &Value) -> Result<Value, String> {
         "kem-encaps" => {
             let pk = hex_field(inputs, "public_key")?;
             let m = array32(hex_field(inputs, "m")?, "m")?;
-            let o = encaps_internal(kem_param(ps)?, &pk, &m).map_err(|e| format!("{e:?}"))?;
+            let o = encaps(kem_param(ps)?, &pk, &m).map_err(|e| format!("{e:?}"))?;
             Ok(
                 json!({"ciphertext":hex::encode(o.ciphertext),"shared_secret":hex::encode(o.shared_secret.as_bytes())}),
             )
@@ -156,7 +153,7 @@ fn execute(req: &Value) -> Result<Value, String> {
         "kem-decaps" => {
             let sk = hex_field(inputs, "secret_key")?;
             let ct = hex_field(inputs, "ciphertext")?;
-            let o = decaps_internal(kem_param(ps)?, &sk, &ct).map_err(|e| format!("{e:?}"))?;
+            let o = decaps(kem_param(ps)?, &sk, &ct).map_err(|e| format!("{e:?}"))?;
             Ok(json!({"shared_secret":hex::encode(o.shared_secret.as_bytes())}))
         }
         "dsa-keygen" => {

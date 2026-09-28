@@ -5,14 +5,14 @@ to concrete Rust crates, validation targets, and protocol harnesses.
 
 | RFC 9958 Area | Workspace Target | Stage | Status |
 |---|---|---:|---|
-| KEM migration | `pqc-ml-kem`, `pqc-core::Kem` | 2-6 | API scaffold + arithmetic + NTT schedule assets |
-| Signature migration | `pqc-ml-dsa`, `pqc-core::SignatureScheme` | 7 | Planned |
+| KEM migration | `pqc-ml-kem`, `pqc-core::Kem` | 2-6 | Implemented and validated against FIPS 203 evidence |
+| Signature migration | `pqc-ml-dsa`, `pqc-core::SignatureScheme` | 7 | Implemented and validated against FIPS 204 evidence |
 | Hash-based signatures | `pqc-slh-dsa` | 8 | Implemented and validated against FIPS 205 evidence |
-| PQ/T hybrid key agreement | `pqc-hybrid` | 9 | Planned |
-| HPKE integration | `pqc-hpke` | 10 | Planned |
-| Validation guidance | `pqc-test-harness`, `tests/*`, `fuzz/*` | Continuous | Started |
-| Constrained implementations | `no_std`, `alloc`, stack profiling | Continuous | Started |
-| Side-channel considerations | `subtle`, constant-time review, dudect plan | Continuous | Started |
+| PQ/T hybrid key agreement | `pqc-hpke` hybrid KEM/setup; standalone `pqc-hybrid` deferred | 9 | HPKE hybrid implemented; general composition layer planned |
+| HPKE integration | `pqc-hpke` | 10 | Implemented with RFC 9180 profiles and provider-interoperability evidence |
+| Validation guidance | `pqc-test-harness`, `tests/*`, `fuzz/*` | Continuous | Active with conformance, interoperability, adversarial, fuzz, and release-gate evidence |
+| Constrained implementations | `no_std`, `alloc`, stack profiling | Continuous | Implemented and exercised in assurance workflows |
+| Side-channel considerations | `subtle`, constant-time review, dynamic timing/taint analysis | Continuous | Active assurance with constant-time, zeroization, secret-hygiene, and dynamic-analysis evidence |
 
 ## Stage 5B-2 ML-KEM traceability
 

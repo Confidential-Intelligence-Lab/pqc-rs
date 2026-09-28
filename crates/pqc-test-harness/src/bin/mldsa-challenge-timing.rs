@@ -1,5 +1,6 @@
 use pqc_ml_dsa::{
-    challenge::sample_in_ball_bytes, constants::N, poly::Poly, signing_core::multiply_challenge,
+    internal_api::challenge::sample_in_ball_bytes, internal_api::constants::N,
+    internal_api::poly::Poly, internal_api::signing_core::multiply_challenge,
 };
 use sha3::{
     digest::{ExtendableOutput, Update, XofReader},

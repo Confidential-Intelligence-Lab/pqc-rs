@@ -9,7 +9,10 @@ use std::{
     time::Instant,
 };
 
-use pqc_ml_dsa::{keygen::keygen_internal, params::MlDsaParameterSet, signature::sign_internal};
+use pqc_ml_dsa::{
+    internal_api::keygen::keygen_internal, internal_api::signature::sign_internal,
+    params::MlDsaParameterSet,
+};
 use sha3::{
     digest::{ExtendableOutput, Update, XofReader},
     Shake256,
@@ -127,7 +130,7 @@ fn screen_sign(output: &Path, samples: usize, warmup: usize) -> Result<(), Strin
 
 fn private_key_for_class(
     parameter_set: MlDsaParameterSet,
-    fixed_key_pair: &pqc_ml_dsa::keygen::MlDsaKeyPair,
+    fixed_key_pair: &pqc_ml_dsa::internal_api::keygen::MlDsaKeyPair,
     sample: usize,
     class: usize,
 ) -> Result<Vec<u8>, String> {

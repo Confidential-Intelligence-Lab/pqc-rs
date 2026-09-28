@@ -1,5 +1,5 @@
+use pqc_ml_dsa::internal_api::verification::{verify_internal_message, verify_internal_mu};
 use pqc_ml_dsa::params::MlDsaParameterSet;
-use pqc_ml_dsa::verification::{verify_internal_message, verify_internal_mu};
 use serde_json::{json, Map, Value};
 use std::{collections::BTreeMap, env, fs, path::Path};
 type CaseMap<'a> = BTreeMap<(u64, u64), &'a Map<String, Value>>;

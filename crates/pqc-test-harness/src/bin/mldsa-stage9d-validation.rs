@@ -1,7 +1,7 @@
-use pqc_ml_dsa::keygen::keygen_internal;
+use pqc_ml_dsa::internal_api::keygen::keygen_internal;
+use pqc_ml_dsa::internal_api::signature::sign_internal;
+use pqc_ml_dsa::internal_api::verification::verify_internal;
 use pqc_ml_dsa::params::MlDsaParameterSet;
-use pqc_ml_dsa::signature::sign_internal;
-use pqc_ml_dsa::verification::verify_internal;
 use sha3::{
     digest::{ExtendableOutput, Update, XofReader},
     Shake256,
