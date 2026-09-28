@@ -9,7 +9,7 @@ composition, and applications—while keeping cryptographic implementations and
 execution providers replaceable behind stable boundaries.
 
 > **Status:** The PQC-rs cryptographic foundation is at stable `1.0.0`
-> release-candidate cycle and has not been independently audited. The candidate
+> stable release line and has not been independently audited. The candidate
 > compatibility boundary covers `pqc-rs-core`, `pqc-rs-ml-kem`,
 > `pqc-rs-ml-dsa`, `pqc-rs-slh-dsa`, and `pqc-rs-hpke`. Security-critical
 > deployment requires independent review and application-specific risk
@@ -154,7 +154,7 @@ Add only the crates required by your application. For example:
 
 ```toml
 [dependencies]
-# Coordinated PQC-rs 1.0 release-candidate versions.
+# Coordinated stable PQC-rs 1.0 versions.
 pqc-rs-ml-kem = "1.0.0"
 pqc-rs-ml-dsa = "1.0.0"
 pqc-rs-slh-dsa = "1.0.0"
