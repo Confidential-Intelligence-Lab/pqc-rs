@@ -8,8 +8,8 @@ to validation evidence, independent-provider interoperability, protocol
 composition, and applications—while keeping cryptographic implementations and
 execution providers replaceable behind stable boundaries.
 
-> **Status:** The PQC-rs cryptographic foundation is in its `1.0.0-rc.1`
-> release-candidate cycle and has not been independently audited. The candidate
+> **Status:** The PQC-rs cryptographic foundation is at stable `1.0.0`
+> stable release line and has not been independently audited. The candidate
 > compatibility boundary covers `pqc-rs-core`, `pqc-rs-ml-kem`,
 > `pqc-rs-ml-dsa`, `pqc-rs-slh-dsa`, and `pqc-rs-hpke`. Security-critical
 > deployment requires independent review and application-specific risk
@@ -129,7 +129,7 @@ another.
 ## Get started
 
 The five PQC-rs cryptographic-foundation crates are published at
-`1.0.0-rc.1` as the first coordinated 1.0 release candidate.
+`1.0.0` as the first stable coordinated release of the cryptographic foundation.
 PQC-Forge/application crates remain separately versioned.
 
 The supported 1.x compatibility boundary is defined by the
@@ -139,11 +139,11 @@ outside that compatibility commitment.
 
 | Crate | Layer | Purpose | Version |
 |---|---|---|---|
-| [`pqc-rs-core`](https://crates.io/crates/pqc-rs-core) | PQC-rs | Core traits, byte types, errors, and secret containers | `1.0.0-rc.1` candidate |
-| [`pqc-rs-ml-kem`](https://crates.io/crates/pqc-rs-ml-kem) | PQC-rs | ML-KEM (FIPS 203) | `1.0.0-rc.1` candidate |
-| [`pqc-rs-ml-dsa`](https://crates.io/crates/pqc-rs-ml-dsa) | PQC-rs | ML-DSA (FIPS 204) | `1.0.0-rc.1` candidate |
-| [`pqc-rs-slh-dsa`](https://crates.io/crates/pqc-rs-slh-dsa) | PQC-rs | SLH-DSA (FIPS 205) | `1.0.0-rc.1` candidate |
-| [`pqc-rs-hpke`](https://crates.io/crates/pqc-rs-hpke) | PQC-rs | HPKE with post-quantum and hybrid KEM integration | `1.0.0-rc.1` candidate |
+| [`pqc-rs-core`](https://crates.io/crates/pqc-rs-core) | PQC-rs | Core traits, byte types, errors, and secret containers | `1.0.0` stable |
+| [`pqc-rs-ml-kem`](https://crates.io/crates/pqc-rs-ml-kem) | PQC-rs | ML-KEM (FIPS 203) | `1.0.0` stable |
+| [`pqc-rs-ml-dsa`](https://crates.io/crates/pqc-rs-ml-dsa) | PQC-rs | ML-DSA (FIPS 204) | `1.0.0` stable |
+| [`pqc-rs-slh-dsa`](https://crates.io/crates/pqc-rs-slh-dsa) | PQC-rs | SLH-DSA (FIPS 205) | `1.0.0` stable |
+| [`pqc-rs-hpke`](https://crates.io/crates/pqc-rs-hpke) | PQC-rs | HPKE with post-quantum and hybrid KEM integration | `1.0.0` stable |
 | `pqc-rs-hybrid` | Deferred | Standalone hybrid placeholder excluded from the 1.0 compatibility boundary | not published |
 | [`pqc-rs-protocol`](https://crates.io/crates/pqc-rs-protocol) | PQC-Forge | Negotiation, policy binding, and protocol state | `0.4.1` |
 | [`pqc-rs-secure-channel`](https://crates.io/crates/pqc-rs-secure-channel) | PQC-Forge | HPKE secure-channel resolution and activation | `0.4.0` |
@@ -154,11 +154,11 @@ Add only the crates required by your application. For example:
 
 ```toml
 [dependencies]
-# Coordinated PQC-rs 1.0 release-candidate versions.
-pqc-rs-ml-kem = "1.0.0-rc.1"
-pqc-rs-ml-dsa = "1.0.0-rc.1"
-pqc-rs-slh-dsa = "1.0.0-rc.1"
-pqc-rs-hpke = "1.0.0-rc.1"
+# Coordinated stable PQC-rs 1.0 versions.
+pqc-rs-ml-kem = "1.0.0"
+pqc-rs-ml-dsa = "1.0.0"
+pqc-rs-slh-dsa = "1.0.0"
+pqc-rs-hpke = "1.0.0"
 ```
 ### Try the crypto-agile secure channel
 

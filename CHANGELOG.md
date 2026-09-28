@@ -6,6 +6,20 @@ The project follows the principles of Keep a Changelog and intends to adopt Sema
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-09-28
+
+### Stable release
+
+- promoted the five coordinated PQC-rs cryptographic-foundation crates to
+  stable `1.0.0`;
+- froze the documented 1.x public compatibility boundary;
+- retained feature-gated engineering and assurance surfaces outside the stable
+  SemVer contract;
+- preserved the cryptographic implementation validated by `1.0.0-rc.1`
+  without cryptographic source changes;
+- completed release, fuzz-consumer, and warning-hygiene integration required
+  for the stable release line.
+
 ## [1.0.0-rc.1] - 2026-09-27
 
 ### Added
@@ -137,7 +151,8 @@ The project follows the principles of Keep a Changelog and intends to adopt Sema
 - Added environment and toolchain provenance capture for reproducible benchmark campaigns.
 - Added `cargo xtask performance-audit --check` and benchmark smoke enforcement in CI.
 
-[Unreleased]: https://github.com/Confidential-Intelligence-Lab/pqc-rs/compare/v1.0.0-rc.1...HEAD
+[Unreleased]: https://github.com/Confidential-Intelligence-Lab/pqc-rs/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/Confidential-Intelligence-Lab/pqc-rs/compare/v1.0.0-rc.1...v1.0.0
 [1.0.0-rc.1]: https://github.com/Confidential-Intelligence-Lab/pqc-rs/releases/tag/v1.0.0-rc.1
 [0.4.0]: https://github.com/Confidential-Intelligence-Lab/pqc-rs/compare/v0.4.0-rc.1...v0.4.0
 [0.4.0-rc.1]: https://github.com/Confidential-Intelligence-Lab/pqc-rs/releases/tag/v0.4.0-rc.1

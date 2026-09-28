@@ -46,6 +46,19 @@ later crate is published independently.
   assurance, performance/footprint characterization, and publication audited
   and closed.
 
+## PQC-rs 1.0.0 stable release
+
+- Stable version: `1.0.0`.
+- Coordinated cryptographic crates: `pqc-rs-core`, `pqc-rs-ml-kem`,
+  `pqc-rs-ml-dsa`, `pqc-rs-slh-dsa`, and `pqc-rs-hpke`.
+- Stable release record:
+  [`docs/release/V1.0.0.md`](release/V1.0.0.md).
+- Promotion basis: no cryptographic source changes between `v1.0.0-rc.1`
+  and the stable promotion source.
+- Publication status: pending stable package/reconstruction validation.
+- PQC-Forge/application crates remain separately versioned.
+- Standalone `pqc-rs-hybrid` remains deferred beyond the 1.0 boundary.
+
 ## PQC-rs 1.0.0-rc.1 checkpoint
 
 - Candidate cryptographic crates: `pqc-rs-core`, `pqc-rs-ml-kem`,

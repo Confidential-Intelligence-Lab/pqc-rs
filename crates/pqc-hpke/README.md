@@ -106,7 +106,7 @@ and servers with explicit serialization and framing.
 
 ## Status
 
-This crate is in the PQC-rs `1.0.0-rc.1` release-candidate cycle. Review the
+This crate is part of the stable PQC-rs `1.0.0` cryptographic release. Review the
 repository security policy, standards traceability, release audits, and
 interoperability evidence before production deployment.
 

@@ -22,7 +22,7 @@ version = "0.4.0"
 homepage = "https://github.com/Confidential-Intelligence-Lab/pqc-rs"
 
 [workspace.dependencies]
-pqc-core = { package = "pqc-rs-core", path = "crates/pqc-core", version = "1.0.0-rc.1" }
+pqc-core = { package = "pqc-rs-core", path = "crates/pqc-core", version = "1.0.0" }
 
 rand_core = { version = "0.6", features = ["getrandom"] }
 zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
@@ -37,15 +37,15 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 hkdf = "0.12"
 sha2 = "0.10"
-pqc-ml-kem = { package = "pqc-rs-ml-kem", path = "crates/pqc-ml-kem", version = "1.0.0-rc.1" }
+pqc-ml-kem = { package = "pqc-rs-ml-kem", path = "crates/pqc-ml-kem", version = "1.0.0" }
 aes-gcm = "0.10"
 chacha20poly1305 = "0.10"
 x25519-dalek = { version = "2", features = ["static_secrets"] }
 p256 = { version = "0.13", features = ["ecdh"] }
 p384 = { version = "0.13", features = ["ecdh"] }
-pqc-hpke = { package = "pqc-rs-hpke", path = "crates/pqc-hpke", version = "1.0.0-rc.1" }
-pqc-ml-dsa = { package = "pqc-rs-ml-dsa", path = "crates/pqc-ml-dsa", version = "1.0.0-rc.1" }
-pqc-slh-dsa = { package = "pqc-rs-slh-dsa", path = "crates/pqc-slh-dsa", version = "1.0.0-rc.1" }
+pqc-hpke = { package = "pqc-rs-hpke", path = "crates/pqc-hpke", version = "1.0.0" }
+pqc-ml-dsa = { package = "pqc-rs-ml-dsa", path = "crates/pqc-ml-dsa", version = "1.0.0" }
+pqc-slh-dsa = { package = "pqc-rs-slh-dsa", path = "crates/pqc-slh-dsa", version = "1.0.0" }
 pqc-test-harness = { package = "pqc-rs-test-harness", path = "crates/pqc-test-harness", version = "0.4.0" }
 pqc-protocol = { package = "pqc-rs-protocol", path = "crates/pqc-protocol", version = "0.4.1" }
 pqc-secure-channel = { package = "pqc-rs-secure-channel", path = "crates/pqc-secure-channel", version = "0.4.0" }

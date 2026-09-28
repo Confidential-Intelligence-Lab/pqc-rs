@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly VERSION="1.0.0-rc.1"
+readonly VERSION="1.0.0"
 
 echo "PQC-rs ${VERSION} publication sequence"
 echo
