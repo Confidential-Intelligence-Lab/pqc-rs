@@ -76,3 +76,8 @@ path = "fuzz_targets/slhdsa_verification.rs"
 test = false
 doc = false
 bench = false
+
+[lints.cargo]
+# Fuzz target names are stable assurance identifiers shared by policy,
+# corpus, scripts, and audit evidence. Preserve underscore naming.
+non_kebab_case_bins = "allow"
