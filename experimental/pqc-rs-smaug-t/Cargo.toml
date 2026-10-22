@@ -1,0 +1,15 @@
+[package]
+name = "pqc-rs-smaug-t"
+version = "0.0.1"
+edition = "2021"
+publish = false
+license = "MIT"
+description = "Experimental independent Rust implementation of SMAUG-T"
+
+[lib]
+path = "src/lib.rs"
+
+[workspace]
+
+[dependencies]
+sha3 = "0.10"
