@@ -139,10 +139,13 @@ do
     clang -std=c11 -O1 -Wall -Wextra -Werror \
         -Wno-error=sign-compare \
         -DSMAUGT_CONFIG_MODE="$CONFIG" \
-        "-DSMAUGT_REFERENCE_HWT_C=\"$REF/src/hwt.c\"" \
+        -ffunction-sections -fdata-sections \
+    "-DSMAUGT_REFERENCE_HWT_C=\"$REF/src/hwt.c\"" \
+    "-DSMAUGT_REFERENCE_KEY_C=\"$REF/src/key.c\"" \
         -I"$REF/include" \
         "$TESTS/reference_sampling_oracle.c" \
         "$REF/src/fips202.c" \
+    -Wl,-dead_strip \
         -o "$BUILD_DIR/sampling-$MODE"
 done
 

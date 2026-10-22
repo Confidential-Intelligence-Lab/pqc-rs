@@ -159,3 +159,96 @@ fn reference_ternary_polynomial_parity() {
 
     println!("TERNARY_POLYNOMIAL_PARITY=PASS coefficients={compared}");
 }
+
+#[test]
+fn reference_secret_vector_expansion_parity() {
+    use pqc_rs_smaug_t::sampling::expand_secret_vector;
+
+    let prefix =
+        std::env::var("SMAUGT_SAMPLING_ORACLE").expect("SMAUGT_SAMPLING_ORACLE must be set");
+
+    let configurations = [
+        ("mode1", 2usize, SMAUG_T128_SECRET_WEIGHT),
+        ("mode3", 3usize, SMAUG_T192_SECRET_WEIGHT),
+        ("mode5", 4usize, SMAUG_T256_SECRET_WEIGHT),
+        ("modet", 2usize, TIMER_SECRET_WEIGHT),
+    ];
+
+    let mut compared = 0usize;
+
+    for (mode, k, weight) in configurations {
+        for pattern in 0..3u8 {
+            let output = std::process::Command::new(format!("{prefix}-{mode}"))
+                .arg(pattern.to_string())
+                .arg("s")
+                .output()
+                .expect("failed to execute reference expand_s oracle");
+
+            assert!(
+                output.status.success(),
+                "{mode} pattern={pattern}: C oracle failed: {}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+
+            let text =
+                String::from_utf8(output.stdout).expect("reference oracle emitted invalid UTF-8");
+
+            let reference: Vec<i16> = text
+                .trim()
+                .split(',')
+                .map(|value| value.parse().expect("invalid reference coefficient"))
+                .collect();
+
+            assert_eq!(
+                reference.len(),
+                k * N,
+                "{mode} pattern={pattern}: unexpected reference vector length"
+            );
+
+            let mut seed = [0u8; 32];
+
+            for (i, byte) in seed.iter_mut().enumerate() {
+                *byte = match pattern {
+                    0 => 0,
+                    1 => 255,
+                    _ => i as u8,
+                };
+            }
+
+            let rust = expand_secret_vector(&seed, k, weight)
+                .expect("Rust secret-vector expansion failed");
+
+            assert_eq!(rust.len(), k);
+
+            for (i, polynomial) in rust.iter().enumerate() {
+                let start = i * N;
+                let end = start + N;
+
+                assert_eq!(
+                    polynomial.as_slice(),
+                    &reference[start..end],
+                    "{mode} pattern={pattern} polynomial={i}: parity mismatch"
+                );
+
+                assert!(
+                    polynomial
+                        .iter()
+                        .all(|&coefficient| (-1..=1).contains(&coefficient)),
+                    "{mode} pattern={pattern} polynomial={i}: invalid coefficient"
+                );
+
+                assert_eq!(
+                    polynomial.iter().filter(|&&x| x != 0).count(),
+                    weight,
+                    "{mode} pattern={pattern} polynomial={i}: incorrect weight"
+                );
+
+                compared += N;
+            }
+        }
+    }
+
+    assert_eq!(compared, 8448);
+
+    println!("SECRET_VECTOR_EXPANSION_PARITY=PASS coefficients={compared}");
+}

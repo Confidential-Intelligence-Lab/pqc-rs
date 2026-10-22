@@ -12,6 +12,10 @@
 // static rej_sample_mod function can be tested without modifying upstream.
 #include SMAUGT_REFERENCE_HWT_C
 
+#ifdef SMAUGT_REFERENCE_KEY_C
+#include SMAUGT_REFERENCE_KEY_C
+#endif
+
 int main(int argc, char **argv) {
     if (argc != 2 && argc != 3) return 2;
 
@@ -22,12 +26,34 @@ int main(int argc, char **argv) {
     const int ternary_mode =
         argc == 3 && argv[2][0] == 't' && argv[2][1] == '\0';
 
-    if (argc == 3 && !ternary_mode) return 2;
+    const int secret_mode =
+        argc == 3 && argv[2][0] == 's' && argv[2][1] == '\0';
+
+    if (argc == 3 && !ternary_mode && !secret_mode) return 2;
 
     uint8_t seed[34] = {0};
     for (size_t i = 0; i < 32; ++i) {
         seed[i] = pattern == 0 ? 0 :
                   pattern == 1 ? 255 : (uint8_t)i;
+    }
+
+    if (secret_mode) {
+#ifndef SMAUGT_REFERENCE_KEY_C
+        return 2;
+#else
+        secret_key sk = {0};
+        expand_s(&sk, seed);
+
+        for (size_t i = 0; i < SMAUGT_K; ++i) {
+            for (size_t j = 0; j < SMAUGT_N; ++j) {
+                printf("%s%d",
+                       (i == 0 && j == 0) ? "" : ",",
+                       (int)sk.vec[i].coeffs[j]);
+            }
+        }
+        putchar('\n');
+        return 0;
+#endif
     }
 
     if (ternary_mode) {

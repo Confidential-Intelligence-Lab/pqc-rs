@@ -123,8 +123,98 @@ pub const SMAUG_T192_SECRET_WEIGHT: usize = 88;
 pub const SMAUG_T256_SECRET_WEIGHT: usize = 87;
 pub const TIMER_SECRET_WEIGHT: usize = 70;
 
+/// Errors during secret-vector expansion.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum SecretExpansionError {
+    InvalidParameters,
+    RetryCounterExhausted,
+}
+
+/// Expand a 32-byte seed into `k` fixed-weight ternary polynomials.
+///
+/// Matches the domain separation used by SMAUG-T 1.1.1 `expand_s`.
+///
+/// Experimental: not constant-time audited.
+pub fn expand_secret_vector(
+    seed: &[u8; 32],
+    k: usize,
+    weight: usize,
+) -> Result<Vec<[i16; N]>, SecretExpansionError> {
+    if !(2..=4).contains(&k) || weight > N {
+        return Err(SecretExpansionError::InvalidParameters);
+    }
+
+    let mut vector = Vec::with_capacity(k);
+
+    for i in 0..k {
+        let domain = i * k;
+        let domain = u8::try_from(domain).map_err(|_| SecretExpansionError::InvalidParameters)?;
+
+        let mut polynomial = None;
+
+        for retry in 0..=u8::MAX {
+            let mut extended_seed = [0u8; 34];
+            extended_seed[..32].copy_from_slice(seed);
+            extended_seed[32] = domain;
+            extended_seed[33] = retry;
+
+            let (randomness, signs) = hwt_randomness(&extended_seed);
+
+            if let Ok(indices) = rejection_sample_indices(&randomness) {
+                polynomial = Some(fixed_weight_ternary(&indices, &signs, weight));
+                break;
+            }
+        }
+
+        let polynomial = polynomial.ok_or(SecretExpansionError::RetryCounterExhausted)?;
+
+        vector.push(polynomial);
+    }
+
+    Ok(vector)
+}
+
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn secret_expansion_contracts() {
+        let seed = [0x42u8; 32];
+
+        for (k, weight) in [(2, 70), (3, 88), (4, 87), (2, 70)] {
+            let first =
+                expand_secret_vector(&seed, k, weight).expect("valid expansion must succeed");
+            let second =
+                expand_secret_vector(&seed, k, weight).expect("repeated expansion must succeed");
+
+            assert_eq!(first, second);
+            assert_eq!(first.len(), k);
+
+            for polynomial in &first {
+                assert_eq!(polynomial.len(), N);
+                assert!(polynomial.iter().all(|&x| (-1..=1).contains(&x)));
+                assert_eq!(polynomial.iter().filter(|&&x| x != 0).count(), weight);
+            }
+        }
+    }
+
+    #[test]
+    fn secret_expansion_rejects_invalid_parameters() {
+        let seed = [0u8; 32];
+
+        for k in [0, 1, 5, usize::MAX] {
+            assert_eq!(
+                expand_secret_vector(&seed, k, 70),
+                Err(SecretExpansionError::InvalidParameters)
+            );
+        }
+
+        assert_eq!(
+            expand_secret_vector(&seed, 2, N + 1),
+            Err(SecretExpansionError::InvalidParameters)
+        );
+    }
+
     use super::*;
 
     #[test]
