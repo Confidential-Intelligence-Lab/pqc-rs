@@ -4,6 +4,7 @@
 
 pub mod encoding;
 pub mod matrix;
+pub mod sampling;
 
 pub const N: usize = 256;
 

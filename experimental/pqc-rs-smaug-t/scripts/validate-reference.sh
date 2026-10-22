@@ -29,6 +29,8 @@ for FILE in \
     "$TESTS/reference_decode_oracle.c" \
     "$TESTS/reference_secret_oracle.c" \
     "$TESTS/reference_matrix_oracle.c" \
+    "$TESTS/reference_sampling_oracle.c" \
+    "$REF/src/hwt.c" \
     "$REF/src/fips202.c"
 do
     if [ ! -f "$FILE" ]; then
@@ -87,7 +89,7 @@ cleanup() {
 trap cleanup EXIT
 
 echo
-echo "=== BUILD 16 REFERENCE ORACLES ==="
+echo "=== BUILD 20 REFERENCE ORACLES ==="
 
 for ENTRY in \
     "mode1:SMAUGT_MODE1" \
@@ -131,6 +133,17 @@ do
         "$REF/src/packring.c" \
         "$REF/src/fips202.c" \
         -o "$BUILD_DIR/matrix-$MODE"
+
+    # The pinned upstream hwt.c has an int/size_t comparison warning.
+    # Preserve -Werror for all other warnings without modifying upstream.
+    clang -std=c11 -O1 -Wall -Wextra -Werror \
+        -Wno-error=sign-compare \
+        -DSMAUGT_CONFIG_MODE="$CONFIG" \
+        "-DSMAUGT_REFERENCE_HWT_C=\"$REF/src/hwt.c\"" \
+        -I"$REF/include" \
+        "$TESTS/reference_sampling_oracle.c" \
+        "$REF/src/fips202.c" \
+        -o "$BUILD_DIR/sampling-$MODE"
 done
 
 echo
@@ -144,6 +157,7 @@ SMAUGT_PACK_ORACLE="$BUILD_DIR/pack" \
 SMAUGT_DECODE_ORACLE="$BUILD_DIR/decode" \
 SMAUGT_SECRET_ORACLE="$BUILD_DIR/secret" \
 SMAUGT_MATRIX_ORACLE="$BUILD_DIR/matrix" \
+SMAUGT_SAMPLING_ORACLE="$BUILD_DIR/sampling" \
 cargo test --manifest-path "$MANIFEST" --all-targets
 
 echo
