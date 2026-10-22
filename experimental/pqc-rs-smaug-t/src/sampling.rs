@@ -73,6 +73,56 @@ pub fn rejection_sample_indices(
     Ok(indices)
 }
 
+/// Convert bounded indices into a fixed-weight ternary polynomial.
+///
+/// Reproduces the running threshold and sign-bit layout in the
+/// pinned SMAUG-T 1.1.1 reference implementation.
+///
+/// Coefficients are represented as signed integers in {-1, 0, 1}.
+pub fn fixed_weight_ternary(
+    indices: &[u16; N],
+    signs: &[u8; HWT_SIGN_BYTES],
+    weight: usize,
+) -> [i16; N] {
+    assert!(weight <= N);
+
+    let mut result = [0i16; N];
+    let mut threshold = (N - weight) as i32;
+
+    for i in 0..N {
+        let difference = i32::from(indices[i]) - threshold;
+
+        // Equivalent to the reference's arithmetic signed shift.
+        let t0 = if difference < 0 { -1 } else { 0 };
+
+        threshold += t0;
+
+        let selected = 1 + t0;
+
+        // Reference layout:
+        // index = (i / 128) * 16 + (i % 16)
+        // shift = (i / 16) % 8
+        let sign_index = (i / 128) * 16 + (i % 16);
+        let sign_shift = (i / 16) % 8;
+
+        let sign_bit = (signs[sign_index] >> sign_shift) & 1;
+
+        // Reference expression produces -1 for sign_bit=0,
+        // +1 for sign_bit=1, and zero for unselected entries.
+        let sign = if sign_bit == 0 { -1 } else { 1 };
+
+        result[i] = selected as i16 * sign;
+    }
+
+    result
+}
+
+/// Mode-specific fixed Hamming weights from SMAUG-T 1.1.1.
+pub const SMAUG_T128_SECRET_WEIGHT: usize = 70;
+pub const SMAUG_T192_SECRET_WEIGHT: usize = 88;
+pub const SMAUG_T256_SECRET_WEIGHT: usize = 87;
+pub const TIMER_SECRET_WEIGHT: usize = 70;
+
 #[cfg(test)]
 mod tests {
     use super::*;

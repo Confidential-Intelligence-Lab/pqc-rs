@@ -13,16 +13,36 @@
 #include SMAUGT_REFERENCE_HWT_C
 
 int main(int argc, char **argv) {
-    if (argc != 2) return 2;
+    if (argc != 2 && argc != 3) return 2;
 
     char *end = NULL;
     unsigned long pattern = strtoul(argv[1], &end, 10);
     if (*end != '\0' || pattern > 2) return 2;
 
+    const int ternary_mode =
+        argc == 3 && argv[2][0] == 't' && argv[2][1] == '\0';
+
+    if (argc == 3 && !ternary_mode) return 2;
+
     uint8_t seed[34] = {0};
     for (size_t i = 0; i < 32; ++i) {
         seed[i] = pattern == 0 ? 0 :
                   pattern == 1 ? 255 : (uint8_t)i;
+    }
+
+    if (ternary_mode) {
+        int16_t polynomial[SMAUGT_N] = {0};
+
+        if (hwt(polynomial, seed) != 0) {
+            puts("EXHAUSTED");
+            return 0;
+        }
+
+        for (size_t i = 0; i < SMAUGT_N; ++i) {
+            printf("%s%d", i == 0 ? "" : ",", (int)polynomial[i]);
+        }
+        putchar('\n');
+        return 0;
     }
 
     uint8_t bytes[SMAUGT_HWTSEEDBYTES] = {0};
