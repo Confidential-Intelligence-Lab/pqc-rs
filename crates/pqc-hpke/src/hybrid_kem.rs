@@ -1,6 +1,6 @@
 //! PQ/traditional hybrid KEMs for HPKE.
 
-use p256::elliptic_curve::sec1::ToEncodedPoint as _;
+use p256::elliptic_curve::sec1::ToSec1Point as _;
 use pqc_core::secret::{SecretBytes, SecretVec};
 use sha3::{
     digest::{Digest, ExtendableOutput, Update, XofReader},
@@ -246,7 +246,7 @@ impl HybridKem {
                 let public = secret.public_key();
                 Ok((
                     secret.to_bytes().to_vec(),
-                    public.to_encoded_point(false).as_bytes().to_vec(),
+                    public.to_sec1_point(false).as_bytes().to_vec(),
                 ))
             }
             Self::MlKem1024P384 => {
@@ -255,7 +255,7 @@ impl HybridKem {
                 let public = secret.public_key();
                 Ok((
                     secret.to_bytes().to_vec(),
-                    public.to_encoded_point(false).as_bytes().to_vec(),
+                    public.to_sec1_point(false).as_bytes().to_vec(),
                 ))
             }
         }
@@ -294,7 +294,7 @@ impl HybridKem {
                 Ok((
                     ephemeral
                         .public_key()
-                        .to_encoded_point(false)
+                        .to_sec1_point(false)
                         .as_bytes()
                         .to_vec(),
                     shared.raw_secret_bytes().to_vec(),
@@ -312,7 +312,7 @@ impl HybridKem {
                 Ok((
                     ephemeral
                         .public_key()
-                        .to_encoded_point(false)
+                        .to_sec1_point(false)
                         .as_bytes()
                         .to_vec(),
                     shared.raw_secret_bytes().to_vec(),
