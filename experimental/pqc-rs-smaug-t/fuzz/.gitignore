@@ -1,0 +1,6 @@
+# Generated fuzzing inputs and execution artifacts.
+/corpus/
+/structured_corpus/
+/artifacts/
+/target/
+/Cargo.lock

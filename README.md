@@ -299,3 +299,19 @@ negative tests where applicable, conformance evidence, and review of
 secret-dependent control flow, indexing, formatting, and zeroization.
 
 PQC-rs is licensed under the [MIT License](LICENSE).
+
+## Experimental Korean post-quantum cryptography
+
+The experimental
+[`pqc-rs-smaug-t`](experimental/pqc-rs-smaug-t/)
+crate investigates the Korean SMAUG-T key-encapsulation mechanism.
+
+The implementation includes differential tests against a pinned C
+reference, adversarial-input testing, and experimental fuzzing.
+
+A discrepancy in the reference Gaussian sampler is documented
+separately. Successful differential testing does not establish
+normative conformity, constant-time execution, or production
+security assurance.
+
+This crate is experimental and is not recommended for production use.
