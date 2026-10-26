@@ -2,7 +2,13 @@
 //!
 //! Not a complete KEM. Not suitable for production use.
 
+pub mod arithmetic;
+pub mod ciphertext;
 pub mod encoding;
+pub mod ephemeral;
+pub mod gaussian;
+pub mod indcpa;
+pub mod kem;
 pub mod matrix;
 pub mod sampling;
 
@@ -156,8 +162,8 @@ mod tests {
         let mut a = Polynomial::zero();
         let mut one = Polynomial::zero();
 
-        for i in 0..N {
-            a.coefficients[i] = (i * 7 % 1024) as u16;
+        for (i, coefficient) in a.coefficients.iter_mut().enumerate() {
+            *coefficient = (i * 7 % 1024) as u16;
         }
         one.coefficients[0] = 1;
 

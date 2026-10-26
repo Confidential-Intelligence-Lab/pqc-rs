@@ -1,0 +1,40 @@
+[package]
+name = "pqc-rs-smaug-t-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[features]
+structured-only = []
+structured-fields = []
+
+[dependencies]
+libfuzzer-sys = "0.4"
+sha3 = "0.10"
+pqc-rs-smaug-t = { path = ".." }
+
+[[bin]]
+name = "kem_decapsulate"
+path = "fuzz_targets/kem_decapsulate.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "kem_encapsulate"
+path = "fuzz_targets/kem_encapsulate.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "secret_decode"
+path = "fuzz_targets/secret_decode.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]

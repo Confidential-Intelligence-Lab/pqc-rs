@@ -100,15 +100,17 @@ pub fn unpack_secret(bytes: &[u8]) -> Result<[i16; POLY_N], EncodingError> {
     }
 
     let mut coefficients = [0i16; POLY_N];
+    let mut invalid_codeword = 0u8;
 
     for (index, coefficient) in coefficients.iter_mut().enumerate() {
         let encoded = (bytes[index / 4] >> (2 * (index % 4))) & 3;
 
-        if encoded == 3 {
-            return Err(EncodingError::NonCanonicalSecretEncoding);
-        }
-
+        invalid_codeword |= u8::from(encoded == 3);
         *coefficient = 1 - i16::from(encoded);
+    }
+
+    if invalid_codeword != 0 {
+        return Err(EncodingError::NonCanonicalSecretEncoding);
     }
 
     Ok(coefficients)
@@ -119,6 +121,66 @@ mod tests {
     use super::*;
 
     const WIDTHS: [u8; 7] = [3, 4, 5, 7, 8, 9, 10];
+
+    #[test]
+    fn secret_encoding_exhaustive_noncanonical_rejection() {
+        let coefficients = [0i16; POLY_N];
+        let canonical = pack_secret(&coefficients).unwrap();
+
+        assert_eq!(unpack_secret(&canonical), Ok(coefficients));
+
+        for index in 0..POLY_N {
+            let mut malformed = canonical;
+
+            let byte_index = index / 4;
+            let shift = 2 * (index % 4);
+            let mask = 0b11u8 << shift;
+
+            malformed[byte_index] = (malformed[byte_index] & !mask) | mask;
+
+            assert_eq!(
+                unpack_secret(&malformed),
+                Err(EncodingError::NonCanonicalSecretEncoding),
+                "noncanonical coefficient at index {index}"
+            );
+        }
+    }
+
+    #[test]
+    fn secret_encoding_rejects_invalid_lengths() {
+        let canonical = pack_secret(&[0i16; POLY_N]).unwrap();
+
+        for length in 0..SECRET_POLY_BYTES {
+            assert_eq!(
+                unpack_secret(&canonical[..length]),
+                Err(EncodingError::InvalidLength),
+                "truncated length {length}"
+            );
+        }
+
+        for extra in 1..=16 {
+            let mut oversized = canonical.to_vec();
+            oversized.resize(SECRET_POLY_BYTES + extra, 0);
+
+            assert_eq!(
+                unpack_secret(&oversized),
+                Err(EncodingError::InvalidLength),
+                "oversized length {}",
+                oversized.len()
+            );
+        }
+    }
+
+    #[test]
+    fn secret_encoding_canonical_codeword_roundtrip() {
+        for coefficient in [-1i16, 0, 1] {
+            let coefficients = [coefficient; POLY_N];
+
+            let encoded = pack_secret(&coefficients).unwrap();
+
+            assert_eq!(unpack_secret(&encoded), Ok(coefficients));
+        }
+    }
 
     #[test]
     fn unsigned_roundtrip_all_widths() {
