@@ -24,7 +24,7 @@ homepage = "https://github.com/Confidential-Intelligence-Lab/pqc-rs"
 [workspace.dependencies]
 pqc-core = { package = "pqc-rs-core", path = "crates/pqc-core", version = "1.0.0" }
 
-rand_core = { version = "0.6", features = ["getrandom"] }
+rand_core = { version = "0.6", features = ["getrandom", "std"] }
 zeroize = { version = "1", default-features = false, features = ["zeroize_derive"] }
 subtle = { version = "2", default-features = false }
 sha3 = { version = "0.10", default-features = false }
@@ -41,8 +41,8 @@ pqc-ml-kem = { package = "pqc-rs-ml-kem", path = "crates/pqc-ml-kem", version = 
 aes-gcm = "0.10"
 chacha20poly1305 = "0.10"
 x25519-dalek = { version = "2", features = ["static_secrets"] }
-p256 = { version = "0.13", features = ["ecdh"] }
-p384 = { version = "0.13", features = ["ecdh"] }
+p256 = { version = "0.14", features = ["ecdh"] }
+p384 = { version = "0.14", features = ["ecdh"] }
 pqc-hpke = { package = "pqc-rs-hpke", path = "crates/pqc-hpke", version = "1.0.0" }
 pqc-ml-dsa = { package = "pqc-rs-ml-dsa", path = "crates/pqc-ml-dsa", version = "1.0.0" }
 pqc-slh-dsa = { package = "pqc-rs-slh-dsa", path = "crates/pqc-slh-dsa", version = "1.0.0" }
