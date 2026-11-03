@@ -5,7 +5,7 @@
 use crate::packing::unpack_secret_key;
 use crate::params::{ParameterSet, N};
 use crate::poly::Poly;
-use crate::polyvec::PolyVecL;
+use crate::polyvec::{PolyVecK, PolyVecL, PolyVecM};
 
 fn add_fixed<const D: usize>(sampled: &[[i32; N]], correction: &[Poly]) -> [Poly; D] {
     assert_eq!(sampled.len(), D);
@@ -93,23 +93,54 @@ pub(crate) fn evaluate_signing_response_complete<const K: usize, const L: usize,
 
     let mut decoded = unpack_secret_key::<K, M>(sk, mode).expect("secret key");
 
-    let mut challenge_ntt = challenge.clone();
-    challenge_ntt.ntt();
-
     decoded.s0.ntt();
     decoded.s1.ntt();
+
+    evaluate_signing_response_predecoded::<K, L, M>(
+        &decoded.s0,
+        &decoded.s1,
+        challenge,
+        b,
+        y1,
+        y2,
+        thresholds,
+    )
+}
+
+/// Evaluate a response using predecoded NTT-domain secret polynomials.
+///
+/// The caller retains ownership of the secret vectors.
+pub(crate) fn evaluate_signing_response_predecoded<
+    const K: usize,
+    const L: usize,
+    const M: usize,
+>(
+    s0_ntt: &PolyVecM<M>,
+    s1_ntt: &PolyVecK<K>,
+    challenge: &Poly,
+    b: u8,
+    y1: &[[i32; N]],
+    y2: &[[i32; N]],
+    thresholds: (u64, u64),
+) -> SigningResponse<L, K> {
+    assert_eq!(M + 1, L);
+    assert_eq!(y1.len(), L);
+    assert_eq!(y2.len(), K);
+
+    let mut challenge_ntt = challenge.clone();
+    challenge_ntt.ntt();
 
     let mut cs1 = PolyVecL::<L>::new(std::array::from_fn(|i| {
         if i == 0 {
             challenge.clone()
         } else {
-            let mut product = challenge_ntt.pointwise_montgomery(&decoded.s0.as_slice()[i - 1]);
+            let mut product = challenge_ntt.pointwise_montgomery(&s0_ntt.as_slice()[i - 1]);
             product.invntt_tomont();
             product
         }
     }));
 
-    let mut cs2 = decoded.s1.pointwise_montgomery(&challenge_ntt);
+    let mut cs2 = s1_ntt.pointwise_montgomery(&challenge_ntt);
     cs2.invntt_tomont();
 
     cs1.cneg(b & 1);

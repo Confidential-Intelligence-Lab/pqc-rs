@@ -10,7 +10,7 @@ use crate::signature_packing::SignaturePackingError;
 use crate::signing_challenge_prepare::prepare_signing_challenge_complete;
 use crate::signing_init::derive_signing_initialization;
 use crate::signing_init::SigningInitError;
-use crate::signing_response::evaluate_signing_response_complete;
+use crate::signing_response::evaluate_signing_response_predecoded;
 use crate::signing_signature_assembly::assemble_accepted_signature;
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
@@ -45,13 +45,13 @@ impl From<SignaturePackingError> for SigningError {
 fn validate_signing_key<const K: usize, const L: usize, const M: usize>(
     mode: ParameterSet,
     secret_key: &[u8],
-) -> Result<(), SigningError> {
+) -> Result<crate::packing::DecodedSecretKey<K, M>, SigningError> {
     let decoded = unpack_secret_key::<K, M>(secret_key, mode).map_err(SigningError::KeyDecoding)?;
 
     unpack_verification_key::<K, L>(&decoded.public_key, mode)
         .map_err(SigningError::KeyDecoding)?;
 
-    Ok(())
+    Ok(decoded)
 }
 
 /// Sign with the authenticated HAETAE retry sequence.
@@ -69,7 +69,10 @@ fn sign_mode<const K: usize, const L: usize, const M: usize>(
     let initialization =
         derive_signing_initialization(secret_key, message, context, randomness, mode)?;
 
-    validate_signing_key::<K, L, M>(mode, secret_key)?;
+    let mut decoded = validate_signing_key::<K, L, M>(mode, secret_key)?;
+
+    decoded.s0.ntt();
+    decoded.s1.ntt();
 
     let public_key_length = mode.parameters().public_key_bytes;
     let public_key = &secret_key[..public_key_length];
@@ -90,9 +93,9 @@ fn sign_mode<const K: usize, const L: usize, const M: usize>(
             &sample.y2,
         );
 
-        let response = evaluate_signing_response_complete::<K, L, M>(
-            secret_key,
-            mode,
+        let response = evaluate_signing_response_predecoded::<K, L, M>(
+            &decoded.s0,
+            &decoded.s1,
             &prepared.challenge,
             sample.b,
             &sample.y1,
