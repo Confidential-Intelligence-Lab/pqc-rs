@@ -7,7 +7,7 @@ use crate::packing::{unpack_secret_key, unpack_verification_key, PackingError};
 use crate::params::signing_rejection_thresholds;
 use crate::params::ParameterSet;
 use crate::signature_packing::SignaturePackingError;
-use crate::signing_challenge_prepare::prepare_signing_challenge_complete;
+use crate::signing_challenge_prepare::prepare_signing_challenge_predecoded;
 use crate::signing_init::derive_signing_initialization;
 use crate::signing_init::SigningInitError;
 use crate::signing_response::evaluate_signing_response_predecoded;
@@ -45,13 +45,19 @@ impl From<SignaturePackingError> for SigningError {
 fn validate_signing_key<const K: usize, const L: usize, const M: usize>(
     mode: ParameterSet,
     secret_key: &[u8],
-) -> Result<crate::packing::DecodedSecretKey<K, M>, SigningError> {
+) -> Result<
+    (
+        crate::packing::DecodedSecretKey<K, M>,
+        crate::packing::ReconstructedVerificationKey<K, L>,
+    ),
+    SigningError,
+> {
     let decoded = unpack_secret_key::<K, M>(secret_key, mode).map_err(SigningError::KeyDecoding)?;
 
-    unpack_verification_key::<K, L>(&decoded.public_key, mode)
+    let verification_key = unpack_verification_key::<K, L>(&decoded.public_key, mode)
         .map_err(SigningError::KeyDecoding)?;
 
-    Ok(decoded)
+    Ok((decoded, verification_key))
 }
 
 /// Sign with the authenticated HAETAE retry sequence.
@@ -69,13 +75,11 @@ fn sign_mode<const K: usize, const L: usize, const M: usize>(
     let initialization =
         derive_signing_initialization(secret_key, message, context, randomness, mode)?;
 
-    let mut decoded = validate_signing_key::<K, L, M>(mode, secret_key)?;
+    let (mut decoded, verification_key) = validate_signing_key::<K, L, M>(mode, secret_key)?;
 
     decoded.s0.ntt();
     decoded.s1.ntt();
 
-    let public_key_length = mode.parameters().public_key_bytes;
-    let public_key = &secret_key[..public_key_length];
     let thresholds = signing_rejection_thresholds(mode);
 
     let mut nonce = 0_u16;
@@ -84,10 +88,10 @@ fn sign_mode<const K: usize, const L: usize, const M: usize>(
         let sample = sample_hyperball(mode_number, &initialization.signing_seed, nonce)?;
         nonce = sample.next_nonce;
 
-        let prepared = prepare_signing_challenge_complete::<K, L>(
+        let prepared = prepare_signing_challenge_predecoded::<K, L>(
             mode_number,
             mode,
-            public_key,
+            &verification_key,
             &initialization.mu,
             &sample.y1,
             &sample.y2,

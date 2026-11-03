@@ -50,6 +50,19 @@ pub(crate) fn prepare_signing_challenge_complete<const K: usize, const L: usize>
     y1: &[[i32; N]],
     y2: &[[i32; N]],
 ) -> SigningChallengePreparation<K> {
+    let vk = unpack_verification_key::<K, L>(pk, mode).expect("verification key");
+
+    prepare_signing_challenge_predecoded::<K, L>(mode_number, mode, &vk, mu, y1, y2)
+}
+
+pub(crate) fn prepare_signing_challenge_predecoded<const K: usize, const L: usize>(
+    mode_number: u8,
+    mode: ParameterSet,
+    vk: &crate::packing::ReconstructedVerificationKey<K, L>,
+    mu: &[u8; 64],
+    y1: &[[i32; N]],
+    y2: &[[i32; N]],
+) -> SigningChallengePreparation<K> {
     assert_eq!(y1.len(), L);
     assert_eq!(y2.len(), K);
 
@@ -64,8 +77,6 @@ pub(crate) fn prepare_signing_challenge_complete<const K: usize, const L: usize>
     let z1rnd0 = z1rnd.as_slice()[0].clone();
 
     z1rnd.ntt();
-
-    let vk = unpack_verification_key::<K, L>(pk, mode).expect("verification key");
 
     let mut ay = PolyVecK::<K>::new(std::array::from_fn(|i| {
         vk.matrix[i].pointwise_acc_montgomery(&z1rnd)
