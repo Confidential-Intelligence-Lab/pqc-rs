@@ -5,6 +5,7 @@ members = [
     "crates/pqc-ml-kem",
     "crates/pqc-ml-dsa",
     "crates/pqc-slh-dsa",
+    "crates/pqc-haetae",
     "crates/pqc-hpke",
     "crates/pqc-protocol",
     "crates/pqc-secure-channel",
