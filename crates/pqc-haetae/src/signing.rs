@@ -3,6 +3,7 @@
 //! This module is experimental and is not a public signing API.
 
 use crate::hyperball::{sample_hyperball, HyperballError};
+use crate::packing::{unpack_secret_key, unpack_verification_key, PackingError};
 use crate::params::signing_rejection_thresholds;
 use crate::params::ParameterSet;
 use crate::signature_packing::SignaturePackingError;
@@ -17,6 +18,7 @@ pub(crate) enum SigningError {
     Initialization(SigningInitError),
     Hyperball(HyperballError),
     SignaturePacking(SignaturePackingError),
+    KeyDecoding(PackingError),
 }
 
 impl From<SigningInitError> for SigningError {
@@ -37,6 +39,21 @@ impl From<SignaturePackingError> for SigningError {
     }
 }
 
+/// Validate serialized key components before entering the signing loop.
+///
+/// This establishes decoding validity, not mathematical keypair consistency.
+fn validate_signing_key<const K: usize, const L: usize, const M: usize>(
+    mode: ParameterSet,
+    secret_key: &[u8],
+) -> Result<(), SigningError> {
+    let decoded = unpack_secret_key::<K, M>(secret_key, mode).map_err(SigningError::KeyDecoding)?;
+
+    unpack_verification_key::<K, L>(&decoded.public_key, mode)
+        .map_err(SigningError::KeyDecoding)?;
+
+    Ok(())
+}
+
 /// Sign with the authenticated HAETAE retry sequence.
 ///
 /// The hyperball sampler owns its internal rejection loop. This loop
@@ -51,6 +68,8 @@ fn sign_mode<const K: usize, const L: usize, const M: usize>(
 ) -> Result<Vec<u8>, SigningError> {
     let initialization =
         derive_signing_initialization(secret_key, message, context, randomness, mode)?;
+
+    validate_signing_key::<K, L, M>(mode, secret_key)?;
 
     let public_key_length = mode.parameters().public_key_bytes;
     let public_key = &secret_key[..public_key_length];
@@ -262,6 +281,116 @@ mod native_sign_verify_tests {
         println!("HAETAE_NATIVE_END_TO_END_ACCEPTED={accepted}");
         println!("HAETAE_NATIVE_END_TO_END_REJECTED={rejected}");
         println!("HAETAE_NATIVE_END_TO_END_STATUS=PASS");
+    }
+
+    #[test]
+    fn malformed_signing_keys_return_typed_errors() {
+        use crate::packing::{public_key_bytes, secret_key_bytes, PackingError};
+
+        let randomness = [0_u8; 32];
+        let mut checked = 0_usize;
+
+        for mode in [
+            ParameterSet::Haetae2,
+            ParameterSet::Haetae3,
+            ParameterSet::Haetae5,
+        ] {
+            let length = secret_key_bytes(mode);
+
+            for invalid_length in [0, length - 1, length + 1] {
+                let invalid = vec![0_u8; invalid_length];
+
+                assert!(matches!(
+                    sign_deterministic(mode, &invalid, b"message", b"", &randomness),
+                    Err(SigningError::Initialization(
+                        SigningInitError::InvalidSecretKeyLength
+                    ))
+                ));
+
+                checked += 1;
+            }
+
+            let mut malformed = vec![0_u8; length];
+
+            // The first secret polynomial follows the embedded public key.
+            // Force a noncanonical small-polynomial coefficient.
+            let offset = public_key_bytes(mode);
+
+            malformed[offset] = match mode {
+                ParameterSet::Haetae2 | ParameterSet::Haetae3 => 0x07,
+                ParameterSet::Haetae5 => 0x03,
+            };
+
+            assert!(matches!(
+                sign_deterministic(mode, &malformed, b"message", b"", &randomness),
+                Err(SigningError::KeyDecoding(
+                    PackingError::InvalidCoefficient { .. }
+                ))
+            ));
+
+            checked += 1;
+        }
+
+        assert_eq!(checked, 12);
+
+        println!("HAETAE_MALFORMED_SIGNING_KEY_CASES={} STATUS=PASS", checked);
+    }
+
+    #[test]
+    fn embedded_public_key_canonicality_is_checked() {
+        use crate::packing::{
+            public_key_bytes, secret_key_bytes, unpack_verification_key, PackingError,
+        };
+
+        let randomness = [0_u8; 32];
+
+        // HAETAE-5 uses 16-bit public coefficients, but Q = 64513.
+        // The value 65535 is therefore noncanonical.
+        let mut sk = vec![0_u8; secret_key_bytes(ParameterSet::Haetae5)];
+
+        // Public key begins with a 32-byte seed.
+        // The first polynomial coefficient follows immediately.
+        sk[32] = 0xff;
+        sk[33] = 0xff;
+
+        assert!(matches!(
+            sign_deterministic(ParameterSet::Haetae5, &sk, b"message", b"", &randomness,),
+            Err(SigningError::KeyDecoding(
+                PackingError::InvalidCoefficient {
+                    index: 0,
+                    value: 65535,
+                }
+            ))
+        ));
+
+        // HAETAE-2 and HAETAE-3 use the full 15-bit domain.
+        // 0x7fff is canonical at the public-key decoding boundary.
+        let mut canonical_checks = 0_usize;
+
+        for (mode, k, l) in [
+            (ParameterSet::Haetae2, 2_usize, 4_usize),
+            (ParameterSet::Haetae3, 3_usize, 6_usize),
+        ] {
+            let mut pk = vec![0_u8; public_key_bytes(mode)];
+
+            pk[32] = 0xff;
+            pk[33] = 0x7f;
+
+            let decoded = match (k, l) {
+                (2, 4) => unpack_verification_key::<2, 4>(&pk, mode).is_ok(),
+                (3, 6) => unpack_verification_key::<3, 6>(&pk, mode).is_ok(),
+                _ => unreachable!("fixed test dimensions"),
+            };
+
+            assert!(decoded, "maximum 15-bit coefficient must decode");
+            canonical_checks += 1;
+        }
+
+        assert_eq!(canonical_checks, 2);
+
+        println!(
+            "HAETAE_EMBEDDED_PUBLIC_KEY_NEGATIVE=1              CANONICAL_BOUNDARY=2 STATUS=PASS"
+        );
     }
 
     #[test]
