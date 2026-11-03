@@ -5,7 +5,17 @@ REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$REPO"
 
 python3 - <<'PYTHON'
+import os
 import subprocess
+
+toolchain = os.environ.get("HAETAE_CARGO_TOOLCHAIN", "").strip()
+target = os.environ.get("HAETAE_CARGO_TARGET", "").strip()
+
+cargo = ["cargo"]
+if toolchain:
+    cargo.append("+" + toolchain)
+
+target_args = ["--target", target] if target else []
 
 prefixes = (
     "api::api_regression_tests::",
@@ -19,7 +29,7 @@ prefixes = (
 
 result = subprocess.run(
     [
-        "cargo", "test", "--locked",
+        *cargo, "test", "--locked", *target_args,
         "-p", "pqc-rs-haetae",
         "--lib", "--", "--list",
     ],
@@ -44,7 +54,7 @@ if len(names) != 29:
 for name in names:
     subprocess.run(
         [
-            "cargo", "test", "--locked",
+            *cargo, "test", "--locked", *target_args,
             "-p", "pqc-rs-haetae",
             "--lib", name, "--", "--exact", "--quiet",
         ],

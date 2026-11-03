@@ -1,0 +1,62 @@
+name: SMAUG-T Reference Assurance
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "23 9 * * 6"
+
+permissions:
+  contents: read
+
+jobs:
+  reference-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout PQC-rs
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@4cda84d5c5c54efe2404f9d843567869ab1699d4 # stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install system dependencies
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y clang git python3
+
+      - name: Acquire pinned SMAUG-T reference
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          EXPECTED=bbc463cd788eae36c6d155cef667ac9dbd9054cd
+          REPO=https://github.com/CryptoLabInc/SMAUG-T.git
+
+          git init "$RUNNER_TEMP/smaug-t-reference"
+          git -C "$RUNNER_TEMP/smaug-t-reference" remote add origin "$REPO"
+          git -C "$RUNNER_TEMP/smaug-t-reference" fetch --depth 1 origin "$EXPECTED"
+          git -C "$RUNNER_TEMP/smaug-t-reference" checkout --detach FETCH_HEAD
+
+          ACTUAL=$(git -C "$RUNNER_TEMP/smaug-t-reference" rev-parse HEAD)
+          test "$ACTUAL" = "$EXPECTED"
+
+          test -f "$RUNNER_TEMP/smaug-t-reference/reference_implementation/src/kem.c"
+          test -f "$RUNNER_TEMP/smaug-t-reference/reference_implementation/src/indcpa.c"
+          test -f "$RUNNER_TEMP/smaug-t-reference/reference_implementation/include/params.h"
+
+          echo "SMAUGT_REFERENCE_COMMIT=$ACTUAL"
+          echo "SMAUGT_REFERENCE_IDENTITY_STATUS=PASS"
+
+      - name: Validate SMAUG-T against pinned C reference
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          bash experimental/pqc-rs-smaug-t/scripts/validate-reference.sh \
+            "$RUNNER_TEMP/smaug-t-reference/reference_implementation"
+
+          echo "SMAUGT_REFERENCE_CI_STATUS=PASS"

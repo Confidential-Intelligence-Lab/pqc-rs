@@ -127,6 +127,15 @@ fn authenticated_reference_extended_inverse_ntt() {
         let mut actual = parse_vector(input);
         let expected = parse_vector(expected);
 
+        assert!(
+            actual.iter().all(|&x| i64::from(x).abs() < 64_513),
+            "reference input-domain violation: {name}"
+        );
+        assert!(
+            actual.iter().any(|&x| x % 64_513 != 0),
+            "degenerate reference input: {name}"
+        );
+
         inverse_to_mont(&mut actual);
 
         assert_eq!(actual, expected, "reference mismatch: {name}");

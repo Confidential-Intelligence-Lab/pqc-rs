@@ -5,3 +5,5 @@ for package in pqc-rs-core pqc-rs-ml-kem pqc-rs-hpke; do
   echo "== Miri: ${package} library tests =="
   cargo +nightly miri test -p "${package}" --lib --all-features
 done
+
+./scripts/run-experimental-miri.sh
