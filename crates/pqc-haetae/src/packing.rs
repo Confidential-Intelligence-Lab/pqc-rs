@@ -569,6 +569,72 @@ pub struct DecodedSecretKey<const K: usize, const M: usize> {
     pub key: [u8; 32],
 }
 
+// The embedded public key is not secret.
+impl<const K: usize, const M: usize> DecodedSecretKey<K, M> {
+    fn zeroize_secret_material(&mut self) {
+        use zeroize::Zeroize;
+
+        for polynomial in &mut self.s0.0.vec {
+            polynomial.coeffs.zeroize();
+        }
+        for polynomial in &mut self.s1.0.vec {
+            polynomial.coeffs.zeroize();
+        }
+        self.key.zeroize();
+    }
+}
+
+impl<const K: usize, const M: usize> Drop for DecodedSecretKey<K, M> {
+    fn drop(&mut self) {
+        self.zeroize_secret_material();
+    }
+}
+
+#[cfg(test)]
+mod decoded_secret_zeroization_tests {
+    use super::*;
+
+    #[test]
+    fn clears_secret_coefficients_and_key_preserving_public_key() {
+        let mut decoded = DecodedSecretKey::<2, 2> {
+            public_key: vec![0xA5, 0x5A],
+            s0: crate::polyvec::PolyVecM::default(),
+            s1: crate::polyvec::PolyVecK::default(),
+            key: [0xC3; 32],
+        };
+
+        for polynomial in &mut decoded.s0.0.vec {
+            polynomial.coeffs.fill(17);
+        }
+        for polynomial in &mut decoded.s1.0.vec {
+            polynomial.coeffs.fill(-23);
+        }
+
+        decoded.zeroize_secret_material();
+
+        assert_eq!(decoded.public_key, [0xA5, 0x5A]);
+        assert!(decoded
+            .s0
+            .0
+            .vec
+            .iter()
+            .all(|p| p.coeffs.iter().all(|&x| x == 0)));
+        assert!(decoded
+            .s1
+            .0
+            .vec
+            .iter()
+            .all(|p| p.coeffs.iter().all(|&x| x == 0)));
+        assert_eq!(decoded.key, [0; 32]);
+
+        // Repeated cleanup must remain safe.
+        decoded.zeroize_secret_material();
+        assert_eq!(decoded.key, [0; 32]);
+
+        println!("HAETAE_DECODED_SECRET_ZEROIZATION_STATUS=PASS");
+    }
+}
+
 /// Decode the secret-key serialization produced by the reference PackSK.
 ///
 /// The signing matrix is reconstructed separately by UnpackVK.

@@ -21,6 +21,44 @@ pub struct SigningInitialization {
     pub signing_seed: [u8; 64],
 }
 
+// The signing seed is secret-derived; mu is a public transcript digest.
+impl SigningInitialization {
+    fn zeroize_secret_material(&mut self) {
+        use zeroize::Zeroize;
+
+        self.signing_seed.zeroize();
+    }
+}
+
+impl Drop for SigningInitialization {
+    fn drop(&mut self) {
+        self.zeroize_secret_material();
+    }
+}
+
+#[cfg(test)]
+mod signing_seed_zeroization_tests {
+    use super::*;
+
+    #[test]
+    fn clears_seed_preserving_public_transcript() {
+        let mut initialization = SigningInitialization {
+            mu: [0x5A; 64],
+            signing_seed: [0xC3; 64],
+        };
+
+        initialization.zeroize_secret_material();
+
+        assert_eq!(initialization.signing_seed, [0; 64]);
+        assert_eq!(initialization.mu, [0x5A; 64]);
+
+        initialization.zeroize_secret_material();
+        assert_eq!(initialization.signing_seed, [0; 64]);
+
+        println!("HAETAE_SIGNING_SEED_ZEROIZATION_STATUS=PASS");
+    }
+}
+
 pub fn derive_signing_initialization(
     secret_key: &[u8],
     message: &[u8],

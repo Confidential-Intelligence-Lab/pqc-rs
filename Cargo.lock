@@ -870,6 +870,7 @@ version = "0.4.0"
 dependencies = [
  "serde_json",
  "sha3",
+ "zeroize",
 ]
 
 [[package]]
