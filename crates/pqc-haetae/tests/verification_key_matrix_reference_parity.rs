@@ -1,3 +1,4 @@
+#![cfg(feature = "internal-api")]
 // SPDX-License-Identifier: MIT
 
 //! Exact signing-matrix parity against authenticated HAETAE 1.2.0 C.

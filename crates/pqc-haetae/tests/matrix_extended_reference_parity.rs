@@ -1,3 +1,4 @@
+#![cfg(feature = "internal-api")]
 use pqc_haetae::params::{ParameterSet, N};
 use pqc_haetae::poly::Poly;
 use pqc_haetae::polymat::{expand_mat_a, pointwise_montgomery};

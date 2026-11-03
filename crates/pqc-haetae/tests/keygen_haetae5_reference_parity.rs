@@ -1,3 +1,4 @@
+#![cfg(feature = "internal-api")]
 // SPDX-License-Identifier: MIT
 //! Exact HAETAE-5 differential tests against authenticated C fixtures.
 

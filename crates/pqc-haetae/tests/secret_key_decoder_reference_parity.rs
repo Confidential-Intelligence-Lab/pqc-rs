@@ -1,3 +1,4 @@
+#![cfg(feature = "internal-api")]
 // SPDX-License-Identifier: MIT
 
 //! HAETAE 1.2.0 secret-key decoding against authenticated C fixtures.

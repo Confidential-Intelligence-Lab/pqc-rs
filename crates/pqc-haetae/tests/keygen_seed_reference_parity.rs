@@ -1,3 +1,4 @@
+#![cfg(feature = "internal-api")]
 // SPDX-License-Identifier: MIT
 
 use pqc_haetae::keygen_seed::expand_keygen_seed;

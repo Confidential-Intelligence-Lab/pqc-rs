@@ -1,3 +1,4 @@
+#![cfg(feature = "internal-api")]
 // SPDX-License-Identifier: MIT
 //! Authenticated C/Rust complete-loop key-generation parity.
 

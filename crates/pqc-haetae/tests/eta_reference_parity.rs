@@ -1,3 +1,4 @@
+#![cfg(feature = "internal-api")]
 //! Byte-exact ETA packing parity against HAETAE 1.2.0 C fixtures.
 
 use pqc_haetae::packing::{

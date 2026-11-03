@@ -77,10 +77,10 @@ for mode in 2 3 5; do
 done
 
 echo "=== AUTHENTICATED REGRESSION ==="
-cargo test -p pqc-rs-haetae
+cargo test -p pqc-rs-haetae --features internal-api
 
 echo "=== STRICT CLIPPY ==="
-cargo clippy -p pqc-rs-haetae --all-targets -- -D warnings
+cargo clippy -p pqc-rs-haetae --all-targets --features internal-api -- -D warnings
 
 echo "=== FORMAT ==="
 cargo fmt --all -- --check

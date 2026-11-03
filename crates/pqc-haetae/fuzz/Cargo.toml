@@ -9,7 +9,7 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
-pqc-rs-haetae = { path = ".." }
+pqc-rs-haetae = { path = "..", features = ["internal-api"] }
 
 [[bin]]
 name = "haetae_verify_signature"

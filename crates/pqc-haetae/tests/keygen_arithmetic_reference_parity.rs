@@ -1,3 +1,4 @@
+#![cfg(feature = "internal-api")]
 // SPDX-License-Identifier: MIT
 
 //! Authenticated HAETAE-2/3 first-attempt arithmetic differential tests.

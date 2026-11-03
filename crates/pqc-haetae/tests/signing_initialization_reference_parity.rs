@@ -1,3 +1,4 @@
+#![cfg(feature = "internal-api")]
 use pqc_haetae::packing::{public_key_bytes, secret_key_bytes};
 use pqc_haetae::params::ParameterSet;
 use pqc_haetae::signing_init::derive_signing_initialization;

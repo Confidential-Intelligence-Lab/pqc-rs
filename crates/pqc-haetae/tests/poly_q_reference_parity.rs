@@ -1,3 +1,4 @@
+#![cfg(feature = "internal-api")]
 //! Byte-exact parity with HAETAE 1.2.0 reference C poly_q packing.
 //!
 //! Fixtures are generated independently by the authenticated C reference.

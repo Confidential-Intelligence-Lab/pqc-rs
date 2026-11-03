@@ -1,3 +1,4 @@
+#![cfg(feature = "internal-api")]
 // H1.0-D.6i.4: authenticated HAETAE 1.2.0 C-reference fixtures
 use pqc_haetae::ntt::inverse_to_mont;
 

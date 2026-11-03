@@ -1,3 +1,4 @@
+#![cfg(feature = "internal-api")]
 // SPDX-License-Identifier: MIT
 //! Deterministic secret-key parity against HAETAE 1.2.0 C.
 

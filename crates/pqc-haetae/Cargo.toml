@@ -10,6 +10,10 @@ rust-version.workspace = true
 name = "pqc_haetae"
 path = "src/lib.rs"
 
+[features]
+default = []
+internal-api = []
+
 [dependencies]
 pqc-core = { workspace = true }
 rand_core = { workspace = true }
