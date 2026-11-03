@@ -5,6 +5,7 @@ use crate::packing::unpack_verification_key;
 use crate::params::{ParameterSet, N};
 use crate::poly::Poly;
 use crate::polyvec::{PolyVecK, PolyVecL};
+use zeroize::Zeroizing;
 
 fn round_fixed(x: i32) -> i32 {
     x.checked_add(4096)
@@ -12,11 +13,18 @@ fn round_fixed(x: i32) -> i32 {
         >> 13
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub(crate) struct SigningChallengePreparation<const K: usize> {
     pub(crate) challenge: Poly,
     pub(crate) ay: PolyVecK<K>,
     pub(crate) highbits: PolyVecK<K>,
+}
+
+// HAETAE_10K_7D_4C_8C_RETAINED_AY_LIFECYCLE
+impl<const K: usize> Drop for SigningChallengePreparation<K> {
+    fn drop(&mut self) {
+        zeroize::Zeroize::zeroize(&mut self.ay);
+    }
 }
 
 /// Preserve the established challenge-only interface.
@@ -36,7 +44,7 @@ pub(crate) fn prepare_signing_challenge<const K: usize, const L: usize>(
         "retained HAETAE signing highbits mismatch"
     );
 
-    prepared.challenge
+    prepared.challenge.clone()
 }
 
 /// Prepare the HAETAE signing challenge from one accepted hyperball sample.
@@ -66,15 +74,16 @@ pub(crate) fn prepare_signing_challenge_predecoded<const K: usize, const L: usiz
     assert_eq!(y1.len(), L);
     assert_eq!(y2.len(), K);
 
-    let mut z1rnd = PolyVecL::<L>::new(std::array::from_fn(|i| {
+    // HAETAE_10K_7D_4C_8A_CHALLENGE_TEMPORARY_LIFECYCLE
+    let mut z1rnd = Zeroizing::new(PolyVecL::<L>::new(std::array::from_fn(|i| {
         Poly::new(std::array::from_fn(|j| round_fixed(y1[i][j])))
-    }));
+    })));
 
-    let mut z2rnd = PolyVecK::<K>::new(std::array::from_fn(|i| {
+    let mut z2rnd = Zeroizing::new(PolyVecK::<K>::new(std::array::from_fn(|i| {
         Poly::new(std::array::from_fn(|j| round_fixed(y2[i][j])))
-    }));
+    })));
 
-    let z1rnd0 = z1rnd.as_slice()[0].clone();
+    let z1rnd0 = Zeroizing::new(z1rnd.as_slice()[0].clone());
 
     z1rnd.ntt();
 
@@ -84,13 +93,14 @@ pub(crate) fn prepare_signing_challenge_predecoded<const K: usize, const L: usiz
 
     ay.invntt_tomont();
     z2rnd.double();
-    ay = ay.add(&z2rnd);
+    let replacement = ay.add(&z2rnd);
+    let _displaced_ay_add = Zeroizing::new(std::mem::replace(&mut ay, replacement));
 
     // Signing-specific CRT accepts unreduced inverse-NTT coefficients.
     // The result is subsequently reduced modulo 2q.
-    let before_crt = ay.clone();
+    let before_crt = Zeroizing::new(ay.clone());
 
-    ay = PolyVecK::<K>::new(std::array::from_fn(|i| {
+    let replacement = PolyVecK::<K>::new(std::array::from_fn(|i| {
         Poly::new(std::array::from_fn(|j| {
             let xq = before_crt.as_slice()[i].coeffs[j];
             let parity = if i == 0 { z1rnd0.coeffs[j] & 1 } else { 0 };
@@ -101,6 +111,7 @@ pub(crate) fn prepare_signing_challenge_predecoded<const K: usize, const L: usiz
                 .expect("HAETAE signing CRT overflow")
         }))
     }));
+    let _displaced_ay_crt = Zeroizing::new(std::mem::replace(&mut ay, replacement));
 
     ay.freeze2q();
 

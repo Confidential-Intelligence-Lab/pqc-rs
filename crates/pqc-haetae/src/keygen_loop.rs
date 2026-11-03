@@ -12,6 +12,7 @@ use crate::keygen_rejection::{
 };
 use crate::params::{ParameterSet, SEED_BYTES};
 use crate::polyvec::{PolyVecK, PolyVecM};
+use zeroize::Zeroize;
 
 /// Failure to obtain an accepted state within the permitted search.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -54,7 +55,7 @@ impl SamplingCursor {
 /// Accepted HAETAE mathematical key-generation state.
 ///
 /// All seed-derived values and secret polynomial vectors are sensitive.
-/// This experimental type does not implement automatic zeroization.
+/// Secret material is cleared when this state is dropped.
 pub struct AcceptedKeygenState<const K: usize, const M: usize> {
     pub rhoprime: [u8; SEED_BYTES],
     pub key: [u8; SEED_BYTES],
@@ -64,6 +65,22 @@ pub struct AcceptedKeygenState<const K: usize, const M: usize> {
     pub squared_singular_value: i64,
     pub attempts: usize,
     pub sampling_nonce: u16,
+}
+
+// HAETAE_10K_7D_3D_1_ACCEPTED_STATE
+// HAETAE_10K_7D_3D_3B_ACCEPTED
+impl<const K: usize, const M: usize> AcceptedKeygenState<K, M> {
+    fn zeroize_secret_material(&mut self) {
+        self.key.zeroize();
+        self.s1.zeroize();
+        self.s2.zeroize();
+    }
+}
+
+impl<const K: usize, const M: usize> Drop for AcceptedKeygenState<K, M> {
+    fn drop(&mut self) {
+        self.zeroize_secret_material();
+    }
 }
 
 impl From<NonceCounterExhausted> for KeygenLoopError {
@@ -98,13 +115,15 @@ pub fn generate_accepted_state<const K: usize, const M: usize>(
 
         if attempt != 0 {
             let (s1, s2) = PolyVecM::<M>::expand_s_with_k::<K>(&prepared.sigma, nonce, mode);
+            prepared.s1.zeroize();
+            prepared.s2.zeroize();
             prepared.s1 = s1;
             prepared.s2 = s2;
         }
 
         let (public_b, accepted_s2, squared) = match mode {
             ParameterSet::Haetae2 | ParameterSet::Haetae3 => {
-                let result = rounded_first_attempt(&prepared, mode);
+                let mut result = rounded_first_attempt(&prepared, mode);
 
                 if result.rejected {
                     if attempt + 1 == max_attempts {
@@ -116,8 +135,8 @@ pub fn generate_accepted_state<const K: usize, const M: usize>(
                 }
 
                 (
-                    result.public_b,
-                    result.updated_s2,
+                    std::mem::take(&mut result.public_b),
+                    std::mem::take(&mut result.updated_s2),
                     result.squared_singular_value,
                 )
             }
@@ -135,7 +154,7 @@ pub fn generate_accepted_state<const K: usize, const M: usize>(
 
                 (
                     result.public_b.expect("accepted HAETAE-5 must produce B"),
-                    prepared.s2.clone(),
+                    std::mem::take(&mut prepared.s2),
                     result.squared_singular_value,
                 )
             }
@@ -145,7 +164,7 @@ pub fn generate_accepted_state<const K: usize, const M: usize>(
             rhoprime: prepared.rhoprime,
             key: prepared.key,
             public_b,
-            s1: prepared.s1,
+            s1: std::mem::take(&mut prepared.s1),
             s2: accepted_s2,
             squared_singular_value: squared,
             attempts: attempt + 1,
@@ -303,5 +322,52 @@ mod tests {
             let _ = generate_accepted_state::<3, 3>(&seed, ParameterSet::Haetae2, 1);
         })
         .is_err());
+    }
+}
+
+// HAETAE_10K_7D_3D_3B_ACCEPTED_TEST
+#[cfg(test)]
+mod lifecycle_zeroization_tests {
+    use super::*;
+
+    #[test]
+    fn accepted_state_clears_secrets_and_preserves_public_state() {
+        let seed = [0x5a_u8; SEED_BYTES];
+
+        check::<2, 3>(&seed, ParameterSet::Haetae2);
+        check::<3, 5>(&seed, ParameterSet::Haetae3);
+        check::<4, 6>(&seed, ParameterSet::Haetae5);
+    }
+
+    fn check<const K: usize, const M: usize>(seed: &[u8; SEED_BYTES], mode: ParameterSet) {
+        let mut state = generate_accepted_state::<K, M>(seed, mode, 1000)
+            .expect("keygen must accept within test limit");
+
+        let public_seed = state.rhoprime;
+        let public_b = state.public_b.clone();
+        let attempts = state.attempts;
+        let nonce = state.sampling_nonce;
+
+        assert!(state.key.iter().any(|&x| x != 0));
+
+        state.zeroize_secret_material();
+        state.zeroize_secret_material();
+
+        assert!(state.key.iter().all(|&x| x == 0));
+        assert!(state
+            .s1
+            .as_slice()
+            .iter()
+            .all(|p| p.coeffs.iter().all(|&x| x == 0)));
+        assert!(state
+            .s2
+            .as_slice()
+            .iter()
+            .all(|p| p.coeffs.iter().all(|&x| x == 0)));
+
+        assert_eq!(state.rhoprime, public_seed);
+        assert_eq!(state.public_b, public_b);
+        assert_eq!(state.attempts, attempts);
+        assert_eq!(state.sampling_nonce, nonce);
     }
 }

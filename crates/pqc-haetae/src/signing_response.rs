@@ -5,6 +5,8 @@
 use crate::packing::unpack_secret_key;
 use crate::params::{ParameterSet, N};
 use crate::poly::Poly;
+use zeroize::Zeroizing;
+// HAETAE_10K_7D_4B_2_RESPONSE_TEMPORARIES
 use crate::polyvec::{PolyVecK, PolyVecL, PolyVecM};
 
 fn add_fixed<const D: usize>(sampled: &[[i32; N]], correction: &[Poly]) -> [Poly; D] {
@@ -45,7 +47,7 @@ fn twice_minus_y<const D: usize>(response: &[Poly; D], sampled: &[[i32; N]]) -> 
     })
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub(crate) struct SigningResponse<const L: usize, const K: usize> {
     pub(crate) z1: [Poly; L],
     pub(crate) z2: [Poly; K],
@@ -53,6 +55,64 @@ pub(crate) struct SigningResponse<const L: usize, const K: usize> {
     pub(crate) norm_tmp: u64,
     pub(crate) reject1: u64,
     pub(crate) reject2: u64,
+}
+
+// HAETAE_10K_7D_4B_1_RESPONSE_LIFECYCLE
+impl<const L: usize, const K: usize> SigningResponse<L, K> {
+    fn zeroize_secret_material(&mut self) {
+        use zeroize::Zeroize;
+
+        for polynomial in &mut self.z1 {
+            polynomial.coeffs.zeroize();
+        }
+        for polynomial in &mut self.z2 {
+            polynomial.coeffs.zeroize();
+        }
+    }
+}
+
+impl<const L: usize, const K: usize> Drop for SigningResponse<L, K> {
+    fn drop(&mut self) {
+        self.zeroize_secret_material();
+    }
+}
+
+#[cfg(test)]
+mod signing_response_lifecycle_tests {
+    use super::*;
+
+    fn check<const L: usize, const K: usize>() {
+        let mut response: SigningResponse<L, K> = SigningResponse {
+            z1: std::array::from_fn(|_| Poly::new([0x1234; N])),
+            z2: std::array::from_fn(|_| Poly::new([0x5678; N])),
+            norm_z: 123,
+            norm_tmp: 456,
+            reject1: 1,
+            reject2: 0,
+        };
+
+        response.zeroize_secret_material();
+
+        assert!(response.z1.iter().all(|p| p.coeffs.iter().all(|&x| x == 0)));
+        assert!(response.z2.iter().all(|p| p.coeffs.iter().all(|&x| x == 0)));
+
+        assert_eq!(response.norm_z, 123);
+        assert_eq!(response.norm_tmp, 456);
+        assert_eq!(response.reject1, 1);
+        assert_eq!(response.reject2, 0);
+
+        response.zeroize_secret_material();
+
+        assert!(response.z1.iter().all(|p| p.coeffs.iter().all(|&x| x == 0)));
+        assert!(response.z2.iter().all(|p| p.coeffs.iter().all(|&x| x == 0)));
+    }
+
+    #[test]
+    fn clears_all_haetae_response_dimensions() {
+        check::<4, 2>();
+        check::<6, 3>();
+        check::<7, 4>();
+    }
 }
 
 /// Evaluate the complete response, preserving coefficients for signature packing.
@@ -130,7 +190,7 @@ pub(crate) fn evaluate_signing_response_predecoded<
     let mut challenge_ntt = challenge.clone();
     challenge_ntt.ntt();
 
-    let mut cs1 = PolyVecL::<L>::new(std::array::from_fn(|i| {
+    let mut cs1 = Zeroizing::new(PolyVecL::<L>::new(std::array::from_fn(|i| {
         if i == 0 {
             challenge.clone()
         } else {
@@ -138,9 +198,9 @@ pub(crate) fn evaluate_signing_response_predecoded<
             product.invntt_tomont();
             product
         }
-    }));
+    })));
 
-    let mut cs2 = s1_ntt.pointwise_montgomery(&challenge_ntt);
+    let mut cs2 = Zeroizing::new(s1_ntt.pointwise_montgomery(&challenge_ntt));
     cs2.invntt_tomont();
 
     cs1.cneg(b & 1);
@@ -153,11 +213,11 @@ pub(crate) fn evaluate_signing_response_predecoded<
         .checked_add(norm2(&z2))
         .expect("combined response norm overflow");
 
-    let z1tmp = twice_minus_y(&z1, y1);
-    let z2tmp = twice_minus_y(&z2, y2);
+    let z1tmp = Zeroizing::new(twice_minus_y(&z1, y1));
+    let z2tmp = Zeroizing::new(twice_minus_y(&z2, y2));
 
-    let norm_tmp = norm2(&z1tmp)
-        .checked_add(norm2(&z2tmp))
+    let norm_tmp = norm2(&z1tmp[..])
+        .checked_add(norm2(&z2tmp[..]))
         .expect("combined temporary norm overflow");
 
     let (threshold1, threshold0) = thresholds;

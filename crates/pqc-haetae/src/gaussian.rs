@@ -422,11 +422,50 @@ use sha3::{
 
 const GAUSSIAN_BYTES: usize = 26;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub(crate) struct GaussianOutput {
     pub(crate) samples: [u64; 256],
     pub(crate) signs: [u8; 32],
     pub(crate) sqsum: Fp96_76,
+}
+
+// HAETAE_10K_7D_4C_3_GAUSSIAN_LIFECYCLE
+impl GaussianOutput {
+    fn zeroize_secret_material(&mut self) {
+        use zeroize::Zeroize;
+        self.samples.zeroize();
+        self.signs.zeroize();
+    }
+}
+
+impl Drop for GaussianOutput {
+    fn drop(&mut self) {
+        self.zeroize_secret_material();
+    }
+}
+
+#[cfg(test)]
+mod gaussian_lifecycle_tests {
+    use super::*;
+
+    #[test]
+    fn cleanup_is_idempotent() {
+        let mut output = GaussianOutput {
+            samples: [123; 256],
+            signs: [0xa5; 32],
+            sqsum: Fp96_76 { lo: 17, hi: 19 },
+        };
+
+        output.zeroize_secret_material();
+        assert!(output.samples.iter().all(|&x| x == 0));
+        assert!(output.signs.iter().all(|&x| x == 0));
+        assert_eq!(output.sqsum.lo, 17);
+        assert_eq!(output.sqsum.hi, 19);
+
+        output.zeroize_secret_material();
+        assert!(output.samples.iter().all(|&x| x == 0));
+        assert!(output.signs.iter().all(|&x| x == 0));
+    }
 }
 
 /// Reference-compatible Gaussian sampling from one SHAKE256 stream.
@@ -447,40 +486,40 @@ pub(crate) fn sample_gauss_n(
     shake.update(&nonce.to_le_bytes());
     let mut reader = shake.finalize_xof();
 
-    let mut samples = [0_u64; 256];
-    let mut signs = [0_u8; 32];
-    let mut sqsum = initial_sqsum;
+    // HAETAE_10K_7D_4C_7B_GAUSSIAN_CONSTRUCTION_LIFECYCLE
+    let mut output = GaussianOutput {
+        samples: [0_u64; 256],
+        signs: [0_u8; 32],
+        sqsum: initial_sqsum,
+    };
 
     // C takes the first len / 8 bytes as signs.
-    reader.read(&mut signs);
+    reader.read(&mut output.signs);
 
     let mut accepted = 0_usize;
 
     while accepted < len {
-        let mut candidate = [0_u8; GAUSSIAN_BYTES];
-        reader.read(&mut candidate);
+        // HAETAE_10K_7D_4C_4_CANDIDATE_ZEROIZE
+        let mut candidate = zeroize::Zeroizing::new([0_u8; GAUSSIAN_BYTES]);
+        reader.read(&mut candidate[..]);
 
         let (sample, square, valid) = sample_gauss_sigma76(&candidate);
 
         if valid {
             if accepted < 256 {
-                samples[accepted] = sample;
+                output.samples[accepted] = sample;
             }
 
-            sqsum.lo = sqsum.lo.wrapping_add(square.lo);
-            sqsum.hi = sqsum.hi.wrapping_add(square.hi);
+            output.sqsum.lo = output.sqsum.lo.wrapping_add(square.lo);
+            output.sqsum.hi = output.sqsum.hi.wrapping_add(square.hi);
 
             accepted += 1;
         }
     }
 
-    sqsum.renormalize();
+    output.sqsum.renormalize();
 
-    GaussianOutput {
-        samples,
-        signs,
-        sqsum,
-    }
+    output
 }
 
 #[cfg(test)]

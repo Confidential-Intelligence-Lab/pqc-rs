@@ -15,7 +15,7 @@ pub enum SigningInitError {
     ContextTooLong,
 }
 
-#[derive(Clone, Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 pub struct SigningInitialization {
     pub mu: [u8; 64],
     pub signing_seed: [u8; 64],
@@ -90,10 +90,16 @@ pub fn derive_signing_initialization(
     seed_xof.update(randomness);
     seed_xof.update(&mu);
 
-    let mut signing_seed = [0_u8; 64];
-    seed_xof.finalize_xof().read(&mut signing_seed);
+    // HAETAE_10K_7D_4C_7C_SIGNING_SEED_CONSTRUCTION
+    let mut initialization = SigningInitialization {
+        mu,
+        signing_seed: [0_u8; 64],
+    };
+    seed_xof
+        .finalize_xof()
+        .read(&mut initialization.signing_seed);
 
-    Ok(SigningInitialization { mu, signing_seed })
+    Ok(initialization)
 }
 
 #[cfg(test)]

@@ -9,9 +9,10 @@ use sha3::{
     digest::{ExtendableOutput, Update, XofReader},
     Shake256,
 };
+use zeroize::Zeroize;
 
 /// Reference-compatible partition of the SHAKE256 key-generation output.
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct KeygenSeeds {
     /// Seed used for the public matrix and public vector.
     pub rhoprime: [u8; SEED_BYTES],
@@ -19,6 +20,14 @@ pub struct KeygenSeeds {
     pub sigma: [u8; CRH_BYTES],
     /// Secret key-generation seed retained in the private key.
     pub key: [u8; SEED_BYTES],
+}
+
+// HAETAE_10K_7D_2_SECRET_HYGIENE
+impl Drop for KeygenSeeds {
+    fn drop(&mut self) {
+        self.sigma.zeroize();
+        self.key.zeroize();
+    }
 }
 
 /// Expand the caller-supplied 32-byte seed exactly as HAETAE KeyGenInternal.
@@ -39,6 +48,8 @@ pub fn expand_keygen_seed(seed: &[u8; SEED_BYTES]) -> KeygenSeeds {
     rhoprime.copy_from_slice(&output[..SEED_BYTES]);
     sigma.copy_from_slice(&output[SEED_BYTES..SEED_BYTES + CRH_BYTES]);
     key.copy_from_slice(&output[SEED_BYTES + CRH_BYTES..]);
+
+    output.zeroize();
 
     KeygenSeeds {
         rhoprime,

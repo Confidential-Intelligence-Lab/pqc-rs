@@ -13,7 +13,7 @@ use sha3::{
 
 const N: usize = 256;
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub(crate) struct HyperballOutput {
     pub(crate) y1: Vec<[i32; N]>,
     pub(crate) y2: Vec<[i32; N]>,
@@ -21,6 +21,60 @@ pub(crate) struct HyperballOutput {
     pub(crate) next_nonce: u16,
     pub(crate) attempts: usize,
     pub(crate) norm2: u64,
+}
+
+// HAETAE_10K_7D_4C_3_HYPERBALL_LIFECYCLE
+impl HyperballOutput {
+    fn zeroize_secret_material(&mut self) {
+        use zeroize::Zeroize;
+        for coefficients in &mut self.y1 {
+            coefficients.zeroize();
+        }
+        for coefficients in &mut self.y2 {
+            coefficients.zeroize();
+        }
+    }
+}
+
+impl Drop for HyperballOutput {
+    fn drop(&mut self) {
+        self.zeroize_secret_material();
+    }
+}
+
+#[cfg(test)]
+mod hyperball_lifecycle_tests {
+    use super::*;
+
+    #[test]
+    fn cleanup_is_idempotent_all_modes() {
+        for mode in [2, 3, 5] {
+            let (l, k, _, _) = constants(mode);
+            let mut output = HyperballOutput {
+                y1: vec![[123; N]; l],
+                y2: vec![[456; N]; k],
+                b: 1,
+                next_nonce: 9,
+                attempts: 2,
+                norm2: 777,
+            };
+
+            output.zeroize_secret_material();
+            assert!(output.y1.iter().flatten().all(|&x| x == 0));
+            assert!(output.y2.iter().flatten().all(|&x| x == 0));
+
+            assert_eq!(output.y1.len(), l);
+            assert_eq!(output.y2.len(), k);
+            assert_eq!(output.b, 1);
+            assert_eq!(output.next_nonce, 9);
+            assert_eq!(output.attempts, 2);
+            assert_eq!(output.norm2, 777);
+
+            output.zeroize_secret_material();
+            assert!(output.y1.iter().flatten().all(|&x| x == 0));
+            assert!(output.y2.iter().flatten().all(|&x| x == 0));
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -75,12 +129,13 @@ pub(crate) fn sample_hyperball(
         let invsqrt = newton_invsqrt(half, mode);
         let normalized = mul_high(invsqrt, scale);
 
-        let mut y1 = Vec::with_capacity(l);
-        let mut y2 = Vec::with_capacity(k);
+        // HAETAE_10K_7D_4C_6_NORMALIZED_VECTOR_LIFECYCLE
+        let mut y1 = zeroize::Zeroizing::new(Vec::with_capacity(l));
+        let mut y2 = zeroize::Zeroizing::new(Vec::with_capacity(k));
         let mut norm2 = 0_u64;
 
         for (poly, output) in gaussian.iter().enumerate() {
-            let mut coefficients = [0_i32; N];
+            let mut coefficients = zeroize::Zeroizing::new([0_i32; N]);
 
             for (index, coefficient) in coefficients.iter_mut().enumerate() {
                 let sign = (output.signs[index / 8] >> (index % 8)) & 1;
@@ -97,9 +152,9 @@ pub(crate) fn sample_hyperball(
             }
 
             if poly < l {
-                y1.push(coefficients);
+                y1.push(*coefficients);
             } else {
-                y2.push(coefficients);
+                y2.push(*coefficients);
             }
         }
 
@@ -120,8 +175,8 @@ pub(crate) fn sample_hyperball(
             shake.finalize_xof().read(&mut b);
 
             return Ok(HyperballOutput {
-                y1,
-                y2,
+                y1: std::mem::take(&mut *y1),
+                y2: std::mem::take(&mut *y2),
                 b: b[0],
                 next_nonce,
                 attempts,

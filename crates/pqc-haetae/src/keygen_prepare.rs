@@ -6,12 +6,13 @@ use crate::keygen_seed::expand_keygen_seed;
 use crate::params::{ParameterSet, SEED_BYTES};
 use crate::polymat::expand_mat_a;
 use crate::polyvec::{PolyVecK, PolyVecM};
+use zeroize::Zeroize;
 
 /// First key-generation sampling attempt and its public parameters.
 ///
 /// Secret polynomial vectors and derived seeds must be handled as
-/// sensitive material. This structure is experimental and does not
-/// provide automatic memory zeroization.
+/// sensitive material. Secret seeds and polynomial vectors are
+/// explicitly zeroized when this structure is dropped.
 pub struct KeygenPreparation<const K: usize, const M: usize> {
     pub rhoprime: [u8; SEED_BYTES],
     pub sigma: [u8; 64],
@@ -20,6 +21,23 @@ pub struct KeygenPreparation<const K: usize, const M: usize> {
     pub public_vector: Option<PolyVecK<K>>,
     pub s1: PolyVecM<M>,
     pub s2: PolyVecK<K>,
+}
+
+// HAETAE_10K_7D_3D_1_PREPARATION
+// HAETAE_10K_7D_3D_3B_PREPARATION
+impl<const K: usize, const M: usize> KeygenPreparation<K, M> {
+    fn zeroize_secret_material(&mut self) {
+        self.sigma.zeroize();
+        self.key.zeroize();
+        self.s1.zeroize();
+        self.s2.zeroize();
+    }
+}
+
+impl<const K: usize, const M: usize> Drop for KeygenPreparation<K, M> {
+    fn drop(&mut self) {
+        self.zeroize_secret_material();
+    }
 }
 
 /// Prepare the first sampling attempt using the authenticated reference order.
@@ -105,5 +123,59 @@ mod tests {
             prepare_first_attempt::<3, 3>(&seed, ParameterSet::Haetae2)
         })
         .is_err());
+    }
+}
+
+// HAETAE_10K_7D_3D_3B_PREPARATION_TEST
+#[cfg(test)]
+mod lifecycle_zeroization_tests {
+    use super::*;
+
+    #[test]
+    fn preparation_clears_secrets_and_preserves_public_state() {
+        for (mode, k, m) in [
+            (ParameterSet::Haetae2, 2, 3),
+            (ParameterSet::Haetae3, 3, 5),
+            (ParameterSet::Haetae5, 4, 6),
+        ] {
+            match (k, m) {
+                (2, 3) => check::<2, 3>(mode),
+                (3, 5) => check::<3, 5>(mode),
+                (4, 6) => check::<4, 6>(mode),
+                _ => unreachable!(),
+            }
+        }
+    }
+
+    fn check<const K: usize, const M: usize>(mode: ParameterSet) {
+        let seed = [0x5a_u8; SEED_BYTES];
+        let mut state = prepare_first_attempt::<K, M>(&seed, mode);
+
+        let public_seed = state.rhoprime;
+        let public_matrix = state.matrix.clone();
+        let public_vector = state.public_vector.clone();
+
+        assert!(state.sigma.iter().any(|&x| x != 0));
+        assert!(state.key.iter().any(|&x| x != 0));
+
+        state.zeroize_secret_material();
+        state.zeroize_secret_material();
+
+        assert!(state.sigma.iter().all(|&x| x == 0));
+        assert!(state.key.iter().all(|&x| x == 0));
+        assert!(state
+            .s1
+            .as_slice()
+            .iter()
+            .all(|p| p.coeffs.iter().all(|&x| x == 0)));
+        assert!(state
+            .s2
+            .as_slice()
+            .iter()
+            .all(|p| p.coeffs.iter().all(|&x| x == 0)));
+
+        assert_eq!(state.rhoprime, public_seed);
+        assert_eq!(state.matrix, public_matrix);
+        assert_eq!(state.public_vector, public_vector);
     }
 }

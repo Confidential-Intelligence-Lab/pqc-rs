@@ -5,6 +5,7 @@
 
 #![forbid(unsafe_code)]
 
+pub mod api;
 pub mod packing;
 pub mod params;
 pub mod signing_init;

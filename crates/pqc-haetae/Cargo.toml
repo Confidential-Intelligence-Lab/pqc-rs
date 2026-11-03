@@ -11,6 +11,8 @@ name = "pqc_haetae"
 path = "src/lib.rs"
 
 [dependencies]
+pqc-core = { workspace = true }
+rand_core = { workspace = true }
 sha3 = { workspace = true }
 zeroize = { workspace = true }
 

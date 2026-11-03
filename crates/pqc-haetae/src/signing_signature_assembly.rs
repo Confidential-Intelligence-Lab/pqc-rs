@@ -8,6 +8,9 @@ use crate::polyvec::{PolyVecK, PolyVecL};
 use crate::signature_packing::{pack_signature, SignaturePackingError};
 use crate::signing_challenge_prepare::SigningChallengePreparation;
 use crate::signing_response::SigningResponse;
+use zeroize::Zeroizing;
+
+// HAETAE_10K_7D_4C_8D_ASSEMBLY_LIFECYCLE
 
 fn round_fixed(x: i32) -> i32 {
     x.checked_add(4096)
@@ -15,7 +18,7 @@ fn round_fixed(x: i32) -> i32 {
         >> 13
 }
 
-fn flatten<const D: usize>(polys: &[Poly; D]) -> Vec<i32> {
+fn flatten(polys: &[Poly]) -> Vec<i32> {
     polys
         .iter()
         .flat_map(|poly| poly.coeffs.iter().copied())
@@ -31,46 +34,49 @@ pub(crate) fn assemble_accepted_signature<const K: usize, const L: usize>(
     assert_eq!(mode.parameters().l, L);
     assert_eq!(response.reject1 | response.reject2, 0);
 
-    let z1rnd = PolyVecL::<L>::new(std::array::from_fn(|i| {
+    let z1rnd = Zeroizing::new(PolyVecL::<L>::new(std::array::from_fn(|i| {
         Poly::new(std::array::from_fn(|j| {
             round_fixed(response.z1[i].coeffs[j])
         }))
-    }));
+    })));
 
-    let mut z2rnd = PolyVecK::<K>::new(std::array::from_fn(|i| {
+    let mut z2rnd = Zeroizing::new(PolyVecK::<K>::new(std::array::from_fn(|i| {
         Poly::new(std::array::from_fn(|j| {
             round_fixed(response.z2[i].coeffs[j])
         }))
-    }));
+    })));
 
     z2rnd.double();
 
-    let mut htmp = prepared.ay.sub(&z2rnd);
+    let mut htmp = Zeroizing::new(prepared.ay.sub(&z2rnd));
     htmp.freeze2q();
 
-    let htmp_highbits = htmp.highbits_hint(mode);
-    let mut h = prepared.highbits.sub(&htmp_highbits);
+    let htmp_highbits = Zeroizing::new(htmp.highbits_hint(mode));
+    let mut h = Zeroizing::new(prepared.highbits.sub(&htmp_highbits));
     h.cadd_dq2alpha(mode);
 
-    let lowbits = z1rnd.lowbits();
-    let highbits = z1rnd.highbits();
+    let lowbits = Zeroizing::new(z1rnd.lowbits());
+    let highbits = Zeroizing::new(z1rnd.highbits());
 
     let challenge = prepared.challenge.coeffs.as_slice();
 
-    let lowbits_flat: Vec<i32> = lowbits
-        .as_slice()
-        .iter()
-        .flat_map(|poly| poly.coeffs.iter().copied())
-        .collect();
+    let lowbits_flat: Zeroizing<Vec<i32>> = Zeroizing::new(
+        lowbits
+            .as_slice()
+            .iter()
+            .flat_map(|poly| poly.coeffs.iter().copied())
+            .collect(),
+    );
 
-    let highbits_flat: Vec<i32> = highbits
-        .as_slice()
-        .iter()
-        .flat_map(|poly| poly.coeffs.iter().copied())
-        .collect();
+    let highbits_flat: Zeroizing<Vec<i32>> = Zeroizing::new(
+        highbits
+            .as_slice()
+            .iter()
+            .flat_map(|poly| poly.coeffs.iter().copied())
+            .collect(),
+    );
 
-    let h_array: [Poly; K] = std::array::from_fn(|i| h.as_slice()[i].clone());
-    let h_flat = flatten(&h_array);
+    let h_flat = Zeroizing::new(flatten(h.as_slice()));
 
     debug_assert_eq!(lowbits_flat.len(), L * N);
     debug_assert_eq!(highbits_flat.len(), L * N);

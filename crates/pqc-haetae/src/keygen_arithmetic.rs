@@ -11,6 +11,7 @@ use crate::params::ParameterSet;
 use crate::polymat::pointwise_montgomery;
 use crate::polyvec::PolyVecK;
 use crate::singular_value::squared_singular_value;
+use zeroize::{Zeroize, Zeroizing};
 
 /// Arithmetic result for one HAETAE-2/3 key-generation attempt.
 ///
@@ -25,6 +26,14 @@ pub struct RoundedKeygenAttempt<const K: usize> {
     pub rejected: bool,
 }
 
+// HAETAE_10K_7D_3D_1_ROUNDED_RESULT
+impl<const K: usize> Drop for RoundedKeygenAttempt<K> {
+    fn drop(&mut self) {
+        self.updated_s2.zeroize();
+    }
+}
+
+// HAETAE_10K_7D_3D_2_NTT_TEMPORARY_CLEANUP
 /// Execute the authenticated HAETAE-2/3 arithmetic for one sampled attempt.
 ///
 /// The input preparation state is not modified. Rejection resampling and
@@ -48,7 +57,7 @@ pub fn rounded_first_attempt<const K: usize, const M: usize>(
         .as_ref()
         .expect("HAETAE-2/3 requires the expanded public vector");
 
-    let mut s1hat = prepared.s1.clone();
+    let mut s1hat = Zeroizing::new(prepared.s1.clone());
     s1hat.ntt();
 
     let mut b = pointwise_montgomery(&prepared.matrix, &s1hat, mode);
@@ -118,8 +127,8 @@ pub fn unrounded_first_attempt<const K: usize, const M: usize>(
         };
     }
 
-    let mut s1hat = prepared.s1.clone();
-    let mut s2hat = prepared.s2.clone();
+    let mut s1hat = Zeroizing::new(prepared.s1.clone());
+    let mut s2hat = Zeroizing::new(prepared.s2.clone());
 
     s1hat.ntt();
     s2hat.ntt();

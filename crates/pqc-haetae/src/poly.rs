@@ -14,6 +14,13 @@ pub struct Poly {
     pub coeffs: [i32; N],
 }
 
+// HAETAE_10K_7D_3B_POLY_ZEROIZE
+impl zeroize::Zeroize for Poly {
+    fn zeroize(&mut self) {
+        self.coeffs.zeroize();
+    }
+}
+
 impl Default for Poly {
     fn default() -> Self {
         Self { coeffs: [0; N] }
@@ -355,5 +362,27 @@ mod tests {
             assert!(b.coeffs.iter().all(|&x| x == expected_dq));
             assert!(c.coeffs.iter().all(|&x| x == expected_centered));
         }
+    }
+}
+
+// HAETAE_10K_7D_3C_POLY_TEST
+#[cfg(test)]
+mod secret_zeroization_tests {
+    use super::*;
+    use zeroize::Zeroize;
+
+    #[test]
+    fn polynomial_coefficients_are_cleared() {
+        let mut poly = Poly::new([0x1234_i32; N]);
+
+        assert!(poly.coeffs.iter().all(|&x| x != 0));
+
+        poly.zeroize();
+
+        assert!(poly.coeffs.iter().all(|&x| x == 0));
+
+        poly.zeroize();
+
+        assert!(poly.coeffs.iter().all(|&x| x == 0));
     }
 }

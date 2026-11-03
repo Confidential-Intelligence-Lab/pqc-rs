@@ -50,6 +50,34 @@ pub struct PolyVecL<const L: usize>(pub PolyVec<L>);
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct PolyVecM<const M: usize>(pub PolyVec<M>);
 
+// HAETAE_10K_7D_3B_VECTOR_ZEROIZE
+impl<const LEN: usize> zeroize::Zeroize for PolyVec<LEN> {
+    fn zeroize(&mut self) {
+        for poly in &mut self.vec {
+            poly.zeroize();
+        }
+    }
+}
+
+impl<const K: usize> zeroize::Zeroize for PolyVecK<K> {
+    fn zeroize(&mut self) {
+        self.0.zeroize();
+    }
+}
+
+impl<const M: usize> zeroize::Zeroize for PolyVecM<M> {
+    fn zeroize(&mut self) {
+        self.0.zeroize();
+    }
+}
+
+// HAETAE_10K_7D_4B_2_POLYVECL_ZEROIZE
+impl<const L: usize> zeroize::Zeroize for PolyVecL<L> {
+    fn zeroize(&mut self) {
+        self.0.zeroize();
+    }
+}
+
 macro_rules! impl_vector_construction {
     ($name:ident, $length:ident) => {
         impl<const $length: usize> $name<$length> {
@@ -1376,5 +1404,53 @@ mod tests {
         let constructed = PolyVecK::new(vector.as_slice().to_vec().try_into().unwrap());
         assert_eq!(constructed, vector);
         assert!(!constructed.is_empty());
+    }
+}
+
+// HAETAE_10K_7D_3C_VECTOR_TEST
+#[cfg(test)]
+mod secret_zeroization_tests {
+    use super::*;
+    use zeroize::Zeroize;
+
+    #[test]
+    fn k_vector_coefficients_are_cleared() {
+        let mut vector = PolyVecK::<2>::new([
+            Poly::new([0x1234_i32; crate::params::N]),
+            Poly::new([-0x2345_i32; crate::params::N]),
+        ]);
+
+        assert!(vector
+            .as_slice()
+            .iter()
+            .any(|poly| poly.coeffs.iter().any(|&x| x != 0)));
+
+        vector.zeroize();
+
+        assert!(vector
+            .as_slice()
+            .iter()
+            .all(|poly| poly.coeffs.iter().all(|&x| x == 0)));
+    }
+
+    #[test]
+    fn m_vector_coefficients_are_cleared() {
+        let mut vector = PolyVecM::<3>::new([
+            Poly::new([0x1234_i32; crate::params::N]),
+            Poly::new([-0x2345_i32; crate::params::N]),
+            Poly::new([0x3456_i32; crate::params::N]),
+        ]);
+
+        assert!(vector
+            .as_slice()
+            .iter()
+            .any(|poly| poly.coeffs.iter().any(|&x| x != 0)));
+
+        vector.zeroize();
+
+        assert!(vector
+            .as_slice()
+            .iter()
+            .all(|poly| poly.coeffs.iter().all(|&x| x == 0)));
     }
 }
