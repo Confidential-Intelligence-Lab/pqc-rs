@@ -14,7 +14,9 @@ fn decode_hex(input: &str) -> Vec<u8> {
 
     input
         .as_bytes()
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|pair| {
             let text = std::str::from_utf8(pair).expect("invalid UTF-8");
             u8::from_str_radix(text, 16).expect("invalid hex")
@@ -52,7 +54,7 @@ fn check_mode(
     let mut cases = 0;
     let mut compared_bytes = 0;
 
-    for chunk in lines.chunks_exact(6) {
+    for chunk in lines.as_chunks::<6>().0 {
         let case_id: usize = field(chunk[0], "CASE=").parse().expect("invalid case ID");
 
         assert_eq!(case_id, cases, "{mode}: unexpected case order");
