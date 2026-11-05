@@ -81,9 +81,11 @@ fn compute_c1_fixed<const K: usize>(
 
     for row in 0..K {
         for column in 0..K {
-            for i in 0..N {
-                scaled_matrix[row][column][i] =
-                    matrix[row][column].coefficients[i].wrapping_shl(shift);
+            for (scaled, coefficient) in scaled_matrix[row][column]
+                .iter_mut()
+                .zip(matrix[row][column].coefficients.iter())
+            {
+                *scaled = coefficient.wrapping_shl(shift);
             }
         }
 

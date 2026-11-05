@@ -34,7 +34,9 @@ run_logged() {
 run_logged format cargo fmt --all -- --check
 run_logged clippy \
   cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
-run_logged tests cargo test --workspace --all-features --locked
+run_logged tests cargo test --workspace --all-features --locked --exclude pqc-rs-haetae
+
+run_logged haetae-portable-tests bash scripts/run-haetae-portable-tests.sh
 
 rustc --version --verbose > "${OUT_DIR}/rustc-version.txt"
 cargo --version > "${OUT_DIR}/cargo-version.txt"

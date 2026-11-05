@@ -38,10 +38,10 @@ def main()->int:
             stage12_check["evidence_bundle_status"]="missing"
         checks.append(stage12_check)
     if cfg["run_property_tests"]:
-        checks.append(run("property-tests",["cargo","test","--workspace","--all-features","--locked"],out))
+        checks.append(run("property-tests",["cargo","test","--workspace","--all-features","--locked","--exclude","pqc-rs-haetae"],out))
     if cfg["run_differential_tests"]:
         # Existing schoolbook/NTT, deterministic fixture, and round-trip tests serve as differential checks.
-        checks.append(run("differential-tests",["cargo","test","--workspace","--all-features","--locked","ntt_","--","--nocapture"],out))
+        checks.append(run("differential-tests",["cargo","test","--workspace","--all-features","--locked","--exclude","pqc-rs-haetae","ntt_","--","--nocapture"],out))
     if cfg["run_secret_inventory"]:
         checks.append(run("secret-inventory",["python3","scripts/stage13_secret_inventory.py","--output",str(out/"secret-inventory")],out))
     if cfg["run_miri"]:

@@ -32,7 +32,7 @@ pub fn hwt_randomness(extended_seed: &[u8; 34]) -> ([u16; HWT_RANDOM_WORDS], [u8
     reader.read(&mut bytes);
 
     let mut words = [0u16; HWT_RANDOM_WORDS];
-    for (word, pair) in words.iter_mut().zip(bytes.chunks_exact(2)) {
+    for (word, pair) in words.iter_mut().zip(bytes.as_chunks::<2>().0.iter()) {
         *word = u16::from_le_bytes([pair[0], pair[1]]);
     }
 

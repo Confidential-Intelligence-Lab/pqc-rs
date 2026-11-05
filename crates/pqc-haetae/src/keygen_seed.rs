@@ -12,7 +12,7 @@ use sha3::{
 use zeroize::Zeroize;
 
 /// Reference-compatible partition of the SHAKE256 key-generation output.
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Eq, PartialEq)]
 pub struct KeygenSeeds {
     /// Seed used for the public matrix and public vector.
     pub rhoprime: [u8; SEED_BYTES],
@@ -65,14 +65,14 @@ mod tests {
     #[test]
     fn deterministic_seed_expansion() {
         let seed = std::array::from_fn(|i| i as u8);
-        assert_eq!(expand_keygen_seed(&seed), expand_keygen_seed(&seed));
+        assert!(expand_keygen_seed(&seed) == expand_keygen_seed(&seed));
     }
 
     #[test]
     fn seed_changes_expansion() {
         let a = expand_keygen_seed(&[0_u8; SEED_BYTES]);
         let b = expand_keygen_seed(&[1_u8; SEED_BYTES]);
-        assert_ne!(a, b);
+        assert!(a != b);
     }
 
     #[test]
