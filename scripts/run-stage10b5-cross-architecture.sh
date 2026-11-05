@@ -72,8 +72,10 @@ for binary in "${AUDIT_BINARIES[@]}"; do
   BUILD_COMMAND+=(--bin "${binary}")
 done
 
-RUSTFLAGS="-C target-cpu=native -C debuginfo=2 -C force-frame-pointers=yes" \
-  run_logged audit-build "${BUILD_COMMAND[@]}"
+export PQC_STAGE10B5_RUSTFLAGS="-C target-cpu=generic -C debuginfo=2 -C force-frame-pointers=yes"
+export RUSTFLAGS="${PQC_STAGE10B5_RUSTFLAGS}"
+printf "%s\n" "${RUSTFLAGS}" > "${OUT_DIR}/rustflags.txt"
+run_logged audit-build "${BUILD_COMMAND[@]}"
 
 for binary in "${AUDIT_BINARIES[@]}"; do
   executable="target/release/${binary}"
