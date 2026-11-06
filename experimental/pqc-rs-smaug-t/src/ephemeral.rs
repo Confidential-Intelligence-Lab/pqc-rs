@@ -8,6 +8,7 @@ use sha3::{
     digest::{ExtendableOutput, Update, XofReader},
     Shake256,
 };
+use zeroize::Zeroizing;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EphemeralError {
@@ -99,16 +100,16 @@ pub fn expand_r(seed: &[u8; 32], parameters: &Parameters) -> Result<Vec<[i16; N]
     let mut result = Vec::with_capacity(parameters.k);
 
     for index in 0..parameters.k {
-        let mut input = [0u8; 33];
+        let mut input = Zeroizing::new([0u8; 33]);
         input[..32].copy_from_slice(seed);
         input[32] = index as u8;
 
         let mut shake = Shake256::default();
-        shake.update(&input);
+        shake.update(&input[..]);
 
         let mut reader = shake.finalize_xof();
-        let mut bytes = vec![0u8; byte_count];
-        reader.read(&mut bytes);
+        let mut bytes = Zeroizing::new(vec![0u8; byte_count]);
+        reader.read(&mut bytes[..]);
 
         result.push(sample_poly(&bytes, sampler));
     }
