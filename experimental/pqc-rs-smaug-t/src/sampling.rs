@@ -6,6 +6,7 @@ use sha3::{
     digest::{ExtendableOutput, Update, XofReader},
     Shake256,
 };
+use zeroize::Zeroizing;
 
 use crate::N;
 
@@ -28,8 +29,8 @@ pub fn hwt_randomness(extended_seed: &[u8; 34]) -> ([u16; HWT_RANDOM_WORDS], [u8
 
     let mut reader = shake.finalize_xof();
 
-    let mut bytes = [0u8; HWT_RANDOM_BYTES];
-    reader.read(&mut bytes);
+    let mut bytes = Zeroizing::new([0u8; HWT_RANDOM_BYTES]);
+    reader.read(&mut bytes[..]);
 
     let mut words = [0u16; HWT_RANDOM_WORDS];
     for (word, pair) in words.iter_mut().zip(bytes.as_chunks::<2>().0.iter()) {
@@ -153,14 +154,17 @@ pub fn expand_secret_vector(
         let mut polynomial = None;
 
         for retry in 0..=u8::MAX {
-            let mut extended_seed = [0u8; 34];
+            let mut extended_seed = Zeroizing::new([0u8; 34]);
             extended_seed[..32].copy_from_slice(seed);
             extended_seed[32] = domain;
             extended_seed[33] = retry;
 
             let (randomness, signs) = hwt_randomness(&extended_seed);
+            let randomness = Zeroizing::new(randomness);
+            let signs = Zeroizing::new(signs);
 
             if let Ok(indices) = rejection_sample_indices(&randomness) {
+                let indices = Zeroizing::new(indices);
                 polynomial = Some(fixed_weight_ternary(&indices, &signs, weight));
                 break;
             }
