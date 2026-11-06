@@ -13,6 +13,7 @@ use crate::sampling::{
 };
 use crate::{Parameters, N, SMAUG_T128, SMAUG_T192, SMAUG_T256, TIMER};
 use sha3::{digest::Digest, Sha3_512};
+use zeroize::Zeroizing;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum KeypairError {
@@ -362,12 +363,13 @@ pub fn decrypt(
         return Err(DecryptError::InvalidCiphertextLength);
     }
 
-    let mut secret = Vec::with_capacity(k);
+    let mut secret = Zeroizing::new(Vec::with_capacity(k));
     for index in 0..k {
         let start = index * secret_poly_bytes;
-        let coefficients =
-            crate::encoding::unpack_secret(&secret_key[start..start + secret_poly_bytes])?;
-        secret.push(coefficients.map(|value| value as u16));
+        let coefficients = Zeroizing::new(crate::encoding::unpack_secret(
+            &secret_key[start..start + secret_poly_bytes],
+        )?);
+        secret.push(std::array::from_fn(|i| coefficients[i] as u16));
     }
 
     let mut c1 = Vec::with_capacity(k);
@@ -379,8 +381,10 @@ pub fn decrypt(
     }
 
     let c2_start = k * c1_poly_bytes;
-    let mut delta = crate::encoding::unpack_unsigned(&ciphertext[c2_start..], p_prime_width)?
-        .map(|value| value << (16 - u32::from(p_prime_width)));
+    let mut delta = Zeroizing::new(
+        crate::encoding::unpack_unsigned(&ciphertext[c2_start..], p_prime_width)?
+            .map(|value| value << (16 - u32::from(p_prime_width))),
+    );
 
     match k {
         2 => decrypt_accumulate::<2>(&mut delta, &c1, &secret, p_width),
@@ -417,7 +421,7 @@ fn decrypt_accumulate<const K: usize>(
     p_width: u8,
 ) {
     let c1: [[u16; N]; K] = std::array::from_fn(|i| c1[i]);
-    let secret: [[u16; N]; K] = std::array::from_fn(|i| secret[i]);
+    let secret = Zeroizing::new(std::array::from_fn(|i| secret[i]));
     crate::arithmetic::vec_vec_mult_add_scaled(delta, &c1, &secret, 16 - u32::from(p_width));
 }
 
