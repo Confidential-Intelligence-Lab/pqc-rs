@@ -6,6 +6,14 @@ cd "$REPO"
 
 export MIRIFLAGS="${MIRIFLAGS:--Zmiri-strict-provenance -Zmiri-symbolic-alignment-check -Zmiri-disable-isolation}"
 
+CAMPAIGN="${1:-all}"
+
+case "$CAMPAIGN" in
+  all|haetae|smaug-t) ;;
+  *) echo "Invalid Miri campaign: $CAMPAIGN" >&2; exit 2 ;;
+esac
+
+if [[ "$CAMPAIGN" == "all" || "$CAMPAIGN" == "haetae" ]]; then
 echo "=== HAETAE BOUNDED MIRI ==="
 
 for filter in \
@@ -20,7 +28,9 @@ do
 done
 
 echo "HAETAE_MIRI_STATUS=PASS"
+fi
 
+if [[ "$CAMPAIGN" == "all" || "$CAMPAIGN" == "smaug-t" ]]; then
 echo "=== SMAUG-T BOUNDED MIRI ==="
 
 for filter in \
@@ -35,4 +45,5 @@ do
 done
 
 echo "SMAUGT_MIRI_STATUS=PASS"
-echo "PQC_EXPERIMENTAL_MIRI_STATUS=PASS"
+fi
+echo "PQC_EXPERIMENTAL_MIRI_STATUS=PASS CAMPAIGN=$CAMPAIGN"
