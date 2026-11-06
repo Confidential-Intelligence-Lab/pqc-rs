@@ -14,6 +14,7 @@ use sha3::{
     Sha3_256, Shake256,
 };
 use subtle::{ConditionallySelectable, ConstantTimeEq};
+use zeroize::Zeroizing;
 
 pub const SHARED_SECRET_BYTES: usize = 32;
 pub const AUXILIARY_SECRET_BYTES: usize = N / 8;
@@ -57,6 +58,7 @@ pub fn keypair(
     }
 
     let (public_key, indcpa_secret_key) = indcpa::keypair(seed, parameters)?;
+    let indcpa_secret_key = Zeroizing::new(indcpa_secret_key);
 
     let mut secret_key =
         Vec::with_capacity(indcpa_secret_key.len() + AUXILIARY_SECRET_BYTES + public_key.len());
@@ -101,10 +103,10 @@ pub fn encapsulate_deterministic(
     xof.update(&pk_hash);
 
     let mut reader = xof.finalize_xof();
-    let mut material = [0u8; 64];
-    reader.read(&mut material);
+    let mut material = Zeroizing::new([0u8; 64]);
+    reader.read(&mut material[..]);
 
-    let mut encryption_seed = [0u8; 32];
+    let mut encryption_seed = Zeroizing::new([0u8; 32]);
     encryption_seed.copy_from_slice(&material[..32]);
 
     let ciphertext = encrypt(public_key, message, &encryption_seed, parameters)
@@ -153,8 +155,9 @@ pub fn decapsulate(
 
     let (auxiliary_secret, public_key) = remainder.split_at(AUXILIARY_SECRET_BYTES);
 
-    let message =
-        indcpa::decrypt(pke_secret_key, ciphertext, parameters).map_err(KemError::IndcpaDecrypt)?;
+    let message = Zeroizing::new(
+        indcpa::decrypt(pke_secret_key, ciphertext, parameters).map_err(KemError::IndcpaDecrypt)?,
+    );
 
     let pk_hash = Sha3_256::digest(public_key);
 
@@ -163,10 +166,10 @@ pub fn decapsulate(
     xof.update(&pk_hash);
 
     let mut reader = xof.finalize_xof();
-    let mut material = [0u8; 64];
-    reader.read(&mut material);
+    let mut material = Zeroizing::new([0u8; 64]);
+    reader.read(&mut material[..]);
 
-    let mut encryption_seed = [0u8; 32];
+    let mut encryption_seed = Zeroizing::new([0u8; 32]);
     encryption_seed.copy_from_slice(&material[..32]);
 
     let expected_ciphertext = indcpa::encrypt(public_key, &message, &encryption_seed, parameters)
@@ -181,8 +184,8 @@ pub fn decapsulate(
     rejection_xof.update(&ciphertext_hash);
 
     let mut rejection_reader = rejection_xof.finalize_xof();
-    let mut rejection_material = [0u8; 64];
-    rejection_reader.read(&mut rejection_material);
+    let mut rejection_material = Zeroizing::new([0u8; 64]);
+    rejection_reader.read(&mut rejection_material[..]);
 
     let reject = !ciphertext_valid;
     let mut shared_secret = [0u8; SHARED_SECRET_BYTES];

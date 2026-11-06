@@ -14,6 +14,7 @@ path = "src/lib.rs"
 [dependencies]
 sha3 = "0.10"
 subtle = "2.6"
+zeroize = "1"
 
 [[bench]]
 name = "decapsulation_timing"

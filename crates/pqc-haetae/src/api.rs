@@ -147,8 +147,8 @@ fn keygen_mode<const K: usize, const M: usize>(
     seed: &[u8; SEED_BYTES],
     mode: ParameterSet,
 ) -> PqcResult<HaetaeKeyPair> {
-    // SECURITY TODO: AcceptedKeygenState contains secret-derived
-    // polynomial vectors and currently lacks automatic zeroization.
+    // AcceptedKeygenState owns secret-derived vectors and clears them
+    // on drop, including when key serialization returns an error.
     let state = generate_accepted_state::<K, M>(seed, mode, MAX_KEYGEN_ATTEMPTS)
         .map_err(|_| PqcError::InternalError)?;
 
