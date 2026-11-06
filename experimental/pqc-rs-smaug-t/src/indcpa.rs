@@ -76,17 +76,17 @@ pub fn keypair(
     let shift = 16 - log_q;
 
     let digest = Sha3_512::digest(seed);
-    let mut secret_seed = [0u8; 32];
+    let mut secret_seed = Zeroizing::new([0u8; 32]);
     let mut matrix_seed = [0u8; 32];
     secret_seed.copy_from_slice(&digest[..32]);
     matrix_seed.copy_from_slice(&digest[32..64]);
 
-    let secret = expand_secret_vector(&secret_seed, k, weight)?;
-    let error = gaussian_vector(&secret_seed, k, log_q)?;
+    let secret = Zeroizing::new(expand_secret_vector(&secret_seed, k, weight)?);
+    let error = Zeroizing::new(gaussian_vector(&secret_seed, k, log_q)?);
     let matrix = expand_matrix(&matrix_seed, parameters);
 
-    let mut public_vector = [[0u16; N]; 4];
-    let mut secret_vector = [[0u16; N]; 4];
+    let mut public_vector = Zeroizing::new([[0u16; N]; 4]);
+    let mut secret_vector = Zeroizing::new([[0u16; N]; 4]);
     let mut matrix_coefficients = [[[0u16; N]; 4]; 4];
 
     for row in 0..k {
@@ -102,17 +102,17 @@ pub fn keypair(
 
     match k {
         2 => {
-            let mut out = [public_vector[0], public_vector[1]];
+            let mut out = Zeroizing::new([public_vector[0], public_vector[1]]);
             let a = [
                 [matrix_coefficients[0][0], matrix_coefficients[0][1]],
                 [matrix_coefficients[1][0], matrix_coefficients[1][1]],
             ];
-            let s = [secret_vector[0], secret_vector[1]];
+            let s = Zeroizing::new([secret_vector[0], secret_vector[1]]);
             matrix_vec_mult_sub_scaled::<2>(&mut out, &a, &s, shift);
-            public_vector[..2].copy_from_slice(&out);
+            public_vector[..2].copy_from_slice(&out[..]);
         }
         3 => {
-            let mut out = [public_vector[0], public_vector[1], public_vector[2]];
+            let mut out = Zeroizing::new([public_vector[0], public_vector[1], public_vector[2]]);
             let a = [
                 [
                     matrix_coefficients[0][0],
@@ -130,9 +130,9 @@ pub fn keypair(
                     matrix_coefficients[2][2],
                 ],
             ];
-            let s = [secret_vector[0], secret_vector[1], secret_vector[2]];
+            let s = Zeroizing::new([secret_vector[0], secret_vector[1], secret_vector[2]]);
             matrix_vec_mult_sub_scaled::<3>(&mut out, &a, &s, shift);
-            public_vector[..3].copy_from_slice(&out);
+            public_vector[..3].copy_from_slice(&out[..]);
         }
         4 => {
             matrix_vec_mult_sub_scaled::<4>(
