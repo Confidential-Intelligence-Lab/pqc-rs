@@ -290,7 +290,7 @@ pub fn encrypt(
         public_vector.push(crate::Polynomial { coefficients });
     }
 
-    let ephemeral = crate::ephemeral::expand_r(seed, parameters)?;
+    let ephemeral = Zeroizing::new(crate::ephemeral::expand_r(seed, parameters)?);
 
     let c1 = crate::ciphertext::compute_c1(&matrix, &ephemeral, parameters)?;
 
