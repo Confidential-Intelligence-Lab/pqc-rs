@@ -39,7 +39,7 @@ for filter in \
   kem::tests::decapsulation_rejects_invalid_input_lengths
 do
   cargo +nightly miri test \
-    --manifest-path experimental/pqc-rs-smaug-t/Cargo.toml \
+    --manifest-path crates/pqc-smaug-t/Cargo.toml \
     --lib \
     "$filter"
 done

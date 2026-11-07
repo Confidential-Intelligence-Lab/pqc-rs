@@ -32,7 +32,7 @@ for target in "${TARGETS[@]}"; do
       fuzz_dir="crates/pqc-haetae/fuzz"
       ;;
     kem_decapsulate|kem_encapsulate|secret_decode)
-      fuzz_dir="experimental/pqc-rs-smaug-t/fuzz"
+      fuzz_dir="crates/pqc-smaug-t/fuzz"
       ;;
     *)
       fuzz_dir="fuzz"
