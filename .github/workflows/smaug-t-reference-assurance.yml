@@ -26,7 +26,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y clang git python3
+          sudo apt-get install -y clang git python3 unzip
 
       - name: Acquire pinned SMAUG-T reference
         shell: bash
@@ -44,9 +44,17 @@ jobs:
           ACTUAL=$(git -C "$RUNNER_TEMP/smaug-t-reference" rev-parse HEAD)
           test "$ACTUAL" = "$EXPECTED"
 
-          test -f "$RUNNER_TEMP/smaug-t-reference/reference_implementation/src/kem.c"
-          test -f "$RUNNER_TEMP/smaug-t-reference/reference_implementation/src/indcpa.c"
-          test -f "$RUNNER_TEMP/smaug-t-reference/reference_implementation/include/params.h"
+          ARCHIVE="$RUNNER_TEMP/smaug-t-reference/SMAUG-T.zip"
+          EXTRACTED="$RUNNER_TEMP/smaug-t-reference-extracted"
+          REF="$EXTRACTED/SMAUG-T-1.1.1/reference_implementation"
+
+          test -f "$ARCHIVE"
+          mkdir -p "$EXTRACTED"
+          unzip -q "$ARCHIVE" -d "$EXTRACTED"
+
+          test -f "$REF/src/kem.c"
+          test -f "$REF/src/indcpa.c"
+          test -f "$REF/include/params.h"
 
           echo "SMAUGT_REFERENCE_COMMIT=$ACTUAL"
           echo "SMAUGT_REFERENCE_IDENTITY_STATUS=PASS"
@@ -57,6 +65,6 @@ jobs:
           set -euo pipefail
 
           bash crates/pqc-smaug-t/scripts/validate-reference.sh \
-            "$RUNNER_TEMP/smaug-t-reference/reference_implementation"
+            "$RUNNER_TEMP/smaug-t-reference-extracted/SMAUG-T-1.1.1/reference_implementation"
 
           echo "SMAUGT_REFERENCE_CI_STATUS=PASS"
