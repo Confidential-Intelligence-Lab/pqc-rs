@@ -56,7 +56,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          bash experimental/pqc-rs-smaug-t/scripts/validate-reference.sh \
+          bash crates/pqc-smaug-t/scripts/validate-reference.sh \
             "$RUNNER_TEMP/smaug-t-reference/reference_implementation"
 
           echo "SMAUGT_REFERENCE_CI_STATUS=PASS"

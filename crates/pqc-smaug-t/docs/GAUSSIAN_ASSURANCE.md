@@ -137,17 +137,17 @@ and function.
 
 From the repository root:
 
-    cargo fmt --manifest-path experimental/pqc-rs-smaug-t/Cargo.toml --check
+    cargo fmt --manifest-path crates/pqc-smaug-t/Cargo.toml --check
 
-    cargo clippy --manifest-path experimental/pqc-rs-smaug-t/Cargo.toml --all-targets -- -D warnings
+    cargo clippy --manifest-path crates/pqc-smaug-t/Cargo.toml --all-targets -- -D warnings
 
-    cargo test --manifest-path experimental/pqc-rs-smaug-t/Cargo.toml
+    cargo test --manifest-path crates/pqc-smaug-t/Cargo.toml
 
-    cargo rustc --manifest-path experimental/pqc-rs-smaug-t/Cargo.toml --release --lib -- --emit=asm
+    cargo rustc --manifest-path crates/pqc-smaug-t/Cargo.toml --release --lib -- --emit=asm
 
 The dual-reference validation entry point is:
 
-`experimental/pqc-rs-smaug-t/scripts/validate-reference.sh`
+`crates/pqc-smaug-t/scripts/validate-reference.sh`
 
 That harness requires the separately pinned C reference environment
 and its documented dependencies.

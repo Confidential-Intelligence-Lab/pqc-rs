@@ -110,7 +110,7 @@ From the PQC-rs repository root, with the pinned reference available:
 
     REF="$HOME/Documents/uci_research/Prelim/smaug-t-reference/extracted/SMAUG-T-1.1.1/reference_implementation"
 
-    bash experimental/pqc-rs-smaug-t/scripts/validate-reference.sh "$REF"
+    bash crates/pqc-smaug-t/scripts/validate-reference.sh "$REF"
 
 Expected final marker:
 

@@ -14,7 +14,7 @@ jobs:
           components: rustfmt, clippy
       - run: cargo fmt --all -- --check
       - run: cargo clippy --workspace --all-targets --all-features -- -D warnings
-      - run: cargo test --workspace --all-features --exclude pqc-rs-haetae
+      - run: cargo test --workspace --all-features --exclude pqc-rs-haetae --exclude pqc-rs-smaug-t
 
       - name: HAETAE public API build
         run: cargo check --locked -p pqc-rs-haetae
@@ -30,15 +30,15 @@ jobs:
           cargo test --locked             -p pqc-rs-haetae             --features internal-api             --test ntt_extended
 
       - name: SMAUG-T formatting
-        run: cargo fmt --manifest-path experimental/pqc-rs-smaug-t/Cargo.toml --check
+        run: cargo fmt --manifest-path crates/pqc-smaug-t/Cargo.toml --check
 
       - name: SMAUG-T strict Clippy
-        run: cargo clippy --manifest-path experimental/pqc-rs-smaug-t/Cargo.toml --all-targets -- -D warnings
+        run: cargo clippy --manifest-path crates/pqc-smaug-t/Cargo.toml --all-targets -- -D warnings
 
       - name: SMAUG-T tests
         run: |
-          cargo test --manifest-path experimental/pqc-rs-smaug-t/Cargo.toml --lib
-          cargo test --manifest-path experimental/pqc-rs-smaug-t/Cargo.toml --test indcpa_decrypt_roundtrip
+          cargo test --manifest-path crates/pqc-smaug-t/Cargo.toml --lib
+          cargo test --manifest-path crates/pqc-smaug-t/Cargo.toml --test indcpa_decrypt_roundtrip
 
       - name: SMAUG-T documentation tests
-        run: cargo test --manifest-path experimental/pqc-rs-smaug-t/Cargo.toml --doc
+        run: cargo test --manifest-path crates/pqc-smaug-t/Cargo.toml --doc

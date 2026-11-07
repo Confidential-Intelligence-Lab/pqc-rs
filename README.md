@@ -303,7 +303,7 @@ PQC-rs is licensed under the [MIT License](LICENSE).
 ## Experimental Korean post-quantum cryptography
 
 The experimental
-[`pqc-rs-smaug-t`](experimental/pqc-rs-smaug-t/)
+[`pqc-rs-smaug-t`](crates/pqc-smaug-t/)
 crate investigates the Korean SMAUG-T key-encapsulation mechanism.
 
 The implementation includes differential tests against a pinned C
