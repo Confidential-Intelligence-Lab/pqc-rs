@@ -11,6 +11,13 @@ readonly DEFAULT_TARGETS=(
   mldsa_primitives
   mldsa_verification
   slhdsa_verification
+  haetae_signature_structure
+  haetae_verify_combined
+  haetae_verify_public_key
+  haetae_verify_signature
+  kem_decapsulate
+  kem_encapsulate
+  secret_decode
 )
 
 if [[ -n "${FUZZ_TARGETS:-}" ]]; then
@@ -20,10 +27,27 @@ else
 fi
 
 for target in "${TARGETS[@]}"; do
-  echo "== Fuzz smoke: ${target} (${DURATION}s) =="
+  case "${target}" in
+    haetae_signature_structure|haetae_verify_combined|haetae_verify_public_key|haetae_verify_signature)
+      fuzz_dir="crates/pqc-haetae/fuzz"
+      ;;
+    kem_decapsulate|kem_encapsulate|secret_decode)
+      fuzz_dir="experimental/pqc-rs-smaug-t/fuzz"
+      ;;
+    *)
+      fuzz_dir="fuzz"
+      ;;
+  esac
+
+  test -f "${fuzz_dir}/fuzz_targets/${target}.rs" || {
+    echo "FAIL: missing fuzz target ${fuzz_dir}/fuzz_targets/${target}.rs" >&2
+    exit 1
+  }
+
+  echo "== Fuzz smoke: ${target} (${DURATION}s), workspace=${fuzz_dir} =="
   args=(
     +nightly fuzz run
-    --fuzz-dir fuzz
+    --fuzz-dir "${fuzz_dir}"
     "${target}"
     --
     "-max_total_time=${DURATION}"

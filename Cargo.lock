@@ -865,6 +865,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "pqc-rs-haetae"
+version = "0.4.0"
+dependencies = [
+ "pqc-rs-core",
+ "rand_core 0.6.4",
+ "serde_json",
+ "sha3",
+ "zeroize",
+]
+
+[[package]]
 name = "pqc-rs-hpke"
 version = "1.0.0"
 dependencies = [

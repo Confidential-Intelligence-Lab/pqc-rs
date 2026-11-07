@@ -8,6 +8,7 @@ use sha3::{
     digest::{ExtendableOutput, Update, XofReader},
     Shake256,
 };
+use zeroize::Zeroizing;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum EphemeralError {
@@ -40,7 +41,7 @@ fn sample_poly(bytes: &[u8], sampler: Sampler) -> [i16; N] {
         Sampler::SparseCbd1 => {
             assert_eq!(bytes.len(), 96);
 
-            for (block, chunk) in bytes.chunks_exact(3).enumerate() {
+            for (block, chunk) in bytes.as_chunks::<3>().0.iter().enumerate() {
                 let t =
                     u32::from(chunk[0]) | (u32::from(chunk[1]) << 8) | (u32::from(chunk[2]) << 16);
 
@@ -58,7 +59,7 @@ fn sample_poly(bytes: &[u8], sampler: Sampler) -> [i16; N] {
         Sampler::Cbd => {
             assert_eq!(bytes.len(), 64);
 
-            for (block, chunk) in bytes.chunks_exact(4).enumerate() {
+            for (block, chunk) in bytes.as_chunks::<4>().0.iter().enumerate() {
                 let t = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
 
                 for j in 0..16 {
@@ -72,7 +73,7 @@ fn sample_poly(bytes: &[u8], sampler: Sampler) -> [i16; N] {
         Sampler::SparseCbd2 => {
             assert_eq!(bytes.len(), 128);
 
-            for (block, chunk) in bytes.chunks_exact(4).enumerate() {
+            for (block, chunk) in bytes.as_chunks::<4>().0.iter().enumerate() {
                 let t = u32::from_le_bytes([chunk[0], chunk[1], chunk[2], chunk[3]]);
 
                 let d = ((t | (t >> 1)) & (t >> 2)) & 0x1111_1111;
@@ -99,16 +100,16 @@ pub fn expand_r(seed: &[u8; 32], parameters: &Parameters) -> Result<Vec<[i16; N]
     let mut result = Vec::with_capacity(parameters.k);
 
     for index in 0..parameters.k {
-        let mut input = [0u8; 33];
+        let mut input = Zeroizing::new([0u8; 33]);
         input[..32].copy_from_slice(seed);
         input[32] = index as u8;
 
         let mut shake = Shake256::default();
-        shake.update(&input);
+        shake.update(&input[..]);
 
         let mut reader = shake.finalize_xof();
-        let mut bytes = vec![0u8; byte_count];
-        reader.read(&mut bytes);
+        let mut bytes = Zeroizing::new(vec![0u8; byte_count]);
+        reader.read(&mut bytes[..]);
 
         result.push(sample_poly(&bytes, sampler));
     }

@@ -167,7 +167,7 @@ def main() -> int:
             "runner_image": os.environ.get("ImageOS"),
             "runner_image_version": os.environ.get("ImageVersion"),
             "rust": rust,
-            "rustflags": "-C target-cpu=native -C debuginfo=2 -C force-frame-pointers=yes",
+            "rustflags": os.environ["PQC_STAGE10B5_RUSTFLAGS"],
         },
         "checks": checks,
         "decision": decision,

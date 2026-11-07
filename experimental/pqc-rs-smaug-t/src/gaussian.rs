@@ -11,6 +11,7 @@ use sha3::{
 };
 
 use crate::N;
+use zeroize::Zeroizing;
 
 pub const GAUSSIAN_RANDOM_BYTES: usize = 320;
 pub const GAUSSIAN_RANDOM_BITS_PER_COEFFICIENT: usize = 10;
@@ -53,16 +54,16 @@ pub fn gaussian_poly_from_randomness(
     // little-endian 64-bit bit planes.
     for group in 0..(N / 64) {
         let offset = group * 80;
-        let mut x = [0u64; 10];
+        let mut x = Zeroizing::new([0u64; 10]);
 
         for (plane, word) in x.iter_mut().enumerate() {
-            let mut le = [0u8; 8];
+            let mut le = Zeroizing::new([0u8; 8]);
 
             for (byte_index, byte) in le.iter_mut().enumerate() {
                 *byte = bytes[offset + byte_index * 10 + plane];
             }
 
-            *word = u64::from_le_bytes(le);
+            *word = u64::from_le_bytes(*le);
         }
 
         // Exact Boolean magnitude circuit from SMAUG-T 1.1.1 dg.c.
@@ -104,7 +105,7 @@ pub fn gaussian_poly_from_randomness(
 ///
 /// `extended_seed` is the 32-byte seed followed by its domain byte.
 pub fn gaussian_poly(extended_seed: &[u8; 33], log_q: u32) -> Result<[i16; N], GaussianError> {
-    let randomness = gaussian_randomness(extended_seed);
+    let randomness = Zeroizing::new(gaussian_randomness(extended_seed));
     gaussian_poly_from_randomness(&randomness, log_q)
 }
 
@@ -129,7 +130,7 @@ pub fn gaussian_vector(
     let mut vector = Vec::with_capacity(k);
 
     for i in 0..k {
-        let mut extended_seed = [0u8; 33];
+        let mut extended_seed = Zeroizing::new([0u8; 33]);
         extended_seed[..32].copy_from_slice(seed);
         extended_seed[32] = (k * i) as u8;
 

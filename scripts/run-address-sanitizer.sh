@@ -23,6 +23,23 @@ cargo +nightly test \
   --all-features \
   --exclude pqc-rs-test-harness \
   --exclude pqc-rs-slh-dsa \
+  --exclude pqc-rs-haetae \
+  --target "${host}"
+
+# HAETAE: exact portable profile under AddressSanitizer instrumentation.
+HAETAE_CARGO_TOOLCHAIN=nightly \
+HAETAE_CARGO_TARGET="${host}" \
+  bash scripts/run-haetae-portable-tests.sh
+
+# SMAUG-T: independent workspace, portable tests only.
+cargo +nightly test \
+  --manifest-path experimental/pqc-rs-smaug-t/Cargo.toml \
+  --lib \
+  --target "${host}"
+
+cargo +nightly test \
+  --manifest-path experimental/pqc-rs-smaug-t/Cargo.toml \
+  --test indcpa_decrypt_roundtrip \
   --target "${host}"
 
 # Exercise the test harness under all ordinary assurance features while

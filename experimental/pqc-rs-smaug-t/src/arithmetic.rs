@@ -8,6 +8,7 @@
 //! against side-channel leakage.
 
 use crate::N;
+use zeroize::Zeroizing;
 
 /// Accumulate a negacyclic polynomial product into `acc`.
 ///
@@ -56,14 +57,14 @@ pub fn vec_vec_mult_add_scaled<const K: usize>(
 ) {
     assert!(shift < 16);
 
-    let mut product = [0u16; 256];
+    let mut product = Zeroizing::new([0u16; 256]);
 
     for i in 0..K {
         let descaled = a[i].map(|value| descale_coeff(value, shift));
         poly_mul_acc_16(&mut product, &descaled, &b[i]);
     }
 
-    for (dst, value) in acc.iter_mut().zip(product) {
+    for (dst, &value) in acc.iter_mut().zip(product.iter()) {
         *dst = dst.wrapping_add(value.wrapping_shl(shift));
     }
 }
@@ -81,14 +82,16 @@ pub fn matrix_vec_mult_add_scaled<const K: usize>(
     assert!(shift < 16);
 
     for (column, output) in out.iter_mut().enumerate() {
-        let mut product = [0u16; 256];
+        let mut product = Zeroizing::new([0u16; 256]);
 
         for row in 0..K {
             let descaled = matrix[row][column].map(|value| descale_coeff(value, shift));
             poly_mul_acc_16(&mut product, &descaled, &secret[row]);
         }
 
-        *output = product.map(|value| value.wrapping_shl(shift));
+        for (dst, &value) in output.iter_mut().zip(product.iter()) {
+            *dst = value.wrapping_shl(shift);
+        }
     }
 }
 
@@ -105,14 +108,14 @@ pub fn matrix_vec_mult_sub_scaled<const K: usize>(
     assert!(shift < 16);
 
     for row in 0..K {
-        let mut product = [0u16; 256];
+        let mut product = Zeroizing::new([0u16; 256]);
 
         for (column, secret_poly) in secret.iter().enumerate() {
             let descaled = matrix[row][column].map(|value| descale_coeff(value, shift));
             poly_mul_acc_16(&mut product, &descaled, secret_poly);
         }
 
-        for (dst, value) in out[row].iter_mut().zip(product) {
+        for (dst, &value) in out[row].iter_mut().zip(product.iter()) {
             *dst = dst.wrapping_sub(value.wrapping_shl(shift));
         }
     }

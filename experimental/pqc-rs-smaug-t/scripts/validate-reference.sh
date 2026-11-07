@@ -7,6 +7,20 @@ set -o pipefail
 
 EXPECTED_COMMIT=bbc463cd788eae36c6d155cef667ac9dbd9054cd
 
+# Platform-specific linker flags for dead-section elimination.
+case "$(uname -s)" in
+    Darwin)
+        LINKER_GC_FLAG=(-Wl,-dead_strip)
+        ;;
+    Linux)
+        LINKER_GC_FLAG=(-Wl,--gc-sections)
+        ;;
+    *)
+        echo "Unsupported platform: $(uname -s)" >&2
+        exit 2
+        ;;
+esac
+
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 /path/to/SMAUG-T/reference_implementation" >&2
     exit 2
@@ -144,7 +158,7 @@ do
         "$TESTS/reference_secret_oracle.c" \
         "$REF/src/pack.c" \
         "$REF/src/packring.c" \
-        -Wl,-dead_strip \
+        "${LINKER_GC_FLAG[@]}" \
         -o "$BUILD_DIR/secret-$MODE"
 
     clang -std=c11 -O1 -Wall -Wextra -Werror \
@@ -166,7 +180,7 @@ do
         -I"$REF/include" \
         "$TESTS/reference_sampling_oracle.c" \
         "$REF/src/fips202.c" \
-    -Wl,-dead_strip \
+    "${LINKER_GC_FLAG[@]}" \
         -o "$BUILD_DIR/sampling-$MODE"
 
     clang -std=c11 -O1 -Wall -Wextra -Werror \
@@ -206,7 +220,7 @@ do
         "$TESTS/reference_arithmetic_oracle.c" \
         "$REF/src/poly.c" \
         "$REF/src/toomcook.c" \
-        -Wl,-dead_strip \
+        "${LINKER_GC_FLAG[@]}" \
         -o "$BUILD_DIR/arithmetic-$MODE"
 
     echo "ARITHMETIC_ORACLE_MODE=$MODE STATUS=PASS"
@@ -263,7 +277,7 @@ do
             "$BUILD_DIR/dg_corrected.c" \
             "$REF/src/verify.c" \
             "$REF/src/randombytes.c" \
-            -Wl,-dead_strip \
+            "${LINKER_GC_FLAG[@]}" \
             -o "$OUTPUT"
 
         test -x "$OUTPUT"
@@ -336,7 +350,7 @@ do
             "$BUILD_DIR/dg_corrected.c" \
             "$REF/src/verify.c" \
             "$REF/src/randombytes.c" \
-            -Wl,-dead_strip \
+            "${LINKER_GC_FLAG[@]}" \
             -o "$OUTPUT"
 
         test -x "$OUTPUT"

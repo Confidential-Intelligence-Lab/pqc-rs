@@ -34,7 +34,9 @@ run_logged() {
 run_logged format cargo fmt --all -- --check
 run_logged clippy \
   cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
-run_logged tests cargo test --workspace --all-features --locked
+run_logged tests cargo test --workspace --all-features --locked --exclude pqc-rs-haetae
+
+run_logged haetae-portable-tests bash scripts/run-haetae-portable-tests.sh
 
 rustc --version --verbose > "${OUT_DIR}/rustc-version.txt"
 cargo --version > "${OUT_DIR}/cargo-version.txt"
@@ -70,8 +72,10 @@ for binary in "${AUDIT_BINARIES[@]}"; do
   BUILD_COMMAND+=(--bin "${binary}")
 done
 
-RUSTFLAGS="-C target-cpu=native -C debuginfo=2 -C force-frame-pointers=yes" \
-  run_logged audit-build "${BUILD_COMMAND[@]}"
+export PQC_STAGE10B5_RUSTFLAGS="-C target-cpu=generic -C debuginfo=2 -C force-frame-pointers=yes"
+export RUSTFLAGS="${PQC_STAGE10B5_RUSTFLAGS}"
+printf "%s\n" "${RUSTFLAGS}" > "${OUT_DIR}/rustflags.txt"
+run_logged audit-build "${BUILD_COMMAND[@]}"
 
 for binary in "${AUDIT_BINARIES[@]}"; do
   executable="target/release/${binary}"

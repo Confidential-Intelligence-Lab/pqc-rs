@@ -1,0 +1,105 @@
+{
+  "algorithm": "HAETAE inverse NTT with Montgomery scaling",
+  "comparison": "Exact coefficient equality against Rust inverse_to_mont",
+  "input_precondition": "-64513 < coefficient < 64513",
+  "modes": [
+    2,
+    3,
+    5
+  ],
+  "modulus": 64513,
+  "note": "The NTT is mode-independent. Modes select test amplitudes; they do not select different NTT implementations.",
+  "operation": "invntt_tomont",
+  "polynomial_degree": 256,
+  "reference": "HAETAE 1.2.0 C reference implementation",
+  "reference_sources": [
+    "reference_implementation/src/ntt.c",
+    "reference_implementation/src/reduce.c"
+  ],
+  "vectors": {
+    "mode2_alternating": {
+      "input_sha256": "31d48a22b10a07146cac63a01eea21724656066d59e03591f4551d501c4e7610",
+      "output_sha256": "a377f400d936135f316a7a5209d9d1e2df57ef65636e8c0c552681977a5e48c0"
+    },
+    "mode2_ascending": {
+      "input_sha256": "1d7c6c6a3ecff346e275dc7685ffb28cb19be71b1c62efece5625333e34dbd3a",
+      "output_sha256": "79aa1fbaab50acd8292fd69b9589fda369fd0de1df178701e8f89f66641d6604"
+    },
+    "mode2_impulse_0": {
+      "input_sha256": "2831a22339be315f8730069c1a2e0cbf2f6e031f5f6f36fb1752eecc31012d9e",
+      "output_sha256": "c915201f41694eac964773d0c57ef85953b5aef55c2cef5aaf5df9421c88a970"
+    },
+    "mode2_impulse_127": {
+      "input_sha256": "27ef84941d80ce8a3db8f325b2f959ac5d4ddd3d9d2e2d82e61b8eeeae920f51",
+      "output_sha256": "84505bbbc6692adb38ba576648411937f5d4327f1d3a351e4942415052c3f9ef"
+    },
+    "mode2_impulse_255": {
+      "input_sha256": "4422af5553cd5339d093c0feb3fb145c2c6fe40f89418c9778e29c53cf15ddda",
+      "output_sha256": "ab23b5ae0f2c41bb1a1ecf25e622324609996cbd0a64a32b58f24bf4a0828bab"
+    },
+    "mode2_negative": {
+      "input_sha256": "c377557da6cb8d26caf43ad47c903972d9ef0b87824bb6d52332cec1996da0fa",
+      "output_sha256": "8fdf0ff7e36bb592fea0eeff653ed30e0993cb22c833a4e3b9e29f91787437cc"
+    },
+    "mode2_positive": {
+      "input_sha256": "9a2a55162ac3a34654acb348030d2b194b3de8e97a7c08591ee4c246f6c8c6f1",
+      "output_sha256": "b58a82f4cd72cbf5e6a85cde7d3aea48061c3231aa673b56ec2043d2bab132bf"
+    },
+    "mode3_alternating": {
+      "input_sha256": "801e97c56d65b28369ab6ebf892c99b06c0a38ff01f3ea92b725ee7ff71661d9",
+      "output_sha256": "0625e751b4861ab51473a3094a9fa922d460708d7cc0e64a1dcb46d84676adc4"
+    },
+    "mode3_ascending": {
+      "input_sha256": "1d7c6c6a3ecff346e275dc7685ffb28cb19be71b1c62efece5625333e34dbd3a",
+      "output_sha256": "79aa1fbaab50acd8292fd69b9589fda369fd0de1df178701e8f89f66641d6604"
+    },
+    "mode3_impulse_0": {
+      "input_sha256": "fd2704ee4f804e185300b810f4bc49e3bb42732674558d63153cdee4ed73185c",
+      "output_sha256": "7ed6212a061757858ad213465444da9a3f2bc02dee5d5c71748a3b2fec94bbf4"
+    },
+    "mode3_impulse_127": {
+      "input_sha256": "2d9ba54a743e7f6dfda3b17b268beb2b5911409209426e6a915e8a43820ce486",
+      "output_sha256": "02ad71931178b7a5cca07193ea9c30208726e559a82de456e9bea5acd250e399"
+    },
+    "mode3_impulse_255": {
+      "input_sha256": "dc74e32613657b22b2431dca8449c204ffe533a3a2e411989c539272c5731f95",
+      "output_sha256": "6687c4a525b21ee3777ab9cf5637bbe2908a474bbd969dd8394a0f8fefe7a6ec"
+    },
+    "mode3_negative": {
+      "input_sha256": "e2fbd5496a02c1c9cac82bdc6b4c626c5e331a4509cb38c264fc2bde8ba38a2a",
+      "output_sha256": "14527862b4a0ea05c57c6a1a7e3e486c373631ac46bc34e761a4540db5b018ce"
+    },
+    "mode3_positive": {
+      "input_sha256": "258f5c3809171a81f8a654651d2d0782f432debcdf02f1d8105e3699e4b22354",
+      "output_sha256": "36c1b4ac83b0af33aaebda41b4676039d8632eadbe2e57c0fa31ed7e212280c2"
+    },
+    "mode5_alternating": {
+      "input_sha256": "79d609e5165dc9a4a479f4532941e869210555a2a1ecbc9199ff639a9fb3e621",
+      "output_sha256": "4f00e56495acc2a305e332d13fc0eb243ba217e46d51b58448846e2368931984"
+    },
+    "mode5_ascending": {
+      "input_sha256": "1d7c6c6a3ecff346e275dc7685ffb28cb19be71b1c62efece5625333e34dbd3a",
+      "output_sha256": "79aa1fbaab50acd8292fd69b9589fda369fd0de1df178701e8f89f66641d6604"
+    },
+    "mode5_impulse_0": {
+      "input_sha256": "e0247718cbb205ae0d7a534cec50e03c02d8a91f33d794471a8ba3c062eaa547",
+      "output_sha256": "22c84dde29ef39e4f08c46e4e6e078a72a71c31b6381ba21d4ff86ae9ffd54f7"
+    },
+    "mode5_impulse_127": {
+      "input_sha256": "5324e77ff982e932541a4fa7610c74f0a1ac20895577b1186ad6e3f94b8ad333",
+      "output_sha256": "7da79b8fcbc7775e3a7e82ec30d0dd9319132085a78594bdab76728ed556f1e8"
+    },
+    "mode5_impulse_255": {
+      "input_sha256": "6dde4f2ac641e5ae6bb0f14fef947a6cab19a150c53ca2814203b1491ab8bafc",
+      "output_sha256": "b53e72f15e5ccf3671f84ca2a1d93b12e7e500add9a4176e4bd1cef075263aae"
+    },
+    "mode5_negative": {
+      "input_sha256": "6cce079173f9d4f0210c90e99edabc2dc3b13dc75edf79c95d7f319c6409f1fa",
+      "output_sha256": "9a846ceb748aebe4bf44480d18aa9fa2bbbcfb58d320560f5dfba74bd0d75f97"
+    },
+    "mode5_positive": {
+      "input_sha256": "fe481dffba8a084a267257c52044d17bedef86d4ebd07199fcbc18f9f9c968fd",
+      "output_sha256": "4905a6abfd4ea10a2d7cbae1c8e6d8c187585549efa91d832ce034792c6c0ac7"
+    }
+  }
+}

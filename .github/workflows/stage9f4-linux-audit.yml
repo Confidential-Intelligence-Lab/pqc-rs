@@ -21,7 +21,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y valgrind
 
       - name: Run workspace tests
-        run: cargo test --workspace --all-features
+        run: cargo test --workspace --all-features --exclude pqc-rs-haetae
 
       - name: Run Stage 9F-4 Linux audit
         run: ./scripts/run-stage9f4-linux-valgrind.sh

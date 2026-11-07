@@ -13,6 +13,7 @@ use crate::sampling::{
 };
 use crate::{Parameters, N, SMAUG_T128, SMAUG_T192, SMAUG_T256, TIMER};
 use sha3::{digest::Digest, Sha3_512};
+use zeroize::Zeroizing;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum KeypairError {
@@ -75,17 +76,17 @@ pub fn keypair(
     let shift = 16 - log_q;
 
     let digest = Sha3_512::digest(seed);
-    let mut secret_seed = [0u8; 32];
+    let mut secret_seed = Zeroizing::new([0u8; 32]);
     let mut matrix_seed = [0u8; 32];
     secret_seed.copy_from_slice(&digest[..32]);
     matrix_seed.copy_from_slice(&digest[32..64]);
 
-    let secret = expand_secret_vector(&secret_seed, k, weight)?;
-    let error = gaussian_vector(&secret_seed, k, log_q)?;
+    let secret = Zeroizing::new(expand_secret_vector(&secret_seed, k, weight)?);
+    let error = Zeroizing::new(gaussian_vector(&secret_seed, k, log_q)?);
     let matrix = expand_matrix(&matrix_seed, parameters);
 
-    let mut public_vector = [[0u16; N]; 4];
-    let mut secret_vector = [[0u16; N]; 4];
+    let mut public_vector = Zeroizing::new([[0u16; N]; 4]);
+    let mut secret_vector = Zeroizing::new([[0u16; N]; 4]);
     let mut matrix_coefficients = [[[0u16; N]; 4]; 4];
 
     for row in 0..k {
@@ -101,17 +102,17 @@ pub fn keypair(
 
     match k {
         2 => {
-            let mut out = [public_vector[0], public_vector[1]];
+            let mut out = Zeroizing::new([public_vector[0], public_vector[1]]);
             let a = [
                 [matrix_coefficients[0][0], matrix_coefficients[0][1]],
                 [matrix_coefficients[1][0], matrix_coefficients[1][1]],
             ];
-            let s = [secret_vector[0], secret_vector[1]];
+            let s = Zeroizing::new([secret_vector[0], secret_vector[1]]);
             matrix_vec_mult_sub_scaled::<2>(&mut out, &a, &s, shift);
-            public_vector[..2].copy_from_slice(&out);
+            public_vector[..2].copy_from_slice(&out[..]);
         }
         3 => {
-            let mut out = [public_vector[0], public_vector[1], public_vector[2]];
+            let mut out = Zeroizing::new([public_vector[0], public_vector[1], public_vector[2]]);
             let a = [
                 [
                     matrix_coefficients[0][0],
@@ -129,9 +130,9 @@ pub fn keypair(
                     matrix_coefficients[2][2],
                 ],
             ];
-            let s = [secret_vector[0], secret_vector[1], secret_vector[2]];
+            let s = Zeroizing::new([secret_vector[0], secret_vector[1], secret_vector[2]]);
             matrix_vec_mult_sub_scaled::<3>(&mut out, &a, &s, shift);
-            public_vector[..3].copy_from_slice(&out);
+            public_vector[..3].copy_from_slice(&out[..]);
         }
         4 => {
             matrix_vec_mult_sub_scaled::<4>(
@@ -289,7 +290,7 @@ pub fn encrypt(
         public_vector.push(crate::Polynomial { coefficients });
     }
 
-    let ephemeral = crate::ephemeral::expand_r(seed, parameters)?;
+    let ephemeral = Zeroizing::new(crate::ephemeral::expand_r(seed, parameters)?);
 
     let c1 = crate::ciphertext::compute_c1(&matrix, &ephemeral, parameters)?;
 
@@ -362,12 +363,13 @@ pub fn decrypt(
         return Err(DecryptError::InvalidCiphertextLength);
     }
 
-    let mut secret = Vec::with_capacity(k);
+    let mut secret = Zeroizing::new(Vec::with_capacity(k));
     for index in 0..k {
         let start = index * secret_poly_bytes;
-        let coefficients =
-            crate::encoding::unpack_secret(&secret_key[start..start + secret_poly_bytes])?;
-        secret.push(coefficients.map(|value| value as u16));
+        let coefficients = Zeroizing::new(crate::encoding::unpack_secret(
+            &secret_key[start..start + secret_poly_bytes],
+        )?);
+        secret.push(std::array::from_fn(|i| coefficients[i] as u16));
     }
 
     let mut c1 = Vec::with_capacity(k);
@@ -379,8 +381,10 @@ pub fn decrypt(
     }
 
     let c2_start = k * c1_poly_bytes;
-    let mut delta = crate::encoding::unpack_unsigned(&ciphertext[c2_start..], p_prime_width)?
-        .map(|value| value << (16 - u32::from(p_prime_width)));
+    let mut delta = Zeroizing::new(
+        crate::encoding::unpack_unsigned(&ciphertext[c2_start..], p_prime_width)?
+            .map(|value| value << (16 - u32::from(p_prime_width))),
+    );
 
     match k {
         2 => decrypt_accumulate::<2>(&mut delta, &c1, &secret, p_width),
@@ -417,7 +421,7 @@ fn decrypt_accumulate<const K: usize>(
     p_width: u8,
 ) {
     let c1: [[u16; N]; K] = std::array::from_fn(|i| c1[i]);
-    let secret: [[u16; N]; K] = std::array::from_fn(|i| secret[i]);
+    let secret = Zeroizing::new(std::array::from_fn(|i| secret[i]));
     crate::arithmetic::vec_vec_mult_add_scaled(delta, &c1, &secret, 16 - u32::from(p_width));
 }
 

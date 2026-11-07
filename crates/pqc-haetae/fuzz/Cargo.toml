@@ -1,0 +1,42 @@
+[package]
+name = "pqc-haetae-fuzz"
+version = "0.0.0"
+publish = false
+edition = "2021"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+pqc-rs-haetae = { path = "..", features = ["internal-api"] }
+
+[[bin]]
+name = "haetae_verify_signature"
+path = "fuzz_targets/haetae_verify_signature.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "haetae_verify_public_key"
+path = "fuzz_targets/haetae_verify_public_key.rs"
+test = false
+doc = false
+bench = false
+
+[[bin]]
+name = "haetae_verify_combined"
+path = "fuzz_targets/haetae_verify_combined.rs"
+test = false
+doc = false
+bench = false
+
+[workspace]
+
+[[bin]]
+name = "haetae_signature_structure"
+path = "fuzz_targets/haetae_signature_structure.rs"
+test = false
+doc = false
+bench = false

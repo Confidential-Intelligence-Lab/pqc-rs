@@ -42,6 +42,6 @@ run_check \
 
 run_check \
   "Stage 8D: tests" \
-  cargo test --workspace --all-features
+  cargo test --workspace --all-features --exclude pqc-rs-haetae
 
 exit "${status}"
