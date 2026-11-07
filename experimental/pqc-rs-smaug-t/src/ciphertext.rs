@@ -4,6 +4,7 @@
 
 use crate::arithmetic::{matrix_vec_mult_add_scaled, vec_vec_mult_add_scaled};
 use crate::{Parameters, Polynomial, N};
+use zeroize::Zeroizing;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CiphertextError {
@@ -76,7 +77,7 @@ fn compute_c1_fixed<const K: usize>(
     let round_mask = u16::MAX << round_shift;
 
     let mut scaled_matrix = [[[0u16; N]; K]; K];
-    let mut secret = [[0u16; N]; K];
+    let mut secret = Zeroizing::new([[0u16; N]; K]);
     let mut output = [[0u16; N]; K];
 
     for row in 0..K {
@@ -189,7 +190,7 @@ fn compute_c2_fixed<const K: usize>(
     }
 
     let mut scaled_public = [[0u16; N]; K];
-    let mut secret = [[0u16; N]; K];
+    let mut secret = Zeroizing::new([[0u16; N]; K]);
 
     for i in 0..K {
         for j in 0..N {
