@@ -34,7 +34,7 @@ run_logged() {
 run_logged format cargo fmt --all -- --check
 run_logged clippy \
   cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
-run_logged tests cargo test --workspace --all-features --locked --exclude pqc-rs-haetae
+run_logged tests cargo test --workspace --all-features --locked --exclude pqc-rs-haetae --exclude pqc-rs-smaug-t
 
 run_logged haetae-portable-tests bash scripts/run-haetae-portable-tests.sh
 

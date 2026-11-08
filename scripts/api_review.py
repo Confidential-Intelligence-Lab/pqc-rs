@@ -28,6 +28,9 @@ MLDSA_PAT=re.compile(
 )
 
 def classify(crate, kind, name, path):
+    if crate == 'pqc-smaug-t':
+        return 'Experimental'
+
     if name.endswith('Placeholder'):
         return 'Deprecated debt'
 

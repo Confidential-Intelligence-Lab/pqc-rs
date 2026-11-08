@@ -24,6 +24,7 @@ cargo +nightly test \
   --exclude pqc-rs-test-harness \
   --exclude pqc-rs-slh-dsa \
   --exclude pqc-rs-haetae \
+  --exclude pqc-rs-smaug-t \
   --target "${host}"
 
 # HAETAE: exact portable profile under AddressSanitizer instrumentation.
@@ -33,12 +34,12 @@ HAETAE_CARGO_TARGET="${host}" \
 
 # SMAUG-T: independent workspace, portable tests only.
 cargo +nightly test \
-  --manifest-path experimental/pqc-rs-smaug-t/Cargo.toml \
+  --manifest-path crates/pqc-smaug-t/Cargo.toml \
   --lib \
   --target "${host}"
 
 cargo +nightly test \
-  --manifest-path experimental/pqc-rs-smaug-t/Cargo.toml \
+  --manifest-path crates/pqc-smaug-t/Cargo.toml \
   --test indcpa_decrypt_roundtrip \
   --target "${host}"
 

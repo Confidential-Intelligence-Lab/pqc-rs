@@ -140,7 +140,7 @@ jobs:
         run: |
           cargo fmt --all -- --check
           cargo clippy --all-targets --all-features -- -D warnings
-          cargo test --workspace --all-targets --all-features --exclude pqc-rs-haetae
+          cargo test --workspace --all-targets --all-features --exclude pqc-rs-haetae --exclude pqc-rs-smaug-t
 
       - name: Six-provider primitive parity
         env:

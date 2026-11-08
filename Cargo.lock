@@ -950,6 +950,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "pqc-rs-smaug-t"
+version = "0.0.1"
+dependencies = [
+ "sha3",
+ "subtle",
+ "zeroize",
+]
+
+[[package]]
 name = "pqc-rs-test-harness"
 version = "0.4.0"
 dependencies = [
