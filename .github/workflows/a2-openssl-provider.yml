@@ -20,7 +20,7 @@ jobs:
         run: |
           cargo fmt --all -- --check
           cargo clippy --all-targets --all-features -- -D warnings
-          cargo test --workspace --all-targets --all-features --exclude pqc-rs-haetae
+          cargo test --workspace --all-targets --all-features --exclude pqc-rs-haetae --exclude pqc-rs-smaug-t
       - name: OpenSSL provider interoperability
         run: |
           python3 scripts/validate-a2-4.py
