@@ -1,6 +1,10 @@
-//! Experimental SMAUG-T arithmetic.
+//! Experimental Rust implementation of the SMAUG-T 1.1.1 key-encapsulation mechanism.
 //!
-//! Not a complete KEM. Not suitable for production use.
+//! Provides arithmetic, sampling, IND-CPA, and KEM components for research
+//! and differential validation against a pinned C reference.
+//!
+//! Normative conformity, comprehensive side-channel assurance, and production
+//! security review remain outstanding. Not suitable for production use.
 
 pub mod arithmetic;
 pub mod ciphertext;

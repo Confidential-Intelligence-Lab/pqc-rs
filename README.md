@@ -275,9 +275,14 @@ The standard workspace checks are:
 ```bash
 cargo fmt --all -- --check
 cargo clippy --workspace --all-targets --all-features -- -D warnings
-cargo test --workspace --all-features
+cargo test --workspace --all-features --exclude pqc-rs-haetae --exclude pqc-rs-smaug-t
 cargo xtask compliance --strict
 ```
+
+The generic workspace test command excludes HAETAE and SMAUG-T because
+they use dedicated validation paths. SMAUG-T's reference-parity tests
+require an independently built C oracle and are not self-contained
+workspace tests.
 
 Additional conformance, interoperability, dynamic-analysis, fuzzing, and
 release-assurance workflows are documented in the repository and CI
@@ -308,6 +313,11 @@ crate investigates the Korean SMAUG-T key-encapsulation mechanism.
 
 The implementation includes differential tests against a pinned C
 reference, adversarial-input testing, and experimental fuzzing.
+
+The dedicated reference-assurance workflow is defined in
+`.github/workflows/smaug-t-reference-assurance.yml`. It retrieves the
+pinned reference and executes
+`crates/pqc-smaug-t/scripts/validate-reference.sh`.
 
 A discrepancy in the reference Gaussian sampler is documented
 separately. Successful differential testing does not establish
