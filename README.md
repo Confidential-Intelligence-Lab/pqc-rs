@@ -8,8 +8,8 @@ to validation evidence, independent-provider interoperability, protocol
 composition, and applications—while keeping cryptographic implementations and
 execution providers replaceable behind stable boundaries.
 
-> **Status:** The PQC-rs cryptographic foundation is at stable `1.0.0`
-> stable release line and has not been independently audited. The candidate
+> **Status:** The PQC-rs cryptographic foundation is on the stable
+> `1.0.0` release line and has not been independently audited. The candidate
 > compatibility boundary covers `pqc-rs-core`, `pqc-rs-ml-kem`,
 > `pqc-rs-ml-dsa`, `pqc-rs-slh-dsa`, and `pqc-rs-hpke`. Security-critical
 > deployment requires independent review and application-specific risk
@@ -51,6 +51,14 @@ PQC-rs implements the cryptographic mechanisms and composition primitives:
 - **SLH-DSA** — FIPS 205;
 - **HPKE** — RFC 9180 composition with post-quantum KEM integration;
 - **hybrid cryptography** — post-quantum and traditional composition.
+
+The workspace also includes two **experimental Korean implementations**:
+
+- **[HAETAE 1.2.0](crates/pqc-haetae/README.md)** — post-quantum digital signatures;
+- **[SMAUG-T 1.1.1](crates/pqc-smaug-t/README.md)** — post-quantum key encapsulation.
+
+Both are outside the stable 1.0 compatibility boundary and are not
+recommended for production use.
 
 Standards are treated as engineering inputs rather than labels: normative
 requirements are connected to implementation paths, tests, interoperability
@@ -144,11 +152,30 @@ outside that compatibility commitment.
 | [`pqc-rs-ml-dsa`](https://crates.io/crates/pqc-rs-ml-dsa) | PQC-rs | ML-DSA (FIPS 204) | `1.0.0` stable |
 | [`pqc-rs-slh-dsa`](https://crates.io/crates/pqc-rs-slh-dsa) | PQC-rs | SLH-DSA (FIPS 205) | `1.0.0` stable |
 | [`pqc-rs-hpke`](https://crates.io/crates/pqc-rs-hpke) | PQC-rs | HPKE with post-quantum and hybrid KEM integration | `1.0.0` stable |
+| [`pqc-rs-haetae`](crates/pqc-haetae/README.md) | PQC-rs experimental | HAETAE 1.2.0 digital signatures | experimental; workspace version |
+| [`pqc-rs-smaug-t`](crates/pqc-smaug-t/README.md) | PQC-rs experimental | SMAUG-T 1.1.1 KEM | `0.0.1`; not published |
 | `pqc-rs-hybrid` | Deferred | Standalone hybrid placeholder excluded from the 1.0 compatibility boundary | not published |
 | [`pqc-rs-protocol`](https://crates.io/crates/pqc-rs-protocol) | PQC-Forge | Negotiation, policy binding, and protocol state | `0.4.1` |
 | [`pqc-rs-secure-channel`](https://crates.io/crates/pqc-rs-secure-channel) | PQC-Forge | HPKE secure-channel resolution and activation | `0.4.0` |
 | [`pqc-rs-authentication`](https://crates.io/crates/pqc-rs-authentication) | PQC-Forge | ML-DSA challenge-response authentication | `0.4.0` |
 | `pqc-rs-test-harness` | Assurance | Conformance, interoperability, and validation infrastructure | not published |
+
+### Experimental cryptographic implementations
+
+PQC-rs includes two experimental Korean post-quantum implementations:
+
+- **[HAETAE 1.2.0](crates/pqc-haetae/README.md)** — native Rust digital
+  signatures with typed key generation, signing, and verification APIs.
+- **[SMAUG-T 1.1.1](crates/pqc-smaug-t/README.md)** — native Rust KEM with
+  C-reference differential validation, adversarial tests, and fuzzing.
+
+Both are Cargo workspace crates, but neither belongs to the stable 1.0
+compatibility boundary or is recommended for production use.
+
+See the [HAETAE crate documentation](crates/pqc-haetae/README.md) and
+[SMAUG-T crate documentation](crates/pqc-smaug-t/README.md) for APIs,
+parameter sets, validation procedures, detailed evidence, and limitations.
+Reference agreement and automated checks are not production certification.
 
 Add only the crates required by your application. For example:
 
@@ -304,24 +331,3 @@ negative tests where applicable, conformance evidence, and review of
 secret-dependent control flow, indexing, formatting, and zeroization.
 
 PQC-rs is licensed under the [MIT License](LICENSE).
-
-## Experimental Korean post-quantum cryptography
-
-The experimental
-[`pqc-rs-smaug-t`](crates/pqc-smaug-t/)
-crate investigates the Korean SMAUG-T key-encapsulation mechanism.
-
-The implementation includes differential tests against a pinned C
-reference, adversarial-input testing, and experimental fuzzing.
-
-The dedicated reference-assurance workflow is defined in
-`.github/workflows/smaug-t-reference-assurance.yml`. It retrieves the
-pinned reference and executes
-`crates/pqc-smaug-t/scripts/validate-reference.sh`.
-
-A discrepancy in the reference Gaussian sampler is documented
-separately. Successful differential testing does not establish
-normative conformity, constant-time execution, or production
-security assurance.
-
-This crate is experimental and is not recommended for production use.
