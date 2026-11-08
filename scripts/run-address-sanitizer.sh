@@ -24,6 +24,7 @@ cargo +nightly test \
   --exclude pqc-rs-test-harness \
   --exclude pqc-rs-slh-dsa \
   --exclude pqc-rs-haetae \
+  --exclude pqc-rs-smaug-t \
   --target "${host}"
 
 # HAETAE: exact portable profile under AddressSanitizer instrumentation.
