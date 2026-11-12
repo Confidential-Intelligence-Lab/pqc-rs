@@ -44,6 +44,7 @@ mod state;
 mod system_state;
 mod system_transition_binding;
 mod system_transition_path;
+mod temporal_security_context;
 mod transition_admissibility;
 mod transition_authorization;
 mod transition_path;
@@ -112,9 +113,13 @@ pub use independent_path_safety::{
     evaluate_independent_path_safety, IndependentPathSafety, IndependentPathStep,
 };
 
-/// Cryptographic system-state identity interfaces.
 pub use system_state::{
     CryptographicSystemState, DeploymentStateIdentity, EvidenceStateIdentity, PolicyStateIdentity,
+};
+/// Cryptographic system-state identity interfaces.
+pub use temporal_security_context::{
+    ModelTime, ProtectionHorizon, TemporalError, TemporalSecurityContext, ThreatPhaseId,
+    TimeInterval,
 };
 
 /// Advisory full-state transition-assessment binding interfaces.
