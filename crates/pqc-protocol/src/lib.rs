@@ -34,6 +34,7 @@ mod response;
 mod role;
 mod session;
 mod state;
+mod transition_authorization;
 mod transport;
 mod typestate;
 mod wire;
@@ -93,4 +94,10 @@ pub use typestate::{
 };
 pub use wire::{
     WireFlags, WireHeader, WireVersion, WIRE_HEADER_LEN, WIRE_MAGIC, WIRE_RESERVED_LEN,
+};
+
+/// Advisory cryptographic transition authorization interfaces.
+pub use transition_authorization::{
+    authorize_transition, AuthorizationDecision, CryptographicTransition, OperationalReadiness,
+    PolicyAssessment, TransitionAssessments,
 };
