@@ -55,6 +55,8 @@ mod system_transition_path;
 mod temporal_migration_assessment;
 mod temporal_security_context;
 mod threat_schedule;
+#[cfg(test)]
+mod tnfl_scenarios;
 mod transition_admissibility;
 mod transition_authorization;
 mod transition_interval;
