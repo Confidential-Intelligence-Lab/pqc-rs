@@ -25,6 +25,7 @@ mod handler;
 mod handshake;
 mod handshake_state;
 mod identifiers;
+mod integrated_transition_path;
 mod memory_transport;
 mod message;
 mod message_trait;
@@ -111,6 +112,11 @@ pub use system_transition_path::{
 /// Diagnostic decomposition of transition admissibility.
 pub use transition_admissibility::{
     evaluate_admissibility_components, AdmissibilityComponentEvaluation, AdmissibilityComponents,
+};
+
+/// Advisory integrated transition-trace evaluation interfaces.
+pub use integrated_transition_path::{
+    evaluate_integrated_transition_path, IntegratedPathEvaluation, IntegratedTransitionStep,
 };
 
 pub use transport::{TransportError, TransportReceive, TransportResult, TransportTransmit};
