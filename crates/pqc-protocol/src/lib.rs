@@ -39,6 +39,7 @@ mod metadata;
 mod negotiation;
 mod response;
 mod role;
+mod security_acceptability;
 mod session;
 mod state;
 mod system_state;
@@ -114,9 +115,15 @@ pub use independent_path_safety::{
     evaluate_independent_path_safety, IndependentPathSafety, IndependentPathStep,
 };
 
+/// Advisory context-bound security acceptability interfaces.
+pub use security_acceptability::{
+    evaluate_security_assessment, SecurityAcceptability, SecurityAssessment,
+    SecurityAssessmentBinding, SecurityAssessmentEvaluation, SecurityRequirementId,
+};
 pub use system_state::{
     CryptographicSystemState, DeploymentStateIdentity, EvidenceStateIdentity, PolicyStateIdentity,
 };
+
 pub use temporal_security_context::{
     ModelTime, ProtectionHorizon, TemporalError, TemporalSecurityContext, ThreatPhaseId,
     TimeInterval,
