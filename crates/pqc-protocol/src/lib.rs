@@ -34,6 +34,7 @@ mod response;
 mod role;
 mod session;
 mod state;
+mod system_state;
 mod transition_authorization;
 mod transition_path;
 mod transition_revalidation;
@@ -89,6 +90,11 @@ pub use response::{OutboundResponse, ProtocolResponder};
 pub use role::ProtocolRole;
 pub use session::ProtocolSession;
 pub use state::SessionState;
+
+/// Cryptographic system-state identity interfaces.
+pub use system_state::{
+    CryptographicSystemState, DeploymentStateIdentity, EvidenceStateIdentity, PolicyStateIdentity,
+};
 pub use transport::{TransportError, TransportReceive, TransportResult, TransportTransmit};
 pub use typestate::{
     ClosedState, ClosingState, CreatedState, EstablishedState, EstablishingState, FailedState,
