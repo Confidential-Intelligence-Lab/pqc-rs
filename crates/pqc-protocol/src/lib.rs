@@ -31,6 +31,7 @@ mod independent_path_safety;
 mod independent_trace_diagnostics;
 mod trace_wide_admissibility;
 
+mod continuous_migration_assessment;
 mod horizon_security;
 mod integrated_transition_path;
 mod memory_transport;
@@ -142,6 +143,12 @@ pub use system_state::{
 };
 
 /// Advisory integrated temporal migration assessment interfaces.
+/// Advisory integrated continuous-migration assessment interfaces.
+pub use continuous_migration_assessment::{
+    evaluate_continuous_migration, ContinuousMigrationDiagnostics, ContinuousMigrationError,
+    ContinuousMigrationEvaluation,
+};
+
 pub use temporal_migration_assessment::{
     evaluate_temporal_migration, TemporalMigrationError, TemporalMigrationEvaluation,
 };
