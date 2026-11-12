@@ -238,3 +238,6 @@ pub use transition_path::{
     evaluate_temporal_path, evaluate_transition_path, PathEvaluation, TemporalPathEvaluation,
     TransitionPathStep,
 };
+
+#[cfg(test)]
+mod structural_temporal_scenarios;
