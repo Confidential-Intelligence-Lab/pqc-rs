@@ -37,6 +37,13 @@ pub enum HorizonSecurityError {
         /// Exact mismatch category reported by the binding evaluator.
         mismatch: SecurityAssessmentEvaluation,
     },
+    /// Identical assessment bindings carry different outcomes.
+    InconsistentAssessment {
+        /// Index of the earlier assessment.
+        first: usize,
+        /// Index of the contradictory assessment.
+        second: usize,
+    },
 }
 
 /// Evaluate a fixed configuration and requirement across a threat schedule.
@@ -47,6 +54,10 @@ pub enum HorizonSecurityError {
 /// All bindings are checked before aggregating outcomes. Consequently,
 /// malformed input is reported even when another interval is known
 /// to be unacceptable.
+///
+/// Repeated assessment bindings must have identical outcomes. Contradictions
+/// are reported explicitly, including disagreements involving Unknown.
+/// This is a strict consistency rule for one caller-supplied snapshot.
 ///
 /// Aggregation precedence is Unacceptable > Unknown > Acceptable.
 /// Repeated threat identities still require separate interval assessments.
@@ -84,6 +95,18 @@ pub fn evaluate_horizon_security(
                     phase: index,
                     mismatch,
                 });
+            }
+        }
+    }
+
+    // Check all pairs after validating every scheduled binding.
+    // This requires no allocation and preserves deterministic diagnostics.
+    for second in 1..assessments.len() {
+        for first in 0..second {
+            if assessments[first].binding() == assessments[second].binding()
+                && assessments[first].acceptability() != assessments[second].acceptability()
+            {
+                return Err(HorizonSecurityError::InconsistentAssessment { first, second });
             }
         }
     }
@@ -299,11 +322,127 @@ mod tests {
         let phases = [phase(0, 5, 1), phase(5, 10, 1)];
         let inputs = [
             assessment(1, 1, 7, A::Acceptable),
-            assessment(1, 1, 7, A::Unknown),
+            assessment(1, 1, 7, A::Acceptable),
         ];
         assert_eq!(
             evaluate_horizon_security(&schedule(&phases), configuration(1), requirement(), &inputs),
-            Ok(HorizonSecurityEvaluation::Unknown)
+            Ok(HorizonSecurityEvaluation::Acceptable)
+        );
+    }
+
+    #[test]
+    fn repeated_binding_with_same_outcome_is_valid() {
+        let phases = [phase(0, 5, 1), phase(5, 10, 1)];
+        let inputs = [
+            assessment(1, 1, 7, A::Acceptable),
+            assessment(1, 1, 7, A::Acceptable),
+        ];
+
+        assert_eq!(
+            evaluate_horizon_security(&schedule(&phases), configuration(1), requirement(), &inputs),
+            Ok(HorizonSecurityEvaluation::Acceptable)
+        );
+    }
+
+    #[test]
+    fn repeated_binding_with_conflicting_outcomes_is_rejected() {
+        let phases = [phase(0, 5, 1), phase(5, 10, 1)];
+        let inputs = [
+            assessment(1, 1, 7, A::Acceptable),
+            assessment(1, 1, 7, A::Unacceptable),
+        ];
+
+        assert_eq!(
+            evaluate_horizon_security(&schedule(&phases), configuration(1), requirement(), &inputs),
+            Err(HorizonSecurityError::InconsistentAssessment {
+                first: 0,
+                second: 1,
+            })
+        );
+    }
+
+    #[test]
+    fn unknown_and_acceptable_same_binding_are_inconsistent() {
+        let phases = [phase(0, 5, 1), phase(5, 10, 1)];
+        let inputs = [
+            assessment(1, 1, 7, A::Unknown),
+            assessment(1, 1, 7, A::Acceptable),
+        ];
+
+        assert_eq!(
+            evaluate_horizon_security(&schedule(&phases), configuration(1), requirement(), &inputs),
+            Err(HorizonSecurityError::InconsistentAssessment {
+                first: 0,
+                second: 1,
+            })
+        );
+    }
+
+    #[test]
+    fn nonadjacent_conflict_is_detected() {
+        let phases = [phase(0, 3, 1), phase(3, 7, 2), phase(7, 10, 1)];
+        let inputs = [
+            assessment(1, 1, 7, A::Acceptable),
+            assessment(1, 2, 7, A::Acceptable),
+            assessment(1, 1, 7, A::Unacceptable),
+        ];
+
+        assert_eq!(
+            evaluate_horizon_security(&schedule(&phases), configuration(1), requirement(), &inputs),
+            Err(HorizonSecurityError::InconsistentAssessment {
+                first: 0,
+                second: 2,
+            })
+        );
+    }
+
+    #[test]
+    fn distinct_threats_can_have_distinct_outcomes() {
+        let phases = [phase(0, 5, 1), phase(5, 10, 2)];
+        let inputs = [
+            assessment(1, 1, 7, A::Acceptable),
+            assessment(1, 2, 7, A::Unacceptable),
+        ];
+
+        assert_eq!(
+            evaluate_horizon_security(&schedule(&phases), configuration(1), requirement(), &inputs),
+            Ok(HorizonSecurityEvaluation::Unacceptable)
+        );
+    }
+
+    #[test]
+    fn inconsistency_is_not_hidden_by_unacceptable() {
+        let phases = [phase(0, 3, 1), phase(3, 7, 2), phase(7, 10, 1)];
+        let inputs = [
+            assessment(1, 1, 7, A::Acceptable),
+            assessment(1, 2, 7, A::Unacceptable),
+            assessment(1, 1, 7, A::Unknown),
+        ];
+
+        assert_eq!(
+            evaluate_horizon_security(&schedule(&phases), configuration(1), requirement(), &inputs),
+            Err(HorizonSecurityError::InconsistentAssessment {
+                first: 0,
+                second: 2,
+            })
+        );
+    }
+
+    #[test]
+    fn binding_error_precedes_consistency_error() {
+        let phases = [phase(0, 3, 1), phase(3, 7, 2), phase(7, 10, 1)];
+        let inputs = [
+            assessment(1, 1, 7, A::Acceptable),
+            assessment(1, 9, 7, A::Acceptable),
+            assessment(1, 1, 7, A::Unacceptable),
+        ];
+
+        assert_eq!(
+            evaluate_horizon_security(&schedule(&phases), configuration(1), requirement(), &inputs),
+            Err(HorizonSecurityError::BindingMismatch {
+                phase: 1,
+                mismatch: SecurityAssessmentEvaluation::ThreatMismatch,
+            })
         );
     }
 
