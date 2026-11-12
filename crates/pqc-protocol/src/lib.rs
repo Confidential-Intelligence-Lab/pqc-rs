@@ -13,6 +13,7 @@
 
 mod capabilities;
 mod codec;
+mod configuration_identity;
 mod driver;
 mod envelope;
 mod error;
@@ -41,6 +42,9 @@ pub use capabilities::{
     HPKE_ML_KEM_768_X25519, REGISTERED_CAPABILITIES,
 };
 pub use codec::{ProtocolDecode, ProtocolEncode};
+pub use configuration_identity::{
+    AlgorithmId, ConfigurationIdentity, ImplementationRevision, ParameterSetId, ProviderId,
+};
 pub use driver::{
     DriverError, DriverResult, ProtocolDriver, ResponseError, ResponseResult,
     TransmitPreparationError, TransmitPreparationResult,
