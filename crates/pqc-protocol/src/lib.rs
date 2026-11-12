@@ -32,6 +32,8 @@ mod independent_trace_diagnostics;
 mod trace_wide_admissibility;
 
 mod continuous_migration_assessment;
+#[cfg(test)]
+mod hndl_scenarios;
 mod horizon_security;
 mod integrated_transition_path;
 mod memory_transport;
