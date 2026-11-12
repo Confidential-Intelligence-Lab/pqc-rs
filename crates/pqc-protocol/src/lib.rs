@@ -48,6 +48,7 @@ mod state;
 mod system_state;
 mod system_transition_binding;
 mod system_transition_path;
+mod temporal_migration_assessment;
 mod temporal_security_context;
 mod threat_schedule;
 mod transition_admissibility;
@@ -130,6 +131,11 @@ pub use security_acceptability::{
 };
 pub use system_state::{
     CryptographicSystemState, DeploymentStateIdentity, EvidenceStateIdentity, PolicyStateIdentity,
+};
+
+/// Advisory integrated temporal migration assessment interfaces.
+pub use temporal_migration_assessment::{
+    evaluate_temporal_migration, TemporalMigrationError, TemporalMigrationEvaluation,
 };
 
 /// Advisory deadline-aware migration feasibility interfaces.
