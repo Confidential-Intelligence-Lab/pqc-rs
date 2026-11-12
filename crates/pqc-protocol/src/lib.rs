@@ -26,6 +26,7 @@ mod handler;
 mod handshake;
 mod handshake_state;
 mod identifiers;
+mod independent_path_safety;
 mod integrated_transition_path;
 mod memory_transport;
 mod message;
@@ -95,6 +96,11 @@ pub use response::{OutboundResponse, ProtocolResponder};
 pub use role::ProtocolRole;
 pub use session::ProtocolSession;
 pub use state::SessionState;
+
+/// Independent represented-path safety evaluation interfaces.
+pub use independent_path_safety::{
+    evaluate_independent_path_safety, IndependentPathSafety, IndependentPathStep,
+};
 
 /// Cryptographic system-state identity interfaces.
 pub use system_state::{
