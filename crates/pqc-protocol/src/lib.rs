@@ -35,6 +35,7 @@ mod role;
 mod session;
 mod state;
 mod transition_authorization;
+mod transition_revalidation;
 mod transport;
 mod typestate;
 mod wire;
@@ -100,4 +101,10 @@ pub use wire::{
 pub use transition_authorization::{
     authorize_transition, AuthorizationDecision, CryptographicTransition, OperationalReadiness,
     PolicyAssessment, TransitionAssessments,
+};
+
+/// Advisory execution-context revalidation interfaces.
+pub use transition_revalidation::{
+    revalidate_transition, AssessedExecutionContext, ContextRevision, CurrentExecutionContext,
+    ExecutionRevisions, RevalidationResult,
 };
