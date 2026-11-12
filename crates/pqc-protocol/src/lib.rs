@@ -35,6 +35,7 @@ mod role;
 mod session;
 mod state;
 mod transition_authorization;
+mod transition_path;
 mod transition_revalidation;
 mod transport;
 mod typestate;
@@ -107,4 +108,10 @@ pub use transition_authorization::{
 pub use transition_revalidation::{
     revalidate_transition, AssessedExecutionContext, ContextRevision, CurrentExecutionContext,
     ExecutionRevisions, RevalidationResult,
+};
+
+/// Advisory transition-path evaluation interfaces.
+pub use transition_path::{
+    evaluate_temporal_path, evaluate_transition_path, PathEvaluation, TemporalPathEvaluation,
+    TransitionPathStep,
 };
