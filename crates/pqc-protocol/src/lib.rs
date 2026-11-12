@@ -31,6 +31,7 @@ mod independent_path_safety;
 mod independent_trace_diagnostics;
 mod trace_wide_admissibility;
 
+mod horizon_security;
 mod integrated_transition_path;
 mod memory_transport;
 mod message;
@@ -116,6 +117,11 @@ pub use independent_path_safety::{
 };
 
 /// Advisory context-bound security acceptability interfaces.
+/// Advisory horizon-wide security evaluation interfaces.
+pub use horizon_security::{
+    evaluate_horizon_security, HorizonSecurityError, HorizonSecurityEvaluation,
+};
+
 pub use security_acceptability::{
     evaluate_security_assessment, SecurityAcceptability, SecurityAssessment,
     SecurityAssessmentBinding, SecurityAssessmentEvaluation, SecurityRequirementId,
