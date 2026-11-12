@@ -70,6 +70,197 @@ pub fn evaluate_four_predicate_admissibility(
 
 #[cfg(test)]
 mod tests {
+
+    #[test]
+    fn exhaustive_legacy_equivalence() {
+        use crate::{
+            authorize_transition, evaluate_admissibility_components,
+            AdmissibilityComponentEvaluation, AlgorithmId, ConfigurationIdentity,
+            CryptographicTransition, EvidenceApplicability, EvidenceScope, ImplementationRevision,
+            OperationalReadiness, ParameterSetId, PolicyAssessment, ProviderId,
+            SystemPathEvaluation, TransitionAssessments,
+        };
+
+        let source = ConfigurationIdentity::new(
+            AlgorithmId::new(1),
+            ParameterSetId::new(768),
+            ProviderId::new(1),
+            ImplementationRevision::new(1),
+        );
+
+        let destination = ConfigurationIdentity::new(
+            AlgorithmId::new(1),
+            ParameterSetId::new(768),
+            ProviderId::new(2),
+            ImplementationRevision::new(1),
+        );
+
+        let transition =
+            CryptographicTransition::new(source, destination, EvidenceScope::Encapsulation);
+
+        let policies = [
+            PolicyAssessment::Permitted,
+            PolicyAssessment::Prohibited,
+            PolicyAssessment::Unknown,
+        ];
+
+        let evidence = [
+            EvidenceApplicability::Applicable,
+            EvidenceApplicability::Mismatch,
+            EvidenceApplicability::Missing,
+            EvidenceApplicability::Indeterminate,
+        ];
+
+        let readiness = [
+            OperationalReadiness::Ready,
+            OperationalReadiness::Pending,
+            OperationalReadiness::Unknown,
+        ];
+
+        let mut cases = 0_usize;
+
+        for transition_policy in policies {
+            for source_policy in policies {
+                for destination_policy in policies {
+                    for destination_evidence in evidence {
+                        for readiness in readiness {
+                            let assessments = TransitionAssessments {
+                                assessed_transition: transition,
+                                transition_policy,
+                                source_policy,
+                                destination_policy,
+                                destination_evidence,
+                                readiness,
+                            };
+
+                            let legacy = authorize_transition(transition, assessments);
+
+                            let components = evaluate_admissibility_components(
+                                transition,
+                                assessments,
+                                SystemPathEvaluation::Complete,
+                            );
+
+                            let components = match components {
+                                AdmissibilityComponentEvaluation::Evaluated(components) => {
+                                    components
+                                }
+                                AdmissibilityComponentEvaluation::TransitionMismatch => {
+                                    panic!("matching transition was rejected")
+                                }
+                            };
+
+                            let independent = FourPredicateComponents {
+                                authorized: components.authorized,
+                                acceptable: components.acceptable,
+                                path_safe: IndependentPathSafety::Safe,
+                                feasible: components.feasible,
+                            };
+
+                            assert_eq!(
+                                evaluate_four_predicate_admissibility(independent,),
+                                FourPredicateEvaluation::Evaluated(legacy),
+                                "equivalence failed at case {cases}",
+                            );
+
+                            assert_eq!(components.legacy_authorization, legacy,);
+
+                            cases += 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        assert_eq!(cases, 324);
+    }
+
+    #[test]
+    fn exhaustive_four_value_precedence() {
+        let values = [
+            AuthorizationDecision::Allow,
+            AuthorizationDecision::Deny,
+            AuthorizationDecision::Defer,
+            AuthorizationDecision::Unknown,
+        ];
+
+        let mut cases = 0_usize;
+
+        for authorized in values {
+            for acceptable in values {
+                for feasible in values {
+                    let inputs = [authorized, acceptable, feasible];
+
+                    let expected = if inputs.contains(&AuthorizationDecision::Deny) {
+                        AuthorizationDecision::Deny
+                    } else if inputs.contains(&AuthorizationDecision::Unknown) {
+                        AuthorizationDecision::Unknown
+                    } else if inputs.contains(&AuthorizationDecision::Defer) {
+                        AuthorizationDecision::Defer
+                    } else {
+                        AuthorizationDecision::Allow
+                    };
+
+                    assert_eq!(
+                        evaluate_four_predicate_admissibility(FourPredicateComponents {
+                            authorized,
+                            acceptable,
+                            path_safe: IndependentPathSafety::Safe,
+                            feasible,
+                        },),
+                        FourPredicateEvaluation::Evaluated(expected),
+                        "precedence failed at case {cases}",
+                    );
+
+                    cases += 1;
+                }
+            }
+        }
+
+        assert_eq!(cases, 64);
+    }
+
+    #[test]
+    fn structural_failure_independence() {
+        let failures = [
+            IndependentPathSafety::InitialInvariantViolation,
+            IndependentPathSafety::Disconnected { step: 0 },
+            IndependentPathSafety::InvariantViolation { step: 1 },
+            IndependentPathSafety::TargetMismatch,
+        ];
+
+        let values = [
+            AuthorizationDecision::Allow,
+            AuthorizationDecision::Deny,
+            AuthorizationDecision::Defer,
+            AuthorizationDecision::Unknown,
+        ];
+
+        let mut cases = 0_usize;
+
+        for path_safe in failures {
+            for authorized in values {
+                for acceptable in values {
+                    for feasible in values {
+                        let result =
+                            evaluate_four_predicate_admissibility(FourPredicateComponents {
+                                authorized,
+                                acceptable,
+                                path_safe,
+                                feasible,
+                            });
+
+                        assert_eq!(result, FourPredicateEvaluation::InvalidPath(path_safe),);
+
+                        cases += 1;
+                    }
+                }
+            }
+        }
+
+        assert_eq!(cases, 256);
+    }
+
     use super::*;
 
     fn components() -> FourPredicateComponents {
