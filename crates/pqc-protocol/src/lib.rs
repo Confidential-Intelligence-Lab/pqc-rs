@@ -37,6 +37,7 @@ mod memory_transport;
 mod message;
 mod message_trait;
 mod metadata;
+mod migration_timing;
 mod negotiation;
 mod response;
 mod role;
@@ -128,6 +129,11 @@ pub use security_acceptability::{
 };
 pub use system_state::{
     CryptographicSystemState, DeploymentStateIdentity, EvidenceStateIdentity, PolicyStateIdentity,
+};
+
+/// Advisory migration timing interfaces.
+pub use migration_timing::{
+    evaluate_migration_timing, MigrationDuration, MigrationTiming, MigrationTimingError,
 };
 
 pub use temporal_security_context::{
