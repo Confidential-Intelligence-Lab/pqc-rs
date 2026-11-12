@@ -37,6 +37,7 @@ mod state;
 mod system_state;
 mod system_transition_binding;
 mod system_transition_path;
+mod transition_admissibility;
 mod transition_authorization;
 mod transition_path;
 mod transition_revalidation;
@@ -105,6 +106,11 @@ pub use system_transition_binding::{
 /// Advisory full-system-state transition-path evaluation interfaces.
 pub use system_transition_path::{
     evaluate_system_transition_path, SystemPathEvaluation, SystemTransitionStep,
+};
+
+/// Diagnostic decomposition of transition admissibility.
+pub use transition_admissibility::{
+    evaluate_admissibility_components, AdmissibilityComponentEvaluation, AdmissibilityComponents,
 };
 
 pub use transport::{TransportError, TransportReceive, TransportResult, TransportTransmit};
