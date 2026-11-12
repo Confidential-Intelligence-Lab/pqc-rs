@@ -35,6 +35,7 @@ mod role;
 mod session;
 mod state;
 mod system_state;
+mod system_transition_path;
 mod transition_authorization;
 mod transition_path;
 mod transition_revalidation;
@@ -94,6 +95,11 @@ pub use state::SessionState;
 /// Cryptographic system-state identity interfaces.
 pub use system_state::{
     CryptographicSystemState, DeploymentStateIdentity, EvidenceStateIdentity, PolicyStateIdentity,
+};
+
+/// Advisory full-system-state transition-path evaluation interfaces.
+pub use system_transition_path::{
+    evaluate_system_transition_path, SystemPathEvaluation, SystemTransitionStep,
 };
 pub use transport::{TransportError, TransportReceive, TransportResult, TransportTransmit};
 pub use typestate::{
