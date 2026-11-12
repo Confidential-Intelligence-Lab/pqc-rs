@@ -11,6 +11,7 @@
 //! The crate intentionally contains no networking, operating-system I/O,
 //! or asynchronous-runtime dependency.
 
+mod assurance;
 mod capabilities;
 mod codec;
 mod configuration_identity;
@@ -37,6 +38,10 @@ mod transport;
 mod typestate;
 mod wire;
 
+pub use assurance::{
+    evaluate_evidence, EvidenceApplicability, EvidenceId, EvidenceInput, EvidenceRecord,
+    EvidenceScope, VerifiedEvidence,
+};
 pub use capabilities::{
     AUTH_ML_DSA_65, HPKE_ML_KEM_1024, HPKE_ML_KEM_768, HPKE_ML_KEM_768_CHACHA20,
     HPKE_ML_KEM_768_X25519, REGISTERED_CAPABILITIES,
