@@ -27,6 +27,8 @@ mod handshake;
 mod handshake_state;
 mod identifiers;
 mod independent_path_safety;
+mod independent_trace_diagnostics;
+
 mod integrated_transition_path;
 mod memory_transport;
 mod message;
@@ -96,6 +98,12 @@ pub use response::{OutboundResponse, ProtocolResponder};
 pub use role::ProtocolRole;
 pub use session::ProtocolSession;
 pub use state::SessionState;
+
+/// Independent diagnostics for proposed transition traces.
+pub use independent_trace_diagnostics::{
+    evaluate_independent_trace_diagnostics, StepDiagnostic, TraceDiagnosticEvaluation,
+    TraceDiagnosticSummary,
+};
 
 /// Independent represented-path safety evaluation interfaces.
 pub use independent_path_safety::{
