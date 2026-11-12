@@ -35,6 +35,8 @@ mod continuous_migration_assessment;
 #[cfg(test)]
 mod hndl_scenarios;
 mod horizon_security;
+#[cfg(test)]
+mod infrastructure_rigidity_scenarios;
 mod integrated_transition_path;
 mod memory_transport;
 mod message;
