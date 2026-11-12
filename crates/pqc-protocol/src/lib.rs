@@ -136,8 +136,8 @@ pub use horizon_security::{
 
 /// Advisory atomic-cutover security continuity interfaces.
 pub use security_continuity::{
-    evaluate_security_continuity, ContinuitySegment, SecurityContinuityError,
-    SecurityContinuityEvaluation,
+    evaluate_security_continuity, evaluate_security_continuity_with_scratch, ContinuitySegment,
+    SecurityContinuityError, SecurityContinuityEvaluation, SecurityContinuityScratchError,
 };
 
 pub use security_acceptability::{
