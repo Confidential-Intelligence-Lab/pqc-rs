@@ -37,6 +37,7 @@ mod memory_transport;
 mod message;
 mod message_trait;
 mod metadata;
+mod migration_feasibility;
 mod migration_timing;
 mod negotiation;
 mod response;
@@ -129,6 +130,11 @@ pub use security_acceptability::{
 };
 pub use system_state::{
     CryptographicSystemState, DeploymentStateIdentity, EvidenceStateIdentity, PolicyStateIdentity,
+};
+
+/// Advisory deadline-aware migration feasibility interfaces.
+pub use migration_feasibility::{
+    evaluate_migration_feasibility, MigrationFeasibility, MigrationTimingEvidence,
 };
 
 /// Advisory migration timing interfaces.
