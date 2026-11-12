@@ -260,6 +260,212 @@ mod tests {
     }
 
     #[test]
+    fn defer_then_deny_preserves_denial() {
+        let a = state(1, 10);
+        let b = state(2, 11);
+        let c = state(3, 12);
+
+        let mut first = step(a, b);
+        first.assessments.readiness = OperationalReadiness::Pending;
+
+        let mut second = step(b, c);
+        second.assessments.transition_policy = PolicyAssessment::Prohibited;
+
+        let mut diagnostics = buffer();
+
+        let result =
+            evaluate_trace_wide_admissibility(a, c, &[first, second], &mut diagnostics, |_| true);
+
+        assert_eq!(
+            result,
+            TraceWideEvaluation::Evaluated(TraceWideSummary {
+                decision: AuthorizationDecision::Deny,
+                path_safety: IndependentPathSafety::Safe,
+                evaluated_steps: 2,
+                diagnostic_failures: 0,
+                decision_inconsistencies: 0,
+            })
+        );
+
+        assert_eq!(
+            diagnostics[0],
+            StepDiagnostic::Evaluated(AuthorizationDecision::Defer)
+        );
+        assert_eq!(
+            diagnostics[1],
+            StepDiagnostic::Evaluated(AuthorizationDecision::Deny)
+        );
+    }
+
+    #[test]
+    fn stale_context_then_deny_preserves_denial() {
+        let a = state(1, 10);
+        let b = state(2, 11);
+        let c = state(3, 12);
+
+        let mut first = step(a, b);
+        first.current_context.revisions.policy = ContextRevision::new(2);
+
+        let mut second = step(b, c);
+        second.assessments.transition_policy = PolicyAssessment::Prohibited;
+
+        let mut diagnostics = buffer();
+
+        let result =
+            evaluate_trace_wide_admissibility(a, c, &[first, second], &mut diagnostics, |_| true);
+
+        assert_eq!(
+            result,
+            TraceWideEvaluation::Evaluated(TraceWideSummary {
+                decision: AuthorizationDecision::Deny,
+                path_safety: IndependentPathSafety::Safe,
+                evaluated_steps: 2,
+                diagnostic_failures: 1,
+                decision_inconsistencies: 0,
+            })
+        );
+
+        assert!(matches!(
+            diagnostics[0],
+            StepDiagnostic::RevalidationFailure(_)
+        ));
+        assert_eq!(
+            diagnostics[1],
+            StepDiagnostic::Evaluated(AuthorizationDecision::Deny)
+        );
+    }
+
+    #[test]
+    fn deny_then_stale_context_preserves_denial() {
+        let a = state(1, 10);
+        let b = state(2, 11);
+        let c = state(3, 12);
+
+        let mut first = step(a, b);
+        first.assessments.transition_policy = PolicyAssessment::Prohibited;
+
+        let mut second = step(b, c);
+        second.current_context.revisions.policy = ContextRevision::new(2);
+
+        let mut diagnostics = buffer();
+
+        let result =
+            evaluate_trace_wide_admissibility(a, c, &[first, second], &mut diagnostics, |_| true);
+
+        assert_eq!(
+            result,
+            TraceWideEvaluation::Evaluated(TraceWideSummary {
+                decision: AuthorizationDecision::Deny,
+                path_safety: IndependentPathSafety::Safe,
+                evaluated_steps: 2,
+                diagnostic_failures: 1,
+                decision_inconsistencies: 0,
+            })
+        );
+
+        assert_eq!(
+            diagnostics[0],
+            StepDiagnostic::Evaluated(AuthorizationDecision::Deny)
+        );
+        assert!(matches!(
+            diagnostics[1],
+            StepDiagnostic::RevalidationFailure(_)
+        ));
+    }
+
+    #[test]
+    fn invalid_path_and_unresolved_step_remain_distinct() {
+        let a = state(1, 10);
+        let b = state(2, 99);
+        let c = state(3, 12);
+
+        let mut first = step(a, b);
+        first.current_context.revisions.policy = ContextRevision::new(2);
+
+        let mut diagnostics = buffer();
+
+        let result =
+            evaluate_trace_wide_admissibility(a, c, &[first, step(b, c)], &mut diagnostics, |s| {
+                s.policy().value() != 99
+            });
+
+        assert_eq!(
+            result,
+            TraceWideEvaluation::InvalidPath(TraceWideSummary {
+                decision: AuthorizationDecision::Unknown,
+                path_safety: IndependentPathSafety::InvariantViolation { step: 0 },
+                evaluated_steps: 2,
+                diagnostic_failures: 1,
+                decision_inconsistencies: 0,
+            })
+        );
+
+        assert!(matches!(
+            diagnostics[0],
+            StepDiagnostic::RevalidationFailure(_)
+        ));
+        assert_eq!(
+            diagnostics[1],
+            StepDiagnostic::Evaluated(AuthorizationDecision::Allow)
+        );
+    }
+
+    #[test]
+    fn assessment_mismatch_counts_as_diagnostic_failure() {
+        let a = state(1, 10);
+        let b = state(2, 11);
+        let c = state(3, 12);
+
+        let mut first = step(a, b);
+        first.assessments.assessed_transition = CryptographicTransition::new(
+            a.configuration(),
+            c.configuration(),
+            EvidenceScope::Encapsulation,
+        );
+
+        let mut diagnostics = buffer();
+
+        let result = evaluate_trace_wide_admissibility(a, b, &[first], &mut diagnostics, |_| true);
+
+        assert_eq!(
+            result,
+            TraceWideEvaluation::Evaluated(TraceWideSummary {
+                decision: AuthorizationDecision::Unknown,
+                path_safety: IndependentPathSafety::Safe,
+                evaluated_steps: 1,
+                diagnostic_failures: 1,
+                decision_inconsistencies: 0,
+            })
+        );
+
+        assert_eq!(diagnostics[0], StepDiagnostic::AssessmentTransitionMismatch);
+    }
+
+    #[test]
+    fn insufficient_capacity_preserves_buffer_and_skips_invariant() {
+        let a = state(1, 10);
+        let b = state(2, 11);
+        let c = state(3, 12);
+
+        let steps = [step(a, b), step(b, c)];
+        let mut diagnostics = [StepDiagnostic::Evaluated(AuthorizationDecision::Deny)];
+        let before = diagnostics;
+
+        let result = evaluate_trace_wide_admissibility(a, c, &steps, &mut diagnostics, |_| {
+            panic!("invariant must not run")
+        });
+
+        assert_eq!(
+            result,
+            TraceWideEvaluation::InsufficientCapacity {
+                required: 2,
+                available: 1,
+            }
+        );
+        assert_eq!(diagnostics, before);
+    }
+
+    #[test]
     fn all_permitted_steps_allow() {
         let a = state(1, 10);
         let b = state(2, 11);
