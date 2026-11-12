@@ -20,6 +20,7 @@ mod driver;
 mod envelope;
 mod error;
 mod establishment;
+mod four_predicate_admissibility;
 mod frame;
 mod frame_transport;
 mod handler;
@@ -134,10 +135,13 @@ pub use integrated_transition_path::{
     evaluate_integrated_transition_path, IntegratedPathEvaluation, IntegratedTransitionStep,
 };
 
-/// Advisory aggregation of bound transition admissibility.
 pub use aggregate_admissibility::{
     combine_admissibility_components, evaluate_aggregate_admissibility,
     AggregateAdmissibilityEvaluation,
+};
+/// Advisory aggregation of bound transition admissibility.
+pub use four_predicate_admissibility::{
+    evaluate_four_predicate_admissibility, FourPredicateComponents, FourPredicateEvaluation,
 };
 
 pub use transport::{TransportError, TransportReceive, TransportResult, TransportTransmit};
