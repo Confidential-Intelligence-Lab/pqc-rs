@@ -11,6 +11,7 @@
 //! The crate intentionally contains no networking, operating-system I/O,
 //! or asynchronous-runtime dependency.
 
+mod aggregate_admissibility;
 mod assurance;
 mod capabilities;
 mod codec;
@@ -117,6 +118,12 @@ pub use transition_admissibility::{
 /// Advisory integrated transition-trace evaluation interfaces.
 pub use integrated_transition_path::{
     evaluate_integrated_transition_path, IntegratedPathEvaluation, IntegratedTransitionStep,
+};
+
+/// Advisory aggregation of bound transition admissibility.
+pub use aggregate_admissibility::{
+    combine_admissibility_components, evaluate_aggregate_admissibility,
+    AggregateAdmissibilityEvaluation,
 };
 
 pub use transport::{TransportError, TransportReceive, TransportResult, TransportTransmit};
