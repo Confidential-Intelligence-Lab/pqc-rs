@@ -53,6 +53,7 @@ mod temporal_security_context;
 mod threat_schedule;
 mod transition_admissibility;
 mod transition_authorization;
+mod transition_interval;
 mod transition_path;
 mod transition_revalidation;
 mod transport;
@@ -147,6 +148,9 @@ pub use migration_feasibility::{
 pub use migration_timing::{
     evaluate_migration_timing, MigrationDuration, MigrationTiming, MigrationTimingError,
 };
+
+/// Advisory atomic-cutover transition interval interfaces.
+pub use transition_interval::{ActiveConfiguration, TransitionInterval, TransitionIntervalError};
 
 pub use temporal_security_context::{
     ModelTime, ProtectionHorizon, TemporalError, TemporalSecurityContext, ThreatPhaseId,
