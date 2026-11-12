@@ -43,6 +43,7 @@ mod negotiation;
 mod response;
 mod role;
 mod security_acceptability;
+mod security_continuity;
 mod session;
 mod state;
 mod system_state;
@@ -124,6 +125,12 @@ pub use independent_path_safety::{
 /// Advisory horizon-wide security evaluation interfaces.
 pub use horizon_security::{
     evaluate_horizon_security, HorizonSecurityError, HorizonSecurityEvaluation,
+};
+
+/// Advisory atomic-cutover security continuity interfaces.
+pub use security_continuity::{
+    evaluate_security_continuity, ContinuitySegment, SecurityContinuityError,
+    SecurityContinuityEvaluation,
 };
 
 pub use security_acceptability::{
