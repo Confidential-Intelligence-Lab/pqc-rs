@@ -58,6 +58,7 @@ def ensure_bridge() -> pathlib.Path:
             str(install_prefix / "lib"),
             f"-Wl,-rpath,{install_prefix / 'lib'}",
             "-loqs",
+            "-lcrypto",
             "-o",
             str(BIN),
         ]
