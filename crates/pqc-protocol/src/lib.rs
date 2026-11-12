@@ -29,6 +29,7 @@ mod handshake_state;
 mod identifiers;
 mod independent_path_safety;
 mod independent_trace_diagnostics;
+mod trace_wide_admissibility;
 
 mod integrated_transition_path;
 mod memory_transport;
@@ -140,6 +141,11 @@ pub use aggregate_admissibility::{
     AggregateAdmissibilityEvaluation,
 };
 /// Advisory aggregation of bound transition admissibility.
+/// Trace-wide advisory admissibility interfaces.
+pub use trace_wide_admissibility::{
+    evaluate_trace_wide_admissibility, TraceWideEvaluation, TraceWideSummary,
+};
+
 pub use four_predicate_admissibility::{
     evaluate_four_predicate_admissibility, FourPredicateComponents, FourPredicateEvaluation,
 };
