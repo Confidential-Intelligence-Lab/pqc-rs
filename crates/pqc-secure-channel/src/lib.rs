@@ -9,6 +9,7 @@
 
 mod activation;
 mod binding;
+mod guarded_activation;
 
 pub use activation::{
     activate_receiver, activate_sender, SecureChannelError, SecureChannelReceiver,
@@ -17,6 +18,9 @@ pub use activation::{
 pub use binding::{
     SecureChannelBinding, SECURE_CHANNEL_BINDING_DOMAIN, SECURE_CHANNEL_BINDING_HEADER_LEN,
     SECURE_CHANNEL_BINDING_VERSION,
+};
+pub use guarded_activation::{
+    activate_receiver_guarded, activate_sender_guarded, GuardedActivationError,
 };
 
 use core::fmt;
