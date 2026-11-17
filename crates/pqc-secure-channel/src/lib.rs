@@ -9,6 +9,7 @@
 
 mod activation;
 mod binding;
+mod continued_use;
 mod guarded_activation;
 
 pub use activation::{
@@ -18,6 +19,10 @@ pub use activation::{
 pub use binding::{
     SecureChannelBinding, SECURE_CHANNEL_BINDING_DOMAIN, SECURE_CHANNEL_BINDING_HEADER_LEN,
     SECURE_CHANNEL_BINDING_VERSION,
+};
+pub use continued_use::{
+    activate_receiver_continuous, activate_sender_continuous, ContinuedUseError,
+    ContinuedUseReceiver, ContinuedUseSender, ContinuedUseSenderActivation, SharedTransitionGate,
 };
 pub use guarded_activation::{
     activate_receiver_guarded, activate_sender_guarded, GuardedActivationError,
