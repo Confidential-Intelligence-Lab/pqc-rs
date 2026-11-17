@@ -26,5 +26,9 @@ harness = false
 name = "transition_gate_cost"
 harness = false
 
+[[bench]]
+name = "continued_use_cost"
+harness = false
+
 [lib]
 name = "pqc_secure_channel"
