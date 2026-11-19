@@ -136,9 +136,9 @@ fn check_mode<const K: usize, const M: usize>(
 
         fixture.compared_seed_bytes += 128;
 
-        for row in 0..K {
-            for col in 0..M {
-                fixture.poly("A", row, col, &prepared.matrix[row].as_slice()[col].coeffs);
+        for (row, matrix_row) in prepared.matrix.iter().enumerate().take(K) {
+            for (col, poly) in matrix_row.as_slice().iter().enumerate().take(M) {
+                fixture.poly("A", row, col, &poly.coeffs);
             }
         }
 

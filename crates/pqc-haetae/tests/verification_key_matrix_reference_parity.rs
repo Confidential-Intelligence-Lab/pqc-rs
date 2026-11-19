@@ -74,8 +74,8 @@ fn check<const K: usize, const L: usize>(mode_number: u8, mode: ParameterSet) {
         let reconstructed =
             unpack_verification_key::<K, L>(&pk, mode).expect("valid reference public key");
 
-        for row in 0..K {
-            for column in 0..L {
+        for (row, matrix_row) in reconstructed.matrix.iter().enumerate().take(K) {
+            for (column, poly) in matrix_row.as_slice().iter().enumerate().take(L) {
                 let fields: Vec<&str> = lines[cursor].split(',').collect();
 
                 assert_eq!(
@@ -87,7 +87,7 @@ fn check<const K: usize, const L: usize>(mode_number: u8, mode: ParameterSet) {
                 assert_eq!(fields[0], format!("POLY={row}"));
                 assert_eq!(fields[1], column.to_string());
 
-                let actual = &reconstructed.matrix[row].as_slice()[column].coeffs;
+                let actual = &poly.coeffs;
 
                 for index in 0..N {
                     let expected: i32 = fields[index + 2]
