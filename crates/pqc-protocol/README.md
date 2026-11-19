@@ -151,6 +151,72 @@ commit through `establish_with_negotiation`.
 The complete exchange is exercised through resumable `FrameTransmitter`,
 `MemoryTransport`, and `FrameReceiver` paths under deterministic fragmentation.
 
+## Cryptographic-change assessment and authorization
+
+The protocol crate provides advisory evaluations of proposed cryptographic
+changes. Callers supply cryptographic configuration and system-state
+identities, security requirements and policy decisions, assurance assessments,
+deployment assumptions, threat schedules, and migration timing. These inputs
+are *not* discovered or authenticated by the assessment layer.
+
+Four distinct concerns are evaluated:
+
+1. **Structural admissibility:** whether a proposed transition is permitted,
+   reaches the specified target, respects represented path invariants, and
+   satisfies the supplied deployment constraints.
+2. **Temporal security continuity:** whether the active configuration remains
+   acceptable over the specified protection horizon as supplied threat phases
+   change, including before and after a modeled cutover.
+3. **Operational timing:** whether preparation and cutover can meet the
+   requested timing constraints, with distinct failure or unknown outcomes.
+4. **Context revalidation:** whether an assessment remains applicable when
+   policy, evidence, deployment, or source-state revisions change.
+
+The model uses caller-defined *logical ticks*. Scenario threat assumptions,
+security decisions, and migration durations are synthetic test inputs, not
+forecasts of cryptanalytic advances or measured enterprise rollout times.
+
+### Implementation and test map
+
+| Concern | Primary source | Test coverage |
+|---|---|---|
+| Identity and state descriptions | [`configuration_identity.rs`](src/configuration_identity.rs), [`system_state.rs`](src/system_state.rs) | Module unit tests |
+| Transition authorization and path diagnostics | [`transition_authorization.rs`](src/transition_authorization.rs), [`independent_trace_diagnostics.rs`](src/independent_trace_diagnostics.rs) | Module unit tests |
+| Threat phases and continuity | [`threat_schedule.rs`](src/threat_schedule.rs), [`security_continuity.rs`](src/security_continuity.rs) | Module unit tests and [`hndl_scenarios.rs`](src/hndl_scenarios.rs) |
+| Signing-related trust scenarios | [`tnfl_scenarios.rs`](src/tnfl_scenarios.rs) | Deterministic scenario tests |
+| Deployment constraints | [`migration_feasibility.rs`](src/migration_feasibility.rs), [`infrastructure_rigidity_scenarios.rs`](src/infrastructure_rigidity_scenarios.rs) | Deterministic scenario tests |
+| Combined structural and temporal evaluation | [`continuous_migration_assessment.rs`](src/continuous_migration_assessment.rs), [`structural_temporal_scenarios.rs`](src/structural_temporal_scenarios.rs) | Integrated cases and [`organizational_case_study.rs`](src/structural_temporal_scenarios/organizational_case_study.rs) |
+| Context revision checks | [`transition_revalidation.rs`](src/transition_revalidation.rs) | Module and organizational tests |
+| Authorization state shared with consumers | [`execution_gate.rs`](src/execution_gate.rs) | Module unit tests; HPKE integration tests in the secure-channel crate |
+
+The assessment functions are advisory; the execution-gate integration permits
+callers to *enforce* decisions at specific cryptographic entry points when
+using the guarded API. It does not automatically update deployments, validate
+external evidence, or rekey channels. See [secure-channel authorization](../pqc-secure-channel/README.md#hpke-authorization-and-continued-use)
+for the guarded HPKE path and its tests.
+
+### Reproduce the protocol tests
+
+From the workspace root:
+
+```bash
+cargo test -p pqc-rs-protocol
+cargo test -p pqc-rs-protocol hndl_scenarios
+cargo test -p pqc-rs-protocol tnfl_scenarios
+cargo test -p pqc-rs-protocol infrastructure_rigidity_scenarios
+cargo test -p pqc-rs-protocol structural_temporal_scenarios
+cargo test -p pqc-rs-protocol security_continuity
+cargo test -p pqc-rs-protocol transition_revalidation
+cargo test -p pqc-rs-protocol execution_gate
+
+# Optional local evaluation microbenchmarks.
+cargo bench -p pqc-rs-protocol --bench temporal_agility
+```
+
+All scenario assertions evaluate expected outcomes under their stated inputs.
+Passing these tests is not a certification of security or a substitute for an
+independent cryptographic and systems review.
+
 ## Layering
 
 ```text
@@ -165,4 +231,7 @@ PQC-rs cryptographic primitives
 
 ## Status
 
-This crate is experimental and is not currently published.
+The published `pqc-rs-protocol` foundation is version `0.4.1`.
+The additional change-assessment and authorization interfaces on this
+development branch are experimental and outside the stable
+cryptographic-foundation compatibility commitment.

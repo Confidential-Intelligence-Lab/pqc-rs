@@ -15,6 +15,30 @@ execution providers replaceable behind stable boundaries.
 > deployment requires independent review and application-specific risk
 > assessment.
 
+## Citation
+
+The published design and continuous-assurance evaluation of PQC-rs is:
+
+> Ro Cammarota and Caroline Wang. 2026.
+> *PQC-rs: Principled Design and Continuous Assurance for Post-Quantum
+> Cryptography in Rust (Short Paper).* In *Proceedings of the 2026 ACM
+> Conference on Post-Quantum and Quantum-based Security* (PQQS '26).
+> Association for Computing Machinery. https://doi.org/10.1145/3839338.3857256
+
+```bibtex
+@inproceedings{cammarota2026pqcrs,
+  author    = {Cammarota, Ro and Wang, Caroline},
+  title     = {{PQC-rs}: Principled Design and Continuous Assurance for Post-Quantum Cryptography in Rust (Short Paper)},
+  booktitle = {Proceedings of the 2026 ACM Conference on Post-Quantum and Quantum-based Security},
+  publisher = {Association for Computing Machinery},
+  year      = {2026},
+  doi       = {10.1145/3839338.3857256},
+  url       = {https://doi.org/10.1145/3839338.3857256}
+}
+```
+
+For software citation metadata, see [`CITATION.cff`](CITATION.cff).
+
 ## Why PQC-rs?
 
 Deploying post-quantum cryptography requires more than implementing new
@@ -264,6 +288,15 @@ engineering evidence; they do **not** constitute formal verification, FIPS
 validation, Common Criteria certification, or an independent security audit.
 
 See [SECURITY.md](SECURITY.md) for the disclosure and supported-version policy.
+
+## Protocol assessment and authorization tests
+
+The [`pqc-rs-protocol` documentation](crates/pqc-protocol/README.md)
+describes structural admissibility, temporal security continuity, migration
+timing, revision-aware revalidation, and the deterministic Rust scenarios.
+The [`pqc-rs-secure-channel` documentation](crates/pqc-secure-channel/README.md)
+explains optional authorization checks at HPKE activation and continued use,
+with direct pointers to the integration tests and microbenchmarks.
 
 ## Crypto-agility and evaluation
 
