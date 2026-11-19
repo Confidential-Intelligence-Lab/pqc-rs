@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 
 SRC="$ROOT/scripts/interop/bench/awslc_bench.c"
 BIN="$ROOT/target/interop/awslc_bench"
-OUT="$ROOT/target/camera-ready-provider-bench/awslc"
+OUT="$ROOT/target/provider-benchmark-results/awslc"
 
 AWS_SRC="${AWSLC_SRC:-$ROOT/target/interop/aws-lc-src}"
 PREFIX="${AWSLC_PREFIX:-$ROOT/target/interop/aws-lc-install}"

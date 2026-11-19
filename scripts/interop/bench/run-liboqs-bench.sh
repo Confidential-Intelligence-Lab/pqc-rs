@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 SRC="$ROOT/scripts/interop/bench/liboqs_bench.c"
 BIN="$ROOT/target/interop/liboqs_bench"
-OUT="$ROOT/target/camera-ready-provider-bench/liboqs"
+OUT="$ROOT/target/provider-benchmark-results/liboqs"
 
 if [[ -n "${OQS_PREFIX:-}" ]]; then
     PREFIX="$OQS_PREFIX"
