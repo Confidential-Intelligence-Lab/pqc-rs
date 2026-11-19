@@ -1243,11 +1243,11 @@ mod tests {
 
                     let z1 = Poly::compose(&Poly::new(high), &Poly::new(low));
 
-                    for coefficient in 0..N {
+                    for (coefficient, actual) in z1.coeffs.iter().enumerate().take(N) {
                         let index = start + coefficient;
 
                         assert_eq!(
-                            Some(i64::from(z1.coeffs[coefficient])),
+                            Some(i64::from(*actual)),
                             expected[index].as_i64(),
                             "C/Rust z1 mismatch: mode={mode_number} \
                              case={case} coefficient={index}"

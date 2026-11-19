@@ -11,36 +11,76 @@
 //! The crate intentionally contains no networking, operating-system I/O,
 //! or asynchronous-runtime dependency.
 
+mod aggregate_admissibility;
+mod assurance;
 mod capabilities;
 mod codec;
+mod configuration_identity;
 mod driver;
 mod envelope;
 mod error;
 mod establishment;
+mod execution_gate;
+mod four_predicate_admissibility;
 mod frame;
 mod frame_transport;
 mod handler;
 mod handshake;
 mod handshake_state;
 mod identifiers;
+mod independent_path_safety;
+mod independent_trace_diagnostics;
+mod trace_wide_admissibility;
+
+mod continuous_migration_assessment;
+#[cfg(test)]
+mod hndl_scenarios;
+mod horizon_security;
+#[cfg(test)]
+mod infrastructure_rigidity_scenarios;
+mod integrated_transition_path;
 mod memory_transport;
 mod message;
 mod message_trait;
 mod metadata;
+mod migration_feasibility;
+mod migration_timing;
 mod negotiation;
 mod response;
 mod role;
+mod security_acceptability;
+mod security_continuity;
 mod session;
 mod state;
+mod system_state;
+mod system_transition_binding;
+mod system_transition_path;
+mod temporal_migration_assessment;
+mod temporal_security_context;
+mod threat_schedule;
+#[cfg(test)]
+mod tnfl_scenarios;
+mod transition_admissibility;
+mod transition_authorization;
+mod transition_interval;
+mod transition_path;
+mod transition_revalidation;
 mod transport;
 mod typestate;
 mod wire;
 
+pub use assurance::{
+    evaluate_evidence, EvidenceApplicability, EvidenceId, EvidenceInput, EvidenceRecord,
+    EvidenceScope, VerifiedEvidence,
+};
 pub use capabilities::{
     AUTH_ML_DSA_65, HPKE_ML_KEM_1024, HPKE_ML_KEM_768, HPKE_ML_KEM_768_CHACHA20,
     HPKE_ML_KEM_768_X25519, REGISTERED_CAPABILITIES,
 };
 pub use codec::{ProtocolDecode, ProtocolEncode};
+pub use configuration_identity::{
+    AlgorithmId, ConfigurationIdentity, ImplementationRevision, ParameterSetId, ProviderId,
+};
 pub use driver::{
     DriverError, DriverResult, ProtocolDriver, ResponseError, ResponseResult,
     TransmitPreparationError, TransmitPreparationResult,
@@ -48,6 +88,9 @@ pub use driver::{
 pub use envelope::ProtocolEnvelope;
 pub use error::{ProtocolError, ProtocolResult};
 pub use establishment::EstablishedProtocolContext;
+pub use execution_gate::{
+    ExecutionContextChange, ExecutionGateError, ExecutionGateUpdateError, TransitionExecutionGate,
+};
 pub use frame::{ProtocolFrame, MAX_FRAME_PAYLOAD_LEN};
 pub use frame_transport::{
     FrameReceiver, FrameTransferError, FrameTransferResult, FrameTransmitter,
@@ -77,6 +120,102 @@ pub use response::{OutboundResponse, ProtocolResponder};
 pub use role::ProtocolRole;
 pub use session::ProtocolSession;
 pub use state::SessionState;
+
+/// Independent diagnostics for proposed transition traces.
+pub use independent_trace_diagnostics::{
+    evaluate_independent_trace_diagnostics, StepDiagnostic, TraceDiagnosticEvaluation,
+    TraceDiagnosticSummary,
+};
+
+/// Independent represented-path safety evaluation interfaces.
+pub use independent_path_safety::{
+    evaluate_independent_path_safety, IndependentPathSafety, IndependentPathStep,
+};
+
+/// Advisory context-bound security acceptability interfaces.
+/// Advisory horizon-wide security evaluation interfaces.
+pub use horizon_security::{
+    evaluate_horizon_security, HorizonSecurityError, HorizonSecurityEvaluation,
+};
+
+/// Advisory atomic-cutover security continuity interfaces.
+pub use security_continuity::{
+    evaluate_security_continuity, evaluate_security_continuity_with_scratch, ContinuitySegment,
+    SecurityContinuityError, SecurityContinuityEvaluation, SecurityContinuityScratchError,
+};
+
+pub use security_acceptability::{
+    evaluate_security_assessment, SecurityAcceptability, SecurityAssessment,
+    SecurityAssessmentBinding, SecurityAssessmentEvaluation, SecurityRequirementId,
+};
+pub use system_state::{
+    CryptographicSystemState, DeploymentStateIdentity, EvidenceStateIdentity, PolicyStateIdentity,
+};
+
+/// Advisory integrated temporal migration assessment interfaces.
+/// Advisory integrated continuous-migration assessment interfaces.
+pub use continuous_migration_assessment::{
+    evaluate_continuous_migration, ContinuousMigrationDiagnostics, ContinuousMigrationError,
+    ContinuousMigrationEvaluation,
+};
+
+pub use temporal_migration_assessment::{
+    evaluate_temporal_migration, TemporalMigrationError, TemporalMigrationEvaluation,
+};
+
+/// Advisory deadline-aware migration feasibility interfaces.
+pub use migration_feasibility::{
+    evaluate_migration_feasibility, MigrationFeasibility, MigrationTimingEvidence,
+};
+
+/// Advisory migration timing interfaces.
+pub use migration_timing::{
+    evaluate_migration_timing, MigrationDuration, MigrationTiming, MigrationTimingError,
+};
+
+/// Advisory atomic-cutover transition interval interfaces.
+pub use transition_interval::{ActiveConfiguration, TransitionInterval, TransitionIntervalError};
+
+pub use temporal_security_context::{
+    ModelTime, ProtectionHorizon, TemporalError, TemporalSecurityContext, ThreatPhaseId,
+    TimeInterval,
+};
+/// Cryptographic system-state identity interfaces.
+pub use threat_schedule::{ThreatPhase, ThreatSchedule, ThreatScheduleError};
+
+/// Advisory full-state transition-assessment binding interfaces.
+pub use system_transition_binding::{
+    evaluate_system_transition_binding, SystemBindingEvaluation, SystemTransitionBinding,
+};
+/// Advisory full-system-state transition-path evaluation interfaces.
+pub use system_transition_path::{
+    evaluate_system_transition_path, SystemPathEvaluation, SystemTransitionStep,
+};
+
+/// Diagnostic decomposition of transition admissibility.
+pub use transition_admissibility::{
+    evaluate_admissibility_components, AdmissibilityComponentEvaluation, AdmissibilityComponents,
+};
+
+/// Advisory integrated transition-trace evaluation interfaces.
+pub use integrated_transition_path::{
+    evaluate_integrated_transition_path, IntegratedPathEvaluation, IntegratedTransitionStep,
+};
+
+pub use aggregate_admissibility::{
+    combine_admissibility_components, evaluate_aggregate_admissibility,
+    AggregateAdmissibilityEvaluation,
+};
+/// Advisory aggregation of bound transition admissibility.
+/// Trace-wide advisory admissibility interfaces.
+pub use trace_wide_admissibility::{
+    evaluate_trace_wide_admissibility, TraceWideEvaluation, TraceWideSummary,
+};
+
+pub use four_predicate_admissibility::{
+    evaluate_four_predicate_admissibility, FourPredicateComponents, FourPredicateEvaluation,
+};
+
 pub use transport::{TransportError, TransportReceive, TransportResult, TransportTransmit};
 pub use typestate::{
     ClosedState, ClosingState, CreatedState, EstablishedState, EstablishingState, FailedState,
@@ -85,3 +224,24 @@ pub use typestate::{
 pub use wire::{
     WireFlags, WireHeader, WireVersion, WIRE_HEADER_LEN, WIRE_MAGIC, WIRE_RESERVED_LEN,
 };
+
+/// Advisory cryptographic transition authorization interfaces.
+pub use transition_authorization::{
+    authorize_transition, AuthorizationDecision, CryptographicTransition, OperationalReadiness,
+    PolicyAssessment, TransitionAssessments,
+};
+
+/// Advisory execution-context revalidation interfaces.
+pub use transition_revalidation::{
+    revalidate_transition, AssessedExecutionContext, ContextRevision, CurrentExecutionContext,
+    ExecutionRevisions, RevalidationResult,
+};
+
+/// Advisory transition-path evaluation interfaces.
+pub use transition_path::{
+    evaluate_temporal_path, evaluate_transition_path, PathEvaluation, TemporalPathEvaluation,
+    TransitionPathStep,
+};
+
+#[cfg(test)]
+mod structural_temporal_scenarios;

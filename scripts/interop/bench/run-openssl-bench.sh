@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 SRC="$ROOT/scripts/interop/bench/openssl_bench.c"
 BIN="$ROOT/target/interop/openssl_bench"
-OUT="$ROOT/target/camera-ready-provider-bench/openssl"
+OUT="$ROOT/target/provider-benchmark-results/openssl"
 
 if [[ -n "${OPENSSL_PREFIX:-}" ]]; then
     PREFIX="$OPENSSL_PREFIX"

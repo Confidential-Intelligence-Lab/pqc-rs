@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 
 SRC="$ROOT/scripts/interop/bench/BouncyCastleBench.java"
 CLASSES="$ROOT/target/provider-bench/bouncycastle-classes"
-OUT="$ROOT/target/camera-ready-provider-bench/bouncycastle"
+OUT="$ROOT/target/provider-benchmark-results/bouncycastle"
 RAW="$OUT/all-results.txt"
 
 BC_JAR="${BC_JAVA_JAR:-/tmp/pqc-rs-bc-audit/bc-java/prov/build/libs/bcprov-jdk18on-1.87-SNAPSHOT.jar}"

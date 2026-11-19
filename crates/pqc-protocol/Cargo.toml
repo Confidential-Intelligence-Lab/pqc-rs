@@ -20,3 +20,10 @@ pqc-core = { workspace = true }
 
 [lib]
 name = "pqc_protocol"
+
+[dev-dependencies]
+criterion = { workspace = true }
+
+[[bench]]
+name = "temporal_agility"
+harness = false

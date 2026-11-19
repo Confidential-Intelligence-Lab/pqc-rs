@@ -8,7 +8,7 @@ import statistics
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-RESULTS = ROOT / "target" / "camera-ready-provider-bench"
+RESULTS = ROOT / "target" / "provider-benchmark-results"
 
 ROUNDS = 10_000
 SEED = 1

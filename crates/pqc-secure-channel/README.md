@@ -91,6 +91,51 @@ state to the established protocol context.
 Consequently, a peer-provided capability identifier is not interpreted as a
 raw KEM, KDF, or AEAD identifier.
 
+## HPKE authorization and continued use
+
+This development branch adds guarded HPKE activation and continued-use
+wrappers. The protocol crate maintains revision-aware authorization state;
+the secure-channel layer checks that state before selected HPKE operations.
+The guarded APIs support denying activation, `seal`, or `open` when current
+assessments do not authorize the requested operation. Unauthorized message
+attempts are tested to ensure they do not advance the corresponding HPKE
+message sequence state.
+
+Using an *unguarded* HPKE context does **not** implicitly enable this policy
+check. Evidence and policy changes must be provided through the application
+integration; the code does not independently authenticate those updates or
+automatically migrate or rekey a channel.
+
+### Sources and integration tests
+
+| Component | File | What it exercises |
+|---|---|---|
+| Activation wrapper | [`guarded_activation.rs`](src/guarded_activation.rs) | Authorization before HPKE setup |
+| Continued-use wrapper | [`continued_use.rs`](src/continued_use.rs) | Authorization before message processing |
+| Activation tests | [`tests/guarded_activation.rs`](tests/guarded_activation.rs) | Denial before encapsulation/decapsulation and a permitted round trip |
+| Continued-use tests | [`tests/continued_use.rs`](tests/continued_use.rs) | Withdrawal, sender/receiver blocking, sequence preservation, and recovery |
+| State-change tests | [`tests/continued_use_evaluation.rs`](tests/continued_use_evaluation.rs) | Simultaneous updates, concurrent evidence changes, and guarded-vs-baseline behavior |
+| Comparative tests | [`tests/transition_comparison.rs`](tests/transition_comparison.rs) | State-change comparison and profile mismatch |
+| Local benchmarks | [`continued_use_cost.rs`](benches/continued_use_cost.rs), [`transition_gate_cost.rs`](benches/transition_gate_cost.rs) | Optional guarded-operation and activation overhead measurements |
+
+Run the relevant integration tests from the workspace root:
+
+```bash
+cargo test -p pqc-rs-secure-channel
+cargo test -p pqc-rs-secure-channel --test guarded_activation
+cargo test -p pqc-rs-secure-channel --test continued_use
+cargo test -p pqc-rs-secure-channel --test continued_use_evaluation
+cargo test -p pqc-rs-secure-channel --test transition_comparison
+
+# Optional local performance measurements.
+cargo bench -p pqc-rs-secure-channel --bench transition_gate_cost
+cargo bench -p pqc-rs-secure-channel --bench continued_use_cost
+```
+
+The tests establish behavior for the supplied state-change schedules and
+conditions; they do not establish that all possible concurrent interleavings
+or malicious environments have been covered.
+
 ## Registered profiles
 
 The current secure-channel registry includes profiles using:

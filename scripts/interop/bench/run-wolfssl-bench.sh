@@ -5,7 +5,7 @@ ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 
 SRC="$ROOT/scripts/interop/bench/wolfssl_bench.c"
 BIN="$ROOT/target/interop/wolfssl_bench"
-OUT="$ROOT/target/camera-ready-provider-bench/wolfssl"
+OUT="$ROOT/target/provider-benchmark-results/wolfssl"
 
 PREFIX="${WOLFSSL_PREFIX:-$ROOT/target/interop/wolfssl-install}"
 LIB="$PREFIX/lib/libwolfssl.a"

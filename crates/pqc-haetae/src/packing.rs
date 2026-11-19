@@ -845,15 +845,13 @@ mod verification_key_reconstruction_tests {
 
             let mut checked = 0_usize;
 
-            for row in 0..K {
-                for column in 0..L {
-                    for index in 0..crate::params::N {
+            for (row, matrix_row) in reconstructed.matrix.iter().enumerate().take(K) {
+                for (column, poly) in matrix_row.as_slice().iter().enumerate().take(L) {
+                    for (index, actual) in poly.coeffs.iter().enumerate().take(crate::params::N) {
                         let flat = (row * L + column) * crate::params::N + index;
 
-                        let actual = reconstructed.matrix[row].as_slice()[column].coeffs[index];
-
                         assert_eq!(
-                            Some(i64::from(actual)),
+                            Some(i64::from(*actual)),
                             expected[flat].as_i64(),
                             "C/Rust verification matrix mismatch: \
                              mode={mode_number} case={case} \
