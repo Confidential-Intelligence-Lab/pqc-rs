@@ -58,9 +58,9 @@ mod tests {
         let matrix = expand_mat_a::<K, M>(&seed, mode);
 
         for (row, matrix_row) in matrix.iter().enumerate() {
-            for column in 0..M {
+            for (column, actual) in matrix_row.0.vec.iter().enumerate().take(M) {
                 let nonce = ((row << 8) + column) as u16;
-                assert_eq!(matrix_row.0.vec[column], uniform(&seed, nonce));
+                assert_eq!(actual, &uniform(&seed, nonce));
             }
         }
 
