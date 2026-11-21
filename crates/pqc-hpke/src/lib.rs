@@ -67,6 +67,8 @@ pub mod internal_api;
 mod kdf;
 mod key_schedule;
 pub mod ml_kem;
+#[cfg(feature = "std")]
+pub mod qkd;
 pub mod setup;
 pub mod suite;
 
