@@ -69,6 +69,8 @@ mod key_schedule;
 pub mod ml_kem;
 #[cfg(feature = "std")]
 pub mod qkd;
+#[cfg(feature = "std")]
+pub mod qkd_m2b;
 pub mod setup;
 pub mod suite;
 
