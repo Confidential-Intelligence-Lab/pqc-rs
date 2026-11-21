@@ -1,0 +1,13 @@
+# M1.E3: Conditional finite-key budgeting — experimental
+
+This module **does not derive** a quantum-secure min-entropy lower bound from a measured QBER. The observed test QBER is diagnostic only. A finite-key phase-error estimator, appropriate random-sampling proof, source/detector assumptions, authentication accounting, and an end-to-end composable security argument are not yet integrated.
+
+The estimator refuses to grant even conditional passage unless an **externally justified**, finite, pre-leak bound on the conditional min-entropy `H_min(X | E)` of the *retained* key bits is supplied with an evidence identifier. This is an assumption supplied by the caller, **not a verified certificate**: the software cannot determine whether the identifier or bound is truthful. The caller must include quantum side information and the parameter-estimation failure model in that bound. Test bits are removed before the bound is used.
+
+The estimator subtracts counted public reconciliation and confirmation leakage, then applies the unsmoothed quantum leftover-hash inequality for two-universal hashing: `Delta <= (1/2) sqrt(2^(ell - H_min))`. It uses `ell <= H_min - 2 log2(1 / (2 epsilon_pa))` as a conditional output-length budget. This inequality is only valid if the supplied entropy and uniform independent Toeplitz seed assumptions actually hold. Smooth min-entropy and all other failure contributions need proof-specific treatment and are not silently included. Authenticated classical transcript, confirmed reconciliation, and an independent uniformly random seed are explicitly required inputs; those booleans are **not independently verified** here.
+
+`CONDITIONAL_PASS` means **arithmetic fits the caller-supplied bound**, not that the QKD protocol or output key is secure. `security_qualified` and `hpke_export_authorized` are always `false`, including on conditional passage. No key bytes are read or exported. The older simulation fixture remains insecure for QKD claims.
+
+The `M1.E3` follow-on must integrate a concrete finite-key BB84 theorem, a corresponding parameter-estimation protocol, rigorously counted transcript leakage, correctness/authentication budgets, and validation of key provenance. Do not treat this calculation as security certification of CUDA-Q simulations or physical QKD devices.
+
+Reference: M. Tomamichel, C. C. W. Lim, N. Gisin, and R. Renner, *Tight finite-key analysis for quantum cryptography*, Nature Communications 3, 634 (2012), https://doi.org/10.1038/ncomms1631 . This paper motivates the need for a protocol-specific finite-size proof; this implementation is **not** a complete implementation of its theorem.
