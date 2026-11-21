@@ -7,6 +7,8 @@ security composition are not established by this experiment.
 from __future__ import annotations
 
 from dataclasses import asdict
+import hashlib
+import hmac
 import json
 import secrets
 
@@ -26,7 +28,8 @@ def run_distillation(alice, bob, *, n_key: int, k_test: int,
                      epsilon_pa: float = 1e-6, confirmation_tag_bits: int = 40,
                      selection_seed: int | None = None, selection_streams=None,
                      demo_pre_leak_min_entropy_bits: float | None = None,
-                     hook=None) -> dict:
+                     hook=None, authentication_key: bytes | None = None,
+                     session_id: bytes | None = None, strict_provisioned: bool = False) -> dict:
     """Capture authenticated X indices, then run S2.A2 syndrome reconciliation.
 
     Optional entropy is a HYPOTHETICAL illustration, never external evidence.
@@ -40,6 +43,31 @@ def run_distillation(alice, bob, *, n_key: int, k_test: int,
         raise ValueError('invalid confirmation tag bits')
     if demo_pre_leak_min_entropy_bits is not None and not isinstance(demo_pre_leak_min_entropy_bits, (int, float)):
         raise ValueError('invalid hypothetical entropy')
+    if type(strict_provisioned) is not bool:
+        raise ValueError('invalid strict mode')
+    if (authentication_key is None) != (session_id is None):
+        raise ValueError('authentication key and session must be supplied together')
+    if strict_provisioned:
+        if type(authentication_key) is not bytes or len(authentication_key) < 32:
+            raise ValueError('strict path requires externally supplied authentication key')
+        if type(session_id) is not bytes or not 16 <= len(session_id) <= 64:
+            raise ValueError('strict path requires explicit session ID')
+        if demo_pre_leak_min_entropy_bits is not None or selection_seed is not None or selection_streams is not None:
+            raise ValueError('strict path prohibits demo entropy and deterministic selection fixtures')
+    if authentication_key is not None:
+        if type(authentication_key) is not bytes or len(authentication_key) < 32:
+            raise ValueError('invalid supplied authentication key')
+        if type(session_id) is not bytes or not 16 <= len(session_id) <= 64:
+            raise ValueError('invalid supplied session ID')
+        # Separate sifting and syndrome MAC secrets even with a shared root.
+        salt = hashlib.sha256(b'pqc-rs/qkd/s3b/stage-kdf/v1\x00' + session_id).digest()
+        prk = hmac.digest(salt, authentication_key, 'sha256')
+        h2_key = hmac.digest(prk, b'sifting-and-parameter-estimation\x01', 'sha256')
+        ec_key = hmac.digest(prk, b'syndrome-and-confirmation\x01', 'sha256')
+    else:
+        # Legacy diagnostic only. The strict caller never uses locally generated MAC keys.
+        h2_key = None
+        ec_key = None
     selected = []
 
     def observe(kind, data, tag):
@@ -58,7 +86,8 @@ def run_distillation(alice, bob, *, n_key: int, k_test: int,
     h2 = run_records(alice, bob, n_key=n_key, k_test=k_test,
                      max_transmissions=max_transmissions, q_tolerance=q_tolerance,
                      selection_seed=selection_seed, selection_streams=selection_streams,
-                     hook=observe)
+                     hook=observe, authentication_key=h2_key,
+                     session_id=session_id)
     base = {
         'provenance': 'CUDA_Q_SIMULATION_NOT_SECURE_QKD',
         'authenticated_parameter_estimation': h2,
@@ -69,6 +98,8 @@ def run_distillation(alice, bob, *, n_key: int, k_test: int,
         'security_qualified': False, 'hpke_export_authorized': False,
         'authentication_provisioning_validated': False,
         'quantum_min_entropy_proven': False,
+        'strict_provisioned_authentication_path': strict_provisioned,
+        'replay_tracking_persistent': False,
     }
     if h2['decision'] != 'PARAMETER_ESTIMATION_PASS_UNQUALIFIED':
         base['decision'] = 'ABORT_PARAMETER_ESTIMATION'
@@ -94,8 +125,9 @@ def run_distillation(alice, bob, *, n_key: int, k_test: int,
         # protocol's authenticated syndromes and universal-hash confirmation
         # decide acceptance; never compare both raw keys as an acceptance gate.
         corrected, ec = reconcile_syndromes(
-            alice_key, bob_key, session_id=secrets.token_bytes(16),
-            authentication_key=secrets.token_bytes(32),
+            alice_key, bob_key,
+            session_id=session_id if strict_provisioned or session_id is not None else secrets.token_bytes(16),
+            authentication_key=ec_key if ec_key is not None else secrets.token_bytes(32),
             tag_bits=confirmation_tag_bits)
     except SyndromeError:
         base['decision'] = 'ABORT_RECONCILIATION'
