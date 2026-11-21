@@ -29,7 +29,7 @@ class H2Tests(unittest.TestCase):
         self.assertTrue(r['authenticated_x_key_selection'])
         self.assertTrue(r['statistics_independently_verified'])
         self.assertEqual(r['public_x_key_bits_disclosed'], 0)
-        self.assertEqual(r['public_z_bits_disclosed'], 24)
+        self.assertEqual(r['public_z_bits_disclosed'], 2 * sum(x.basis == y.basis == 0 for x, y in zip(self.a, self.b)))
         self.assertEqual(r['public_discussion_messages'], 9)
 
     def test_no_secrecy_claim(self):

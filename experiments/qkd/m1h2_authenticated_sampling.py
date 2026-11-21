@@ -1,4 +1,4 @@
-"""M1.H2: authenticated X-key selection and Z-test disclosures from BB84 records.
+"""M1.H2/H4.D: authenticated X selection and full eligible Z disclosure from BB84 records.
 
 Experimental model only. Randomness/authentication provisioning/security theorem
 assumptions are not validated. No key material is output or exported.
@@ -109,18 +109,19 @@ def run_records(alice, bob, *, n_key: int, k_test: int, max_transmissions: int,
         return {'decision': 'ABORT_QUOTAS', 'authenticated_abort': True,
                 'security_model_validated': False, 'hpke_export_authorized': False}
     send_basis(pa, pb, 'quota_status', {
-        'decision': 'QUOTAS_MET', 'z_accepted': k_test,
-        'x_accepted': n_key, 'transmissions': len(alice)})
+        'decision': 'QUOTAS_MET', 'z_accepted': len(az),
+        'x_accepted': len(ax), 'transmissions': len(alice)})
+    actual_z_test_size = len(az)
     if pa.transcript_hash != pb.transcript_hash:
         raise TranscriptError('basis transcript mismatch')
     parent = pa.transcript_hash
     if selection_streams is None:
         rng = random.Random(selection_seed) if selection_seed is not None else secrets.SystemRandom()
         chosen_x = sorted(rng.sample(ax, n_key))
-        chosen_z = sorted(rng.sample(az, k_test))
+        chosen_z = list(az)  # Full eligible Z set: no post-sifting subsampling.
     else:
         chosen_x = sorted(ax[i] for i in selection_streams.sample_indices(len(ax), n_key))
-        chosen_z = sorted(az[i] for i in selection_streams.sample_indices(len(az), k_test))
+        chosen_z = list(az)  # Full matched Z set, including quota overshoot.
 
     # Chained extension frames are authenticated under a distinct domain, and
     # bound to the verified G5.B basis transcript. G5.B is not marked finished.
@@ -139,12 +140,12 @@ def run_records(alice, bob, *, n_key: int, k_test: int, max_transmissions: int,
         elif kind == 'z_test_bits_bob':
             payload = {'bits': [bob[i].bit for i in receiver_z]}
         elif kind == 'z_error_summary':
-            payload = {'sample_size': k_test,
+            payload = {'sample_size': actual_z_test_size,
                        'error_count': sum(x != y for x, y in zip(receiver_a, receiver_b))}
         else:
             if checked_errors is None:
                 raise TranscriptError('missing error verification')
-            payload = {'decision': 'CONTINUE_UNQUALIFIED' if checked_errors/k_test <= q_tolerance else 'ABORT'}
+            payload = {'decision': 'CONTINUE_UNQUALIFIED' if checked_errors/actual_z_test_size <= q_tolerance else 'ABORT'}
         frame = {'v': 1, 'sid': sid.hex(), 'parent': parent,
                  'seq': seq, 'previous': chain_a.hex(), 'sender': sender,
                  'kind': kind, 'payload': payload}
@@ -173,28 +174,30 @@ def run_records(alice, bob, *, n_key: int, k_test: int, max_transmissions: int,
             _selected(value['indices'], bx, n_key)
             receiver_x = value['indices']
         elif kind == 'z_test_selection':
-            _selected(value['indices'], bz, k_test)
+            _selected(value['indices'], bz, actual_z_test_size)
+            if value['indices'] != bz:
+                raise TranscriptError('Z selection must contain entire eligible population')
             if set(value['indices']) & set(receiver_x):
                 raise TranscriptError('key and test indices overlap')
             receiver_z = value['indices']
         elif kind == 'z_test_bits_alice':
-            _bits(value['bits'], k_test)
+            _bits(value['bits'], actual_z_test_size)
             if value['bits'] != [alice[i].bit for i in receiver_z]:
                 raise TranscriptError('Alice disclosure inconsistent with Alice records')
             receiver_a = value['bits']
         elif kind == 'z_test_bits_bob':
-            _bits(value['bits'], k_test)
+            _bits(value['bits'], actual_z_test_size)
             if value['bits'] != [bob[i].bit for i in receiver_z]:
                 raise TranscriptError('Bob disclosure inconsistent with Bob records')
             receiver_b = value['bits']
         elif kind == 'z_error_summary':
             verified = sum(x != y for x, y in zip(receiver_a, receiver_b))
-            if (type(value['sample_size']) is not int or value['sample_size'] != k_test or
+            if (type(value['sample_size']) is not int or value['sample_size'] != actual_z_test_size or
                 type(value['error_count']) is not int or value['error_count'] != verified):
                 raise TranscriptError('parameter estimation not independently verified')
             checked_errors = verified
         elif kind == 'final_decision':
-            expected = 'CONTINUE_UNQUALIFIED' if checked_errors/k_test <= q_tolerance else 'ABORT'
+            expected = 'CONTINUE_UNQUALIFIED' if checked_errors/actual_z_test_size <= q_tolerance else 'ABORT'
             if value['decision'] != expected:
                 raise TranscriptError('inconsistent final decision')
             outcome = expected
@@ -203,20 +206,21 @@ def run_records(alice, bob, *, n_key: int, k_test: int, max_transmissions: int,
         if chain_a != chain_b:
             raise TranscriptError('transcript hash divergence')
 
-    bound = numerical_bound(BoundInput(n_key, k_test, q_tolerance,
+    bound = numerical_bound(BoundInput(n_key, actual_z_test_size, q_tolerance,
                                       leakage_ec_bits, epsilon_secrecy, epsilon_correctness))
     return {
         'decision': 'PARAMETER_ESTIMATION_PASS_UNQUALIFIED' if outcome == 'CONTINUE_UNQUALIFIED' else 'ABORT_QBER',
         'transmissions': len(alice), 'key_basis': 'X', 'test_basis': 'Z',
         'x_key_bits': len(receiver_x), 'z_test_bits': len(receiver_z),
-        'z_test_errors': checked_errors, 'observed_z_qber': checked_errors / k_test,
+        'z_test_errors': checked_errors, 'observed_z_qber': checked_errors / actual_z_test_size,
         'configured_q_tolerance': q_tolerance,
         'authenticated_basis_announcements': True,
         'authenticated_x_key_selection': True, 'authenticated_z_test_selection': True,
         'authenticated_z_disclosures': True, 'statistics_independently_verified': True,
         'transcript_hash_agreement': chain_a == chain_b,
         'public_discussion_messages': pa.seq + len(STEPS),
-        'public_z_bits_disclosed': 2*k_test, 'public_x_key_bits_disclosed': 0,
+        'public_z_bits_disclosed': 2*actual_z_test_size, 'public_x_key_bits_disclosed': 0,
+        'all_eligible_z_disclosed': True, 'eligible_z_count': len(az),
         'public_seed_is_not_secret': (selection_seed is not None or
                                        (selection_streams is not None and selection_streams.mode == 'fixture')),
         'source_randomness_qualified': False, 'authentication_provisioning_validated': False,
