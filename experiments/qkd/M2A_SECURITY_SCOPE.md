@@ -1,0 +1,7 @@
+# M2.A authenticated distillation integration — experimental only
+
+The H4.D authenticated BB84 record path supplies verified X selection and **all matched Z** parameter-estimation records. The M2.A lifecycle joins it with the existing educational reconciliation, explicit reconciliation/confirmation leakage accounting, conditional finite-key budget, and Toeplitz hash demonstration.
+
+**No QKD secret is exported.** With no independently justified quantum min-entropy bound, finite-key evaluation rejects and privacy amplification is not run. A supplied *hypothetical* entropy number can exercise Toeplitz extraction **only in a clearly marked demonstration**; it never qualifies QKD or exposes the candidate key. Reconciliation uses a separate ephemeral MAC key: this is a simulation convenience, NOT an established unified composable transcript or authentication-key provisioning. The existing reconciliation code handles only a bounded error model. Toeplitz reference code is not constant-time. Python memory zeroization is not guaranteed.
+
+Security barriers: theorem/source assumptions, independent authenticated provisioning, composable leakage and correctness proof, authenticated reconciliation transcript binding, privacy-amplification seed publication/authentication, source certification, PSK identity and replay binding, and qualified material handling remain open. `security_model_validated=false`; `hpke_export_authorized=false`; `qkd_psk_available=false` are unconditional.
