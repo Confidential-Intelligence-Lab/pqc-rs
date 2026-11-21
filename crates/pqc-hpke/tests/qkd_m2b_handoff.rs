@@ -7,7 +7,10 @@ use rand_core::OsRng;
 use std::process::Command;
 
 fn public_evidence_from_python() -> PublicDistillationEvidence<'static> {
-    let executable = std::env::var("CUDAQ_PYTHON").expect("CUDAQ_PYTHON must be set explicitly");
+    // This probe uses preconstructed measurement records, not CUDA-Q hardware
+    // or a simulator runtime. Always exercise the cross-language denial gate in
+    // ordinary CI; CUDAQ_PYTHON remains an explicit interpreter override.
+    let executable = std::env::var("CUDAQ_PYTHON").unwrap_or_else(|_| "python3".to_owned());
     let script = format!(
         "{}/../../experiments/qkd/m2b_handoff_probe.py",
         env!("CARGO_MANIFEST_DIR")

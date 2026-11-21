@@ -14,10 +14,10 @@ class Record:
 
 
 def evidence() -> dict:
-    a = [Record(i % 2, 1) for i in range(20)] + [Record(i % 2, 0) for i in range(8)]
+    a = [Record(i % 2, 1) for i in range(128)] + [Record(i % 2, 0) for i in range(40)]
     b = list(a)
-    r = run_distillation(a, b, n_key=16, k_test=8,
-                         max_transmissions=128, selection_seed=20261121)
+    r = run_distillation(a, b, n_key=128, k_test=40,
+                         max_transmissions=512, selection_seed=20261121)
     if r['reconciliation']['status'] != 'PASS':
         raise RuntimeError('unexpected M2.A reconciliation failure')
     if r['decision'] != 'REJECT_NO_VERIFIED_ENTROPY':
