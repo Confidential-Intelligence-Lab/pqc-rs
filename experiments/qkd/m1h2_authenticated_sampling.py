@@ -51,7 +51,8 @@ def run_records(alice, bob, *, n_key: int, k_test: int, max_transmissions: int,
                 q_tolerance: float = .05, leakage_ec_bits: int = 0,
                 epsilon_secrecy: float = 1e-10, epsilon_correctness: float = 1e-10,
                 authentication_key: bytes | None = None, session_id: bytes | None = None,
-                selection_seed: int | None = None, hook: Callable | None = None) -> dict:
+                selection_seed: int | None = None, hook: Callable | None = None,
+                selection_streams=None) -> dict:
     """Run per-peer authenticated protocol; hooks operate on transmitted bytes/tags.
 
     The selection_seed is a public *test fixture* option, not secret randomness.
@@ -64,6 +65,10 @@ def run_records(alice, bob, *, n_key: int, k_test: int, max_transmissions: int,
         raise ValueError('invalid transmission limit')
     if (type(selection_seed) is not int or selection_seed < 0) and selection_seed is not None:
         raise ValueError('invalid selection seed')
+    if selection_streams is not None:
+        from m1h3a_randomness import RandomnessStreams
+        if not isinstance(selection_streams, RandomnessStreams) or selection_seed is not None:
+            raise ValueError('selection_streams requires a randomness provider and no seed')
     if type(leakage_ec_bits) is not int or leakage_ec_bits < 0 or leakage_ec_bits > n_key:
         raise ValueError('invalid provisional leakage')
     if not alice or len(alice) != len(bob) or len(alice) > max_transmissions:
@@ -109,9 +114,13 @@ def run_records(alice, bob, *, n_key: int, k_test: int, max_transmissions: int,
     if pa.transcript_hash != pb.transcript_hash:
         raise TranscriptError('basis transcript mismatch')
     parent = pa.transcript_hash
-    rng = random.Random(selection_seed) if selection_seed is not None else secrets.SystemRandom()
-    chosen_x = sorted(rng.sample(ax, n_key))
-    chosen_z = sorted(rng.sample(az, k_test))
+    if selection_streams is None:
+        rng = random.Random(selection_seed) if selection_seed is not None else secrets.SystemRandom()
+        chosen_x = sorted(rng.sample(ax, n_key))
+        chosen_z = sorted(rng.sample(az, k_test))
+    else:
+        chosen_x = sorted(ax[i] for i in selection_streams.sample_indices(len(ax), n_key))
+        chosen_z = sorted(az[i] for i in selection_streams.sample_indices(len(az), k_test))
 
     # Chained extension frames are authenticated under a distinct domain, and
     # bound to the verified G5.B basis transcript. G5.B is not marked finished.
@@ -208,7 +217,8 @@ def run_records(alice, bob, *, n_key: int, k_test: int, max_transmissions: int,
         'transcript_hash_agreement': chain_a == chain_b,
         'public_discussion_messages': pa.seq + len(STEPS),
         'public_z_bits_disclosed': 2*k_test, 'public_x_key_bits_disclosed': 0,
-        'public_seed_is_not_secret': selection_seed is not None,
+        'public_seed_is_not_secret': (selection_seed is not None or
+                                       (selection_streams is not None and selection_streams.mode == 'fixture')),
         'source_randomness_qualified': False, 'authentication_provisioning_validated': False,
         'theorem_specific_protocol_validated': False,
         'numerical_bound': {'decision': bound['decision'],
