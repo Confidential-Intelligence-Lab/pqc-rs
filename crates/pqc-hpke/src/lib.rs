@@ -76,6 +76,7 @@ pub use identifiers::{AeadId, HpkeSuiteId, KdfId, KemId};
 pub use ml_kem::{MlKemHpke, MlKemHpkeEncapsulation, MlKemHpkeError, MlKemHpkeKeyPair};
 pub use setup::{
     setup_base_receiver_with_suite, setup_base_sender_with_suite,
-    setup_base_sender_with_suite_deterministic, BaseSenderSetup, SenderSetup,
+    setup_base_sender_with_suite_deterministic, setup_psk_sender_with_suite, BaseSenderSetup,
+    SenderSetup,
 };
 pub use suite::{supported_aeads, supported_kdfs, HpkeSuite};

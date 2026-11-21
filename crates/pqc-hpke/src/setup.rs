@@ -222,6 +222,37 @@ fn map_kem_error(_error: MlKemHpkeError) -> HpkeError {
     HpkeError::KemError
 }
 
+/// Execute `SetupPSKS` using fresh cryptographically secure randomness.
+///
+/// The caller must provide both a non-empty PSK and a non-empty PSK identifier.
+/// The generated encapsulation randomness is cleared when this function returns.
+pub fn setup_psk_sender_with_suite<R>(
+    kem: MlKemHpke,
+    suite: HpkeSuite,
+    recipient_public_key: &[u8],
+    info: &[u8],
+    psk: &[u8],
+    psk_id: &[u8],
+    rng: &mut R,
+) -> Result<SenderSetup, HpkeError>
+where
+    R: CryptoRng + RngCore,
+{
+    let mut randomness = zeroize::Zeroizing::new([0_u8; 32]);
+    rng.try_fill_bytes(&mut *randomness)
+        .map_err(|_| HpkeError::RandomnessFailure)?;
+
+    setup_psk_sender_with_suite_deterministic(
+        kem,
+        suite,
+        recipient_public_key,
+        info,
+        psk,
+        psk_id,
+        &randomness,
+    )
+}
+
 /// Deterministically execute `SetupPSKS` using a validated ciphersuite.
 ///
 /// RFC 9180 requires both `psk` and `psk_id` to be non-empty in PSK mode.
