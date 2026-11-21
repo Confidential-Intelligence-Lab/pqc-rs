@@ -22,9 +22,10 @@ class M2ATests(unittest.TestCase):
     def test_authenticated_handoff_and_fail_closed(self):
         a,b=records()
         r=self.opts(a,b)
-        self.assertEqual(r['reconciliation']['status'],'PASS')
-        self.assertEqual(r['finite_key']['reason'],'NO_EXTERNALLY_JUSTIFIED_MIN_ENTROPY_BOUND')
-        self.assertEqual(r['decision'],'REJECT_NO_VERIFIED_ENTROPY')
+        self.assertEqual(r['reconciliation']['status'],'NOT_RUN')
+        self.assertEqual(r['decision'],'ABORT_UNSUPPORTED_RECONCILIATION_SIZE')
+        self.assertEqual(r['finite_key']['reason'],'PARAMETER_ESTIMATION_NOT_ACCEPTED')
+        self.assertEqual(r['decision'],'ABORT_UNSUPPORTED_RECONCILIATION_SIZE')
         self.assertEqual(r['authenticated_parameter_estimation']['z_test_bits'],4)
         self.assertFalse(r['hpke_export_authorized'])
         self.assertFalse(r['qkd_psk_available'])
@@ -34,7 +35,8 @@ class M2ATests(unittest.TestCase):
         a,b=records(nx=12,nz=7)
         r=self.opts(a,b)
         self.assertEqual(r['authenticated_parameter_estimation']['z_test_bits'],7)
-        self.assertEqual(r['finite_key']['observed_test_qber'],0)
+        self.assertEqual(r['reconciliation']['status'],'NOT_RUN')
+        self.assertEqual(r['decision'],'ABORT_UNSUPPORTED_RECONCILIATION_SIZE')
 
     def test_qber_abort_prevents_reconciliation(self):
         a,b=records(flip=[12,13])

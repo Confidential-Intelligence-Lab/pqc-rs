@@ -11,7 +11,7 @@ import json
 import secrets
 
 from m1h2_authenticated_sampling import run_records
-from m1e1_reconciliation import ReconciliationError, reconcile_single_error_blocks
+from s2a2_syndrome_reconciliation import SyndromeError, reconcile_syndromes, public_report
 from m1e3_finite_key import FiniteKeyInput, evaluate
 from m1e2_privacy_amplification import random_toeplitz_seed, toeplitz_hash
 
@@ -22,20 +22,22 @@ def _pack(bits: str) -> bytes:
 
 def run_distillation(alice, bob, *, n_key: int, k_test: int,
                      max_transmissions: int, q_tolerance: float = .05,
-                     requested_key_bits: int = 32, block_size: int = 32,
-                     epsilon_pa: float = 1e-6,
+                     requested_key_bits: int = 32, block_size: int = 128,
+                     epsilon_pa: float = 1e-6, confirmation_tag_bits: int = 40,
                      selection_seed: int | None = None, selection_streams=None,
                      demo_pre_leak_min_entropy_bits: float | None = None,
                      hook=None) -> dict:
-    """Capture *authenticated public* X indices, then reconcile actual X raw bits.
+    """Capture authenticated X indices, then run S2.A2 syndrome reconciliation.
 
     Optional entropy is a HYPOTHETICAL illustration, never external evidence.
     Even if PA executes in illustration mode, its bytes never leave this call.
     """
     if type(requested_key_bits) is not int or requested_key_bits <= 0:
         raise ValueError('invalid key bit request')
-    if type(block_size) is not int or block_size < 2:
-        raise ValueError('invalid reconciliation block size')
+    if type(block_size) is not int or block_size != 128:
+        raise ValueError('S2.A2 requires 128-bit syndrome blocks; no implicit padding')
+    if type(confirmation_tag_bits) is not int or not 1 <= confirmation_tag_bits <= 256:
+        raise ValueError('invalid confirmation tag bits')
     if demo_pre_leak_min_entropy_bits is not None and not isinstance(demo_pre_leak_min_entropy_bits, (int, float)):
         raise ValueError('invalid hypothetical entropy')
     selected = []
@@ -80,36 +82,52 @@ def run_distillation(alice, bob, *, n_key: int, k_test: int,
         raise ValueError('X selection inconsistent with authenticated records')
     alice_key = ''.join(str(alice[i].bit) for i in indices)
     bob_key = ''.join(str(bob[i].bit) for i in indices)
+    # A short diagnostic key must not be silently padded or processed by the
+    # legacy parity-search implementation. The full security path requires at
+    # least one 128-bit S2.A2 block; the final block may be shorter.
+    if n_key < 128:
+        base['decision'] = 'ABORT_UNSUPPORTED_RECONCILIATION_SIZE'
+        base['reconciliation'] = {'status': 'NOT_RUN', 'reason': 'RAW_KEY_BELOW_128_BITS'}
+        return base
     try:
-        corrected, ec = reconcile_single_error_blocks(
-            alice_key, bob_key, secrets.token_bytes(32), block_size)
-    except ReconciliationError:
+        # The simulator owns both parties' private records. Only the S2.A2
+        # protocol's authenticated syndromes and universal-hash confirmation
+        # decide acceptance; never compare both raw keys as an acceptance gate.
+        corrected, ec = reconcile_syndromes(
+            alice_key, bob_key, session_id=secrets.token_bytes(16),
+            authentication_key=secrets.token_bytes(32),
+            tag_bits=confirmation_tag_bits)
+    except SyndromeError:
         base['decision'] = 'ABORT_RECONCILIATION'
         base['reconciliation'] = {'status': 'REJECT'}
         return base
     base['reconciliation'] = {
-        'status': 'PASS', 'corrected_bits': ec.corrected_bits,
-        'parity_leak_bits': ec.parity_bits_revealed,
-        'confirmation_leak_bits': ec.confirmation_bits_revealed,
+        'status': 'PASS', 'mechanism': 'S2A2_AUTHENTICATED_SYNDROME',
+        'decoder_guarantee': ec.decoder_guarantee,
+        'corrected_bits': ec.corrected_errors,
+        'syndrome_leak_bits': ec.syndrome_leakage_upper_bound_bits,
+        'parity_leak_bits': ec.syndrome_leakage_upper_bound_bits,
+        'confirmation_leak_bits': ec.confirmation_leakage_upper_bound_bits,
         'total_leak_bits': ec.total_leakage_upper_bound_bits,
-        'confirmed': ec.matched,
+        'authenticated_syndrome_messages': ec.authenticated_syndrome_messages,
+        'authenticated_confirmation_messages': ec.authenticated_confirmation_messages,
+        'epsilon_correctness_bound': ec.epsilon_correctness_bound,
+        'confirmed': True, 'authentication_provisioning_validated': False,
     }
-    if not ec.matched or corrected != alice_key:
-        base['decision'] = 'ABORT_RECONCILIATION'
-        return base
+    base['correctness_bound'] = ec.epsilon_correctness_bound
     demo = demo_pre_leak_min_entropy_bits is not None
     f = evaluate(FiniteKeyInput(
         sifted_bits=n_key + h2['z_test_bits'],
         test_bits=h2['z_test_bits'], test_errors=h2['z_test_errors'],
         reconciled_bits=n_key,
-        reconciliation_leak_bits=ec.parity_bits_revealed,
-        confirmation_leak_bits=ec.confirmation_bits_revealed,
+        reconciliation_leak_bits=ec.syndrome_leakage_upper_bound_bits,
+        confirmation_leak_bits=ec.confirmation_leakage_upper_bound_bits,
         requested_key_bits=requested_key_bits, epsilon_pa=epsilon_pa,
         pre_leak_min_entropy_bits=demo_pre_leak_min_entropy_bits,
         entropy_evidence_id='HYPOTHETICAL_ONLY_NOT_EVIDENCE' if demo else None,
         authenticated_transcript=True,
         uniform_independent_toeplitz_seed=True,
-        reconciliation_confirmed=ec.matched))
+        reconciliation_confirmed=True))
     base['finite_key'] = asdict(f)
     base['entropy_evidence'] = 'HYPOTHETICAL_ONLY' if demo else 'MISSING'
     if demo and f.decision == 'CONDITIONAL_PASS':
