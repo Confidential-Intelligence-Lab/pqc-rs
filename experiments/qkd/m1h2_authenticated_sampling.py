@@ -254,7 +254,7 @@ def run_records(alice, bob, *, n_key: int, k_test: int, max_transmissions: int,
     if s3c_pair is not None:
         # The extended profile is deliberately still open: S2.A2 must
         # continue the very same digest chain, not start a second session.
-        extended = s3c_alice._context.get('schedule_id') == 'h2-ec-v1'
+        extended = s3c_alice._context.get('schedule_id') in ('h2-ec-v1', 'h2-ec-pa-v1')
         sa, sb = s3c_alice.status(), s3c_bob.status()
         if (sa.aborted or sb.aborted or
                 sa.closed != (not extended) or sb.closed != (not extended) or

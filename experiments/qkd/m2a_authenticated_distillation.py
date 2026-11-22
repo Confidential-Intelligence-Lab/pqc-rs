@@ -131,7 +131,7 @@ def run_distillation(alice, bob, *, n_key: int, k_test: int,
     if s3c_pair is not None:
         from s3c_authenticated_transcript import TranscriptError, canonical
         s3c_alice, s3c_bob = s3c_pair
-        if s3c_alice._context.get('schedule_id') != 'h2-ec-v1':
+        if s3c_alice._context.get('schedule_id') not in ('h2-ec-v1', 'h2-ec-pa-v1'):
             raise TranscriptError('missing extended EC transcript profile')
         def deliver_ec(stage, frame, tag):
             outer_payload = canonical({'body_hex': frame.hex(), 'tag_hex': tag.hex()})
@@ -190,7 +190,9 @@ def run_distillation(alice, bob, *, n_key: int, k_test: int,
             if kind != 'ec_commit' or verified != finish:
                 raise TranscriptError('confirmation commit mismatch')
             sa, sb = s3c_alice.status(), s3c_bob.status()
-            if (not sa.closed or not sb.closed or sa.aborted or sb.aborted or
+            ec_pa = s3c_alice._context.get('schedule_id') == 'h2-ec-pa-v1'
+            if ((sa.closed != (not ec_pa)) or (sb.closed != (not ec_pa)) or
+                    sa.aborted or sb.aborted or
                     sa.transcript_digest != sb.transcript_digest):
                 raise TranscriptError('end-to-end EC transcript disagreement')
             ec_transport['final_digest'] = sa.transcript_digest
@@ -237,6 +239,94 @@ def run_distillation(alice, bob, *, n_key: int, k_test: int,
         reconciliation_confirmed=True))
     base['finite_key'] = asdict(f)
     base['entropy_evidence'] = 'HYPOTHETICAL_ONLY' if demo else 'MISSING'
+    if s3c_pair is not None and s3c_alice._context.get('schedule_id') == 'h2-ec-pa-v1':
+        # A public Toeplitz seed and all extraction parameters must cross the
+        # authenticated channel even when the strict protocol has NO entropy
+        # certificate. This is only a rejected PA proposal, never a key export.
+        from s3c_authenticated_transcript import canonical, PROFILE
+        import math
+        if (type(requested_key_bits) is not int or
+                not 1 <= requested_key_bits <= n_key or
+                not isinstance(epsilon_pa, (int, float)) or
+                isinstance(epsilon_pa, bool) or not math.isfinite(epsilon_pa) or
+                not 0 < epsilon_pa < 0.5):
+            s3c_alice.abort(); s3c_bob.abort()
+            raise TranscriptError('invalid PA parameters')
+        try:
+            pa_seed = random_toeplitz_seed(n_key, requested_key_bits)
+            seed_bits = n_key + requested_key_bits - 1
+            proposal = canonical({
+                'profile_id': PROFILE, 'raw_key_bits': n_key,
+                'requested_key_bits': requested_key_bits,
+                'epsilon_pa_hex': float(epsilon_pa).hex(),
+                'seed_bits': seed_bits, 'toeplitz_seed_hex': pa_seed.hex(),
+                'entropy_status': 'UNVERIFIED', 'export_authorized': False,
+                'finite_key_decision': f.decision,
+                'prior_digest': s3c_alice.status().transcript_digest,
+            })
+            wire, mac = s3c_alice.send('pa_parameters', proposal)
+            stage, delivered = s3c_bob.receive(wire, mac)
+            if stage != 'pa_parameters' or delivered != proposal:
+                raise TranscriptError('PA parameters mismatch')
+            # Bob recomputes expectations from local protocol state and checks
+            # received fields before sending an acknowledgement. Seed is
+            # validated as a correctly sized, canonical, padded public string.
+            received = json.loads(delivered)
+            if (type(received) is not dict or canonical(received) != delivered or
+                    received['profile_id'] != PROFILE or
+                    type(received['raw_key_bits']) is not int or
+                    received['raw_key_bits'] != len(corrected) or
+                    type(received['requested_key_bits']) is not int or
+                    received['requested_key_bits'] != requested_key_bits or
+                    received['epsilon_pa_hex'] != float(epsilon_pa).hex() or
+                    type(received['seed_bits']) is not int or
+                    received['seed_bits'] != seed_bits or
+                    received['entropy_status'] != 'UNVERIFIED' or
+                    received['export_authorized'] is not False or
+                    received['finite_key_decision'] != f.decision or
+                    received['prior_digest'] != ec_transport['final_digest'] or
+                    type(received['toeplitz_seed_hex']) is not str or
+                    received['toeplitz_seed_hex'] != pa_seed.hex() or
+                    len(pa_seed) != (seed_bits + 7) // 8 or
+                    (seed_bits % 8 and pa_seed[-1] & ((1 << ((-seed_bits) % 8)) - 1))):
+                raise TranscriptError('PA receiver parameters invalid')
+            ack_payload = canonical({
+                'proposal_sha256': hashlib.sha256(delivered).hexdigest(),
+                'accepted_for_diagnostic_only': True,
+                'prior_digest': s3c_bob.status().transcript_digest,
+            })
+            wire, mac = s3c_bob.send('pa_ack', ack_payload)
+            stage, delivered = s3c_alice.receive(wire, mac)
+            if stage != 'pa_ack' or delivered != ack_payload:
+                raise TranscriptError('PA acknowledgement mismatch')
+            finish = canonical({
+                'ack_sha256': hashlib.sha256(delivered).hexdigest(),
+                'accepted_for_diagnostic_only': True,
+                'prior_digest': s3c_alice.status().transcript_digest,
+            })
+            wire, mac = s3c_alice.send('pa_commit', finish)
+            stage, delivered = s3c_bob.receive(wire, mac)
+            if stage != 'pa_commit' or delivered != finish:
+                raise TranscriptError('PA final commit mismatch')
+            sa, sb = s3c_alice.status(), s3c_bob.status()
+            if (not sa.closed or not sb.closed or sa.aborted or sb.aborted or
+                    sa.transcript_digest != sb.transcript_digest):
+                raise TranscriptError('PA transcript disagreement')
+            base['s3c_pa_parameters_authenticated'] = True
+            base['s3c_pa_digest_agreement'] = True
+            base['s3c_final_transcript_digest'] = sa.transcript_digest
+            base['privacy_amplification'] = {
+                'status': 'AUTHENTICATED_PARAMETERS_NO_VERIFIED_ENTROPY',
+                'key_bytes_exported': False,
+                'parameters_authenticated': True,
+                'toeplitz_seed_sha256': hashlib.sha256(pa_seed).hexdigest(),
+                'toeplitz_seed_bits': seed_bits,
+            }
+            # Zero Python references only: no secure-memory claim.
+            del pa_seed
+        except (TranscriptError, ValueError, TypeError, KeyError, IndexError):
+            s3c_alice.abort(); s3c_bob.abort()
+            raise
     if demo and f.decision == 'CONDITIONAL_PASS':
         # Data is ephemeral and NOT exported or represented as an authorized PSK.
         seed = random_toeplitz_seed(n_key, requested_key_bits)

@@ -43,6 +43,9 @@ SCHEDULES = {'reference-v1': SCHEDULE, 'h2-pass-v1': H2_PASS,
 MAX_EC_BLOCKS = 512
 
 
+PA_STAGES = (('pa_parameters', 'alice'), ('pa_ack', 'bob'), ('pa_commit', 'alice'))
+
+
 def distillation_schedule(blocks: int) -> tuple[tuple[str, str], ...]:
     """Bounded authenticated H2 -> EC -> confirmation -> commit schedule."""
     if type(blocks) is not int or not 1 <= blocks <= MAX_EC_BLOCKS:
@@ -50,6 +53,11 @@ def distillation_schedule(blocks: int) -> tuple[tuple[str, str], ...]:
     return (H2_PASS + (('ec_syndrome', 'alice'),) * blocks +
             (('ec_confirmation', 'alice'), ('ec_ack', 'bob'),
              ('ec_commit', 'alice')))
+
+
+def full_distillation_schedule(blocks: int) -> tuple[tuple[str, str], ...]:
+    """Extend the same authenticated chain through the PA planning exchange."""
+    return distillation_schedule(blocks) + PA_STAGES
 
 
 class TranscriptError(ValueError):
@@ -100,7 +108,9 @@ class TranscriptSession:
             raise TranscriptError('session ID must be 16..64 bytes')
         if role not in ('alice', 'bob'):
             raise TranscriptError('invalid endpoint role')
-        if schedule_id == 'h2-ec-v1':
+        if schedule_id == 'h2-ec-pa-v1':
+            self._schedule = full_distillation_schedule(reconciliation_blocks)
+        elif schedule_id == 'h2-ec-v1':
             self._schedule = distillation_schedule(reconciliation_blocks)
         elif schedule_id in SCHEDULES and reconciliation_blocks is None:
             self._schedule = SCHEDULES[schedule_id]
@@ -114,7 +124,7 @@ class TranscriptSession:
         }
         if schedule_id != 'reference-v1':
             self._context['schedule_id'] = schedule_id
-        if schedule_id == 'h2-ec-v1':
+        if schedule_id in ('h2-ec-v1', 'h2-ec-pa-v1'):
             self._context['reconciliation_blocks'] = reconciliation_blocks
         if self._context['alice_id'] == self._context['bob_id']:
             raise TranscriptError('distinct endpoint identities required')
