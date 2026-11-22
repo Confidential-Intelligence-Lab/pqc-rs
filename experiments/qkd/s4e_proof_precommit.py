@@ -148,6 +148,8 @@ def run_precommitted_distillation(acquire_records: Callable[[ProofProfile], tupl
             n_key=proof_profile.n_key, k_test=proof_profile.k_test,
             max_transmissions=proof_profile.max_transmissions,
             q_tolerance=proof_profile.q_tolerance_ppm / 1000000,
+            epsilon_secrecy=float(proof_profile.epsilon_secrecy),
+            epsilon_correctness=float(proof_profile.epsilon_correctness),
             requested_key_bits=proof_profile.requested_key_bits,
             block_size=proof_profile.block_size,
             confirmation_tag_bits=proof_profile.confirmation_tag_bits,

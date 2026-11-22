@@ -25,6 +25,8 @@ def _pack(bits: str) -> bytes:
 
 def run_distillation(alice, bob, *, n_key: int, k_test: int,
                      max_transmissions: int, q_tolerance: float = .05,
+                     epsilon_secrecy: float = 1e-10,
+                     epsilon_correctness: float = 1e-10,
                      requested_key_bits: int = 32, block_size: int = 128,
                      epsilon_pa: float = 1e-6, confirmation_tag_bits: int = 40,
                      selection_seed: int | None = None, selection_streams=None,
@@ -89,6 +91,8 @@ def run_distillation(alice, bob, *, n_key: int, k_test: int,
 
     h2 = run_records(alice, bob, n_key=n_key, k_test=k_test,
                      max_transmissions=max_transmissions, q_tolerance=q_tolerance,
+                     epsilon_secrecy=epsilon_secrecy,
+                     epsilon_correctness=epsilon_correctness,
                      selection_seed=selection_seed, selection_streams=selection_streams,
                      hook=observe, authentication_key=h2_key,
                      session_id=session_id, s3c_pair=s3c_pair)
