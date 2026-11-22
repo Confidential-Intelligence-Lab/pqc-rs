@@ -76,18 +76,50 @@ def run_strict_distillation(alice, bob, *, authentication_key: bytes,
     if type(authentication_key) is not bytes or len(authentication_key) < 32:
         raise StrictSessionError('externally supplied root key of >=32 bytes required')
     forbidden = {'authentication_key', 'session_id', 'strict_provisioned',
-                 'selection_seed', 'selection_streams', 'demo_pre_leak_min_entropy_bits', 'hook'}
+                 'selection_seed', 'selection_streams', 'demo_pre_leak_min_entropy_bits', 'hook', 'precommit_digest'}
     if forbidden.intersection(options):
         raise StrictSessionError('strict path forbids overriding credentials or demo/fixture inputs')
     burn_session_id(registry_dir, key_id, session_id)
+    return _run_strict_after_burn(
+        alice, bob, authentication_key=authentication_key, key_id=key_id,
+        session_id=session_id, registry_dir=registry_dir,
+        n_key=n_key, k_test=k_test, max_transmissions=max_transmissions, **options)
+
+
+def _run_strict_after_burn(alice, bob, *, authentication_key: bytes,
+                           key_id: str, session_id: bytes, registry_dir: str | Path,
+                           n_key: int, k_test: int, max_transmissions: int,
+                           precommit_digest: str | None = None, **options) -> dict:
+    # Internal post-burn path used after strict burn or S4.E handshake.
     scoped_key = hmac.digest(authentication_key,
                              b'pqc-rs/qkd/s3b/key-identity/v1\x00' + key_id.encode('ascii'),
                              'sha256')
+    # S3.C-2a: the actual H2 messages now cross independent Alice/Bob
+    # authenticated transcript states; they are not merely logged afterward.
+    from s3c_authenticated_transcript import TranscriptSession
+    from m1h2_authenticated_sampling import _matched
+    a_bases = [r.basis for r in alice]
+    b_bases = [r.basis for r in bob]
+    quota_met = (len(_matched(a_bases, b_bases, 1)) >= n_key and
+                 len(_matched(a_bases, b_bases, 0)) >= k_test)
+    # Strict successful n_key >= 128 proceeds through S3.C-2b under one
+    # digest chain. The bounded syndrome frame count is fixed before H2 starts.
+    ec_blocks = (n_key + 127) // 128 if type(n_key) is int and n_key >= 128 else 0
+    schedule_id = ('h2-ec-pa-v1' if quota_met and ec_blocks else
+                   'h2-pass-v1' if quota_met else 'h2-abort-quota-v1')
+    ctx = dict(root=scoped_key, key_id=key_id, session_id=session_id,
+               alice_id='alice', bob_id='bob', schedule_id=schedule_id)
+    if schedule_id == 'h2-ec-pa-v1':
+        ctx['reconciliation_blocks'] = ec_blocks
+    if precommit_digest is not None:
+        ctx['precommit_digest'] = precommit_digest
+    transcript_pair = (TranscriptSession(role='alice', **ctx),
+                       TranscriptSession(role='bob', **ctx))
     result = run_distillation(alice, bob, n_key=n_key, k_test=k_test,
                               max_transmissions=max_transmissions,
                               authentication_key=scoped_key,
                               session_id=session_id, strict_provisioned=True,
-                              **options)
+                              s3c_pair=transcript_pair, **options)
     if result.get('hpke_export_authorized') is not False or result.get('security_qualified') is not False:
         raise StrictSessionError('downstream qualification invariant violated')
     # Burned state is intentionally retained on every failure and abort.

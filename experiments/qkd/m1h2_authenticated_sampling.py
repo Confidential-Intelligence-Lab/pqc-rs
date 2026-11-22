@@ -52,7 +52,7 @@ def run_records(alice, bob, *, n_key: int, k_test: int, max_transmissions: int,
                 epsilon_secrecy: float = 1e-10, epsilon_correctness: float = 1e-10,
                 authentication_key: bytes | None = None, session_id: bytes | None = None,
                 selection_seed: int | None = None, hook: Callable | None = None,
-                selection_streams=None) -> dict:
+                selection_streams=None, s3c_pair=None) -> dict:
     """Run per-peer authenticated protocol; hooks operate on transmitted bytes/tags.
 
     The selection_seed is a public *test fixture* option, not secret randomness.
@@ -84,6 +84,42 @@ def run_records(alice, bob, *, n_key: int, k_test: int, max_transmissions: int,
             type(a.bit) is not int or a.bit not in (0, 1) or
             type(b.bit) is not int or b.bit not in (0, 1)):
             raise ValueError('invalid measurement record')
+    # The strict S3.C path uses two independent per-role authenticated states.
+    # Legacy standalone diagnostic tests may omit s3c_pair.
+    if s3c_pair is not None:
+        from s3c_authenticated_transcript import TranscriptSession
+        if (type(s3c_pair) is not tuple or len(s3c_pair) != 2 or
+                any(not isinstance(x, TranscriptSession) for x in s3c_pair)):
+            raise ValueError('invalid paired authenticated transcript')
+        if authentication_key is None or session_id is None:
+            raise ValueError('S3.C requires provisioned authentication and explicit session ID')
+        s3c_alice, s3c_bob = s3c_pair
+
+        def s3c_wire(sender_role, kind, body, tag):
+            from s3c_authenticated_transcript import canonical, TranscriptError
+            sender, receiver = ((s3c_alice, s3c_bob) if sender_role == 'alice'
+                                else (s3c_bob, s3c_alice))
+            # Transitional double authenticated envelope: S3.C is the *wire*
+            # transport, and legacy inner MAC verification is retained until
+            # S3.C-2b replaces the old paths. Receiver uses only verified bytes.
+            wire_payload = canonical({'body_hex': body.hex(), 'tag_hex': tag.hex()})
+            outer, outer_tag = sender.send('h2_' + kind, wire_payload)
+            delivered_stage, delivered = receiver.receive(outer, outer_tag)
+            if delivered_stage != 'h2_' + kind:
+                sender.abort(); receiver.abort()
+                raise TranscriptError('unexpected authenticated H2 message')
+            import json as _json
+            obj = _json.loads(delivered)
+            if (type(obj) is not dict or set(obj) != {'body_hex', 'tag_hex'} or
+                    type(obj['body_hex']) is not str or type(obj['tag_hex']) is not str):
+                sender.abort(); receiver.abort()
+                raise TranscriptError('invalid S3.C inner encoding')
+            actual_body = bytes.fromhex(obj['body_hex'])
+            actual_tag = bytes.fromhex(obj['tag_hex'])
+            if canonical({'body_hex': actual_body.hex(), 'tag_hex': actual_tag.hex()}) != delivered:
+                sender.abort(); receiver.abort()
+                raise TranscriptError('noncanonical S3.C inner encoding')
+            return actual_body, actual_tag
     key = authentication_key if authentication_key is not None else os.urandom(32)
     sid = session_id if session_id is not None else os.urandom(24)
     pa = PublicDiscussion(key, sid, 'alice')
@@ -93,6 +129,9 @@ def run_records(alice, bob, *, n_key: int, k_test: int, max_transmissions: int,
         data, tag = sender.send(kind, payload)
         if hook:
             data, tag = hook(kind, data, tag)
+        if s3c_pair is not None:
+            role = 'alice' if sender is pa else 'bob'
+            data, tag = s3c_wire(role, kind, data, tag)
         receiver.receive(data, tag)
 
     send_basis(pa, pb, 'alice_bases', {'bases': a_bases})
@@ -106,6 +145,10 @@ def run_records(alice, bob, *, n_key: int, k_test: int, max_transmissions: int,
         raise TranscriptError('sifting disagrees')
     if len(ax) < n_key or len(az) < k_test:
         send_basis(pa, pb, 'abort', {'reason': 'QUOTAS_UNMET'})
+        if s3c_pair is not None:
+            if (not s3c_alice.status().closed or not s3c_bob.status().closed or
+                    s3c_alice.status().transcript_digest != s3c_bob.status().transcript_digest):
+                raise TranscriptError('S3.C abort transcript disagreement')
         return {'decision': 'ABORT_QUOTAS', 'authenticated_abort': True,
                 'security_model_validated': False, 'hpke_export_authorized': False}
     send_basis(pa, pb, 'quota_status', {
@@ -153,6 +196,8 @@ def run_records(alice, bob, *, n_key: int, k_test: int, max_transmissions: int,
         tag = hmac.digest(key, DOMAIN + data, 'sha256')
         if hook:
             data, tag = hook(kind, data, tag)
+        if s3c_pair is not None:
+            data, tag = s3c_wire(sender, kind, data, tag)
         if type(data) is not bytes or type(tag) is not bytes or len(data) > 1000000 or len(tag) != 32:
             raise TranscriptError('malformed extension frame')
         if not hmac.compare_digest(tag, hmac.digest(key, DOMAIN + data, 'sha256')):
@@ -206,6 +251,20 @@ def run_records(alice, bob, *, n_key: int, k_test: int, max_transmissions: int,
         if chain_a != chain_b:
             raise TranscriptError('transcript hash divergence')
 
+    if s3c_pair is not None:
+        # The extended profile is deliberately still open: S2.A2 must
+        # continue the very same digest chain, not start a second session.
+        extended = s3c_alice._context.get('schedule_id') in ('h2-ec-v1', 'h2-ec-pa-v1')
+        sa, sb = s3c_alice.status(), s3c_bob.status()
+        if (sa.aborted or sb.aborted or
+                sa.closed != (not extended) or sb.closed != (not extended) or
+                sa.event_count != len(__import__('s3c_authenticated_transcript').H2_PASS) or
+                sb.event_count != sa.event_count or
+                sa.transcript_digest != sb.transcript_digest):
+            raise TranscriptError('S3.C parameter-estimation transcript disagreement')
+        if outcome != 'CONTINUE_UNQUALIFIED' and extended:
+            s3c_alice.abort()
+            s3c_bob.abort()
     bound = numerical_bound(BoundInput(n_key, actual_z_test_size, q_tolerance,
                                       leakage_ec_bits, epsilon_secrecy, epsilon_correctness))
     return {
@@ -218,6 +277,9 @@ def run_records(alice, bob, *, n_key: int, k_test: int, max_transmissions: int,
         'authenticated_x_key_selection': True, 'authenticated_z_test_selection': True,
         'authenticated_z_disclosures': True, 'statistics_independently_verified': True,
         'transcript_hash_agreement': chain_a == chain_b,
+        's3c_h2_authenticated': s3c_pair is not None,
+        's3c_h2_digest_agreement': (s3c_alice.status().transcript_digest ==
+                                    s3c_bob.status().transcript_digest) if s3c_pair is not None else False,
         'public_discussion_messages': pa.seq + len(STEPS),
         'public_z_bits_disclosed': 2*actual_z_test_size, 'public_x_key_bits_disclosed': 0,
         'all_eligible_z_disclosed': True, 'eligible_z_count': len(az),
