@@ -1,11 +1,11 @@
 # S4.A — Quantum source, measurement, and adversary model
 
-**Project:** PQC-rs goes Quantum  
-**Status:** PROPOSED / UNQUALIFIED — normative research model, not a security proof  
-**Version:** 0.1  
-**Date:** 2026-11-21 (America/Los_Angeles)  
-**Implementation baseline:** `Confidential-Intelligence-Lab/pqc-rs`, `research/qkd-security-qst1`, commit `44cd86e0d7fab9ffb67f0be07f8d06868f114703`  
-**Parent security target:** `experiments/qkd/security/QST-1.md`  
+**Project:** PQC-rs goes Quantum
+**Status:** PROPOSED / UNQUALIFIED — normative research model, not a security proof
+**Version:** 0.1
+**Date:** 2026-11-21 (America/Los_Angeles)
+**Implementation baseline:** `Confidential-Intelligence-Lab/pqc-rs`, `research/qkd-security-qst1`, commit `44cd86e0d7fab9ffb67f0be07f8d06868f114703`
+**Parent security target:** `experiments/qkd/security/QST-1.md`
 **Scope:** QST-1 research goals A (prototype) and B (conditional security under a specified idealized quantum model). No hardware or deployment certification.
 
 ## 1. Decision and security claim boundary
