@@ -29,7 +29,8 @@ def run_distillation(alice, bob, *, n_key: int, k_test: int,
                      selection_seed: int | None = None, selection_streams=None,
                      demo_pre_leak_min_entropy_bits: float | None = None,
                      hook=None, authentication_key: bytes | None = None,
-                     session_id: bytes | None = None, strict_provisioned: bool = False) -> dict:
+                     session_id: bytes | None = None, strict_provisioned: bool = False,
+                     s3c_pair=None) -> dict:
     """Capture authenticated X indices, then run S2.A2 syndrome reconciliation.
 
     Optional entropy is a HYPOTHETICAL illustration, never external evidence.
@@ -47,6 +48,8 @@ def run_distillation(alice, bob, *, n_key: int, k_test: int,
         raise ValueError('invalid strict mode')
     if (authentication_key is None) != (session_id is None):
         raise ValueError('authentication key and session must be supplied together')
+    if s3c_pair is not None and not strict_provisioned:
+        raise ValueError('S3.C transport only allowed in strict provisioned mode')
     if strict_provisioned:
         if type(authentication_key) is not bytes or len(authentication_key) < 32:
             raise ValueError('strict path requires externally supplied authentication key')
@@ -87,7 +90,7 @@ def run_distillation(alice, bob, *, n_key: int, k_test: int,
                      max_transmissions=max_transmissions, q_tolerance=q_tolerance,
                      selection_seed=selection_seed, selection_streams=selection_streams,
                      hook=observe, authentication_key=h2_key,
-                     session_id=session_id)
+                     session_id=session_id, s3c_pair=s3c_pair)
     base = {
         'provenance': 'CUDA_Q_SIMULATION_NOT_SECURE_QKD',
         'authenticated_parameter_estimation': h2,

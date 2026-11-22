@@ -13,7 +13,7 @@ import json
 DOMAIN = b'pqc-rs/qkd/s3c/transcript/v1\x00'
 PROTOCOL = 'pqc-rs/bb84/idealized/v1'
 PROFILE = 'qst1-research-v1'
-MAX_PAYLOAD = 65536
+MAX_PAYLOAD = 4000000  # bounded support for up to 100k public basis announcements
 # Minimal fixed-order reference trace. Repeated reconciliation messages will
 # require a separately reviewed extension before the real pipeline is wired.
 SCHEDULE = (
@@ -25,6 +25,22 @@ SCHEDULE = (
     ('privacy_amplification', 'alice'), ('privacy_amplification', 'bob'),
     ('close', 'alice'), ('close', 'bob'),
 )
+
+# Actual H2/M1.H2 exchange. Separate success/abort schedules make omitted
+# frames and unauthorized stage transitions reject before receiver processing.
+H2_PASS = (
+    ('h2_alice_bases', 'alice'), ('h2_bob_bases', 'bob'),
+    ('h2_quota_status', 'alice'),
+    ('h2_x_key_selection', 'alice'), ('h2_z_test_selection', 'alice'),
+    ('h2_z_test_bits_alice', 'alice'), ('h2_z_test_bits_bob', 'bob'),
+    ('h2_z_error_summary', 'bob'), ('h2_final_decision', 'alice'),
+)
+H2_ABORT_QUOTA = (
+    ('h2_alice_bases', 'alice'), ('h2_bob_bases', 'bob'),
+    ('h2_abort', 'alice'),
+)
+SCHEDULES = {'reference-v1': SCHEDULE, 'h2-pass-v1': H2_PASS,
+             'h2-abort-quota-v1': H2_ABORT_QUOTA}
 
 
 class TranscriptError(ValueError):
@@ -66,19 +82,25 @@ class TranscriptSession:
     """
 
     def __init__(self, *, root: bytes, key_id: str, session_id: bytes,
-                 role: str, alice_id: str, bob_id: str):
+                 role: str, alice_id: str, bob_id: str,
+                 schedule_id: str = 'reference-v1'):
         if type(root) is not bytes or len(root) < 32:
             raise TranscriptError('requires externally provided root >=32 bytes')
         if type(session_id) is not bytes or not 16 <= len(session_id) <= 64:
             raise TranscriptError('session ID must be 16..64 bytes')
         if role not in ('alice', 'bob'):
             raise TranscriptError('invalid endpoint role')
+        if schedule_id not in SCHEDULES:
+            raise TranscriptError('unsupported schedule profile')
+        self._schedule = SCHEDULES[schedule_id]
         self._context = {
             'protocol_id': PROTOCOL, 'profile_id': PROFILE, 'version': 1,
             'key_id': _label(key_id, 'key ID'), 'sid': session_id.hex(),
             'alice_id': _label(alice_id, 'alice ID'),
             'bob_id': _label(bob_id, 'bob ID'),
         }
+        if schedule_id != 'reference-v1':
+            self._context['schedule_id'] = schedule_id
         if self._context['alice_id'] == self._context['bob_id']:
             raise TranscriptError('distinct endpoint identities required')
         self._role = role
@@ -106,7 +128,7 @@ class TranscriptSession:
     def _advance(self, body: bytes, tag: bytes) -> None:
         self._digest = hashlib.sha256(DOMAIN + b'chain\x00' + self._digest + body + tag).digest()
         self._pos += 1
-        if self._pos == len(SCHEDULE):
+        if self._pos == len(self._schedule):
             self._closed = True
             self._erase()
 
@@ -115,7 +137,7 @@ class TranscriptSession:
         if type(payload) is not bytes or len(payload) > MAX_PAYLOAD:
             self.abort()
             raise TranscriptError('invalid public payload')
-        if self._pos >= len(SCHEDULE) or SCHEDULE[self._pos] != (stage, self._role):
+        if self._pos >= len(self._schedule) or self._schedule[self._pos] != (stage, self._role):
             self.abort()
             raise TranscriptError('out-of-order local send')
         frame = dict(self._context, stage=stage, sender=self._role,
@@ -148,7 +170,7 @@ class TranscriptSession:
                 raise ValueError('transcript fork')
             if type(frame['stage']) is not str or type(frame['sender']) is not str:
                 raise ValueError('malformed role or stage')
-            if frame['sender'] == self._role or SCHEDULE[self._pos] != (
+            if frame['sender'] == self._role or self._schedule[self._pos] != (
                 frame['stage'], frame['sender']
             ):
                 raise ValueError('unexpected sender or stage')

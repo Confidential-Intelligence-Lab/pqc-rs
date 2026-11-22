@@ -83,11 +83,24 @@ def run_strict_distillation(alice, bob, *, authentication_key: bytes,
     scoped_key = hmac.digest(authentication_key,
                              b'pqc-rs/qkd/s3b/key-identity/v1\x00' + key_id.encode('ascii'),
                              'sha256')
+    # S3.C-2a: the actual H2 messages now cross independent Alice/Bob
+    # authenticated transcript states; they are not merely logged afterward.
+    from s3c_authenticated_transcript import TranscriptSession
+    from m1h2_authenticated_sampling import _matched
+    a_bases = [r.basis for r in alice]
+    b_bases = [r.basis for r in bob]
+    quota_met = (len(_matched(a_bases, b_bases, 1)) >= n_key and
+                 len(_matched(a_bases, b_bases, 0)) >= k_test)
+    schedule_id = 'h2-pass-v1' if quota_met else 'h2-abort-quota-v1'
+    ctx = dict(root=scoped_key, key_id=key_id, session_id=session_id,
+               alice_id='alice', bob_id='bob', schedule_id=schedule_id)
+    transcript_pair = (TranscriptSession(role='alice', **ctx),
+                       TranscriptSession(role='bob', **ctx))
     result = run_distillation(alice, bob, n_key=n_key, k_test=k_test,
                               max_transmissions=max_transmissions,
                               authentication_key=scoped_key,
                               session_id=session_id, strict_provisioned=True,
-                              **options)
+                              s3c_pair=transcript_pair, **options)
     if result.get('hpke_export_authorized') is not False or result.get('security_qualified') is not False:
         raise StrictSessionError('downstream qualification invariant violated')
     # Burned state is intentionally retained on every failure and abort.
