@@ -41,6 +41,7 @@ H2_ABORT_QUOTA = (
 SCHEDULES = {'reference-v1': SCHEDULE, 'h2-pass-v1': H2_PASS,
              'h2-abort-quota-v1': H2_ABORT_QUOTA}
 MAX_EC_BLOCKS = 512
+MAX_CASCADE_PAIRS = 4800
 
 
 PA_STAGES = (('pa_parameters', 'alice'), ('pa_ack', 'bob'), ('pa_commit', 'alice'))
@@ -103,14 +104,23 @@ class TranscriptSession:
                  role: str, alice_id: str, bob_id: str,
                  schedule_id: str = 'reference-v1',
                  reconciliation_blocks: int | None = None,
-                 precommit_digest: str | None = None):
+                 precommit_digest: str | None = None,
+                 cascade_max_pairs: int | None = None):
         if type(root) is not bytes or len(root) < 32:
             raise TranscriptError('requires externally provided root >=32 bytes')
         if type(session_id) is not bytes or not 16 <= len(session_id) <= 64:
             raise TranscriptError('session ID must be 16..64 bytes')
         if role not in ('alice', 'bob'):
             raise TranscriptError('invalid endpoint role')
-        if schedule_id == 's4e-proof-v1' and reconciliation_blocks is None and precommit_digest is None:
+        if schedule_id == 's5d4-cascade-v1':
+            if (reconciliation_blocks is not None or type(cascade_max_pairs) is not int or
+                    not 1 <= cascade_max_pairs <= MAX_CASCADE_PAIRS or
+                    type(precommit_digest) is not str):
+                raise TranscriptError('invalid bounded Cascade protocol arguments')
+            self._schedule = ()  # Adaptive schedule checked by _allows().
+            self._cascade_pairs_limit = cascade_max_pairs
+            self._cascade_finishing_at = None
+        elif schedule_id == 's4e-proof-v1' and reconciliation_blocks is None and precommit_digest is None:
             self._schedule = PROOF_STAGES
         elif schedule_id == 'h2-ec-pa-v1':
             self._schedule = full_distillation_schedule(reconciliation_blocks)
@@ -130,8 +140,10 @@ class TranscriptSession:
             self._context['schedule_id'] = schedule_id
         if schedule_id in ('h2-ec-v1', 'h2-ec-pa-v1'):
             self._context['reconciliation_blocks'] = reconciliation_blocks
+        if schedule_id == 's5d4-cascade-v1':
+            self._context['cascade_max_pairs'] = cascade_max_pairs
         if precommit_digest is not None:
-            if (schedule_id not in ('h2-ec-pa-v1', 'h2-pass-v1', 'h2-abort-quota-v1') or type(precommit_digest) is not str or
+            if (schedule_id not in ('h2-ec-pa-v1', 'h2-pass-v1', 'h2-abort-quota-v1', 's5d4-cascade-v1') or type(precommit_digest) is not str or
                     len(precommit_digest) != 64 or
                     any(c not in '0123456789abcdef' for c in precommit_digest)):
                 raise TranscriptError('invalid or unsupported precommitment binding')
@@ -160,19 +172,47 @@ class TranscriptSession:
         self._aborted = True
         self._erase()
 
+    def _allows(self, stage: str, sender: str) -> bool:
+        if self._context.get('schedule_id') != 's5d4-cascade-v1':
+            return (self._pos < len(self._schedule) and
+                    self._schedule[self._pos] == (stage, sender))
+        if self._pos == 0:
+            return (stage, sender) == ('cascade_profile', 'alice')
+        if self._pos == 1:
+            return (stage, sender) == ('cascade_profile_ack', 'bob')
+        if self._cascade_finishing_at is not None:
+            offset = self._pos - self._cascade_finishing_at
+            return (offset == 1 and (stage, sender) == ('cascade_finish_ack', 'bob') or
+                    offset == 2 and (stage, sender) == ('cascade_commit', 'alice'))
+        rounds = (self._pos - 2) // 2
+        if (self._pos - 2) % 2 == 0:
+            return (sender == 'alice' and (
+                stage == 'cascade_finish' and rounds > 0 or
+                stage == 'cascade_alice_parity' and rounds < self._cascade_pairs_limit))
+        return (stage, sender) == ('cascade_bob_parity', 'bob')
+
     def _advance(self, body: bytes, tag: bytes) -> None:
         self._digest = hashlib.sha256(DOMAIN + b'chain\x00' + self._digest + body + tag).digest()
-        self._pos += 1
-        if self._pos == len(self._schedule):
-            self._closed = True
-            self._erase()
+        if self._context.get('schedule_id') == 's5d4-cascade-v1':
+            stage = json.loads(body)['stage']
+            if stage == 'cascade_finish':
+                self._cascade_finishing_at = self._pos
+            self._pos += 1
+            if stage == 'cascade_commit':
+                self._closed = True
+                self._erase()
+        else:
+            self._pos += 1
+            if self._pos == len(self._schedule):
+                self._closed = True
+                self._erase()
 
     def send(self, stage: str, payload: bytes) -> tuple[bytes, bytes]:
         self._live()
         if type(payload) is not bytes or len(payload) > MAX_PAYLOAD:
             self.abort()
             raise TranscriptError('invalid public payload')
-        if self._pos >= len(self._schedule) or self._schedule[self._pos] != (stage, self._role):
+        if not self._allows(stage, self._role):
             self.abort()
             raise TranscriptError('out-of-order local send')
         frame = dict(self._context, stage=stage, sender=self._role,
@@ -205,9 +245,7 @@ class TranscriptSession:
                 raise ValueError('transcript fork')
             if type(frame['stage']) is not str or type(frame['sender']) is not str:
                 raise ValueError('malformed role or stage')
-            if frame['sender'] == self._role or self._schedule[self._pos] != (
-                frame['stage'], frame['sender']
-            ):
+            if frame['sender'] == self._role or not self._allows(frame['stage'], frame['sender']):
                 raise ValueError('unexpected sender or stage')
             raw = frame['payload_hex']
             if type(raw) is not str or len(raw) > 2 * MAX_PAYLOAD:
