@@ -44,6 +44,7 @@ MAX_EC_BLOCKS = 512
 
 
 PA_STAGES = (('pa_parameters', 'alice'), ('pa_ack', 'bob'), ('pa_commit', 'alice'))
+PROOF_STAGES = (('proof_profile', 'alice'), ('proof_ack', 'bob'))
 
 
 def distillation_schedule(blocks: int) -> tuple[tuple[str, str], ...]:
@@ -101,14 +102,17 @@ class TranscriptSession:
     def __init__(self, *, root: bytes, key_id: str, session_id: bytes,
                  role: str, alice_id: str, bob_id: str,
                  schedule_id: str = 'reference-v1',
-                 reconciliation_blocks: int | None = None):
+                 reconciliation_blocks: int | None = None,
+                 precommit_digest: str | None = None):
         if type(root) is not bytes or len(root) < 32:
             raise TranscriptError('requires externally provided root >=32 bytes')
         if type(session_id) is not bytes or not 16 <= len(session_id) <= 64:
             raise TranscriptError('session ID must be 16..64 bytes')
         if role not in ('alice', 'bob'):
             raise TranscriptError('invalid endpoint role')
-        if schedule_id == 'h2-ec-pa-v1':
+        if schedule_id == 's4e-proof-v1' and reconciliation_blocks is None and precommit_digest is None:
+            self._schedule = PROOF_STAGES
+        elif schedule_id == 'h2-ec-pa-v1':
             self._schedule = full_distillation_schedule(reconciliation_blocks)
         elif schedule_id == 'h2-ec-v1':
             self._schedule = distillation_schedule(reconciliation_blocks)
@@ -126,6 +130,12 @@ class TranscriptSession:
             self._context['schedule_id'] = schedule_id
         if schedule_id in ('h2-ec-v1', 'h2-ec-pa-v1'):
             self._context['reconciliation_blocks'] = reconciliation_blocks
+        if precommit_digest is not None:
+            if (schedule_id not in ('h2-ec-pa-v1', 'h2-pass-v1', 'h2-abort-quota-v1') or type(precommit_digest) is not str or
+                    len(precommit_digest) != 64 or
+                    any(c not in '0123456789abcdef' for c in precommit_digest)):
+                raise TranscriptError('invalid or unsupported precommitment binding')
+            self._context['precommit_digest'] = precommit_digest
         if self._context['alice_id'] == self._context['bob_id']:
             raise TranscriptError('distinct endpoint identities required')
         self._role = role

@@ -40,7 +40,7 @@ class H4CConformanceTests(unittest.TestCase):
         r = audit(self.root, 4, 3, 2, 128)
         self.assertTrue(r['findings']['oversampling_is_an_extra_protocol_transformation'])
         self.assertEqual(r['findings']['h3b_acquisition_z_quota'], 6)
-        self.assertEqual(r['findings']['h2_disclosed_z_size'], 3)
+        self.assertEqual(r['findings']['h2_disclosed_z_size'], 'ALL_MATCHED_Z_AT_ACQUISITION_STOP')
 
     def test_fail_closed(self):
         r = audit(self.root, 4, 3, 2, 128)

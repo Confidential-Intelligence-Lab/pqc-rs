@@ -76,10 +76,21 @@ def run_strict_distillation(alice, bob, *, authentication_key: bytes,
     if type(authentication_key) is not bytes or len(authentication_key) < 32:
         raise StrictSessionError('externally supplied root key of >=32 bytes required')
     forbidden = {'authentication_key', 'session_id', 'strict_provisioned',
-                 'selection_seed', 'selection_streams', 'demo_pre_leak_min_entropy_bits', 'hook'}
+                 'selection_seed', 'selection_streams', 'demo_pre_leak_min_entropy_bits', 'hook', 'precommit_digest'}
     if forbidden.intersection(options):
         raise StrictSessionError('strict path forbids overriding credentials or demo/fixture inputs')
     burn_session_id(registry_dir, key_id, session_id)
+    return _run_strict_after_burn(
+        alice, bob, authentication_key=authentication_key, key_id=key_id,
+        session_id=session_id, registry_dir=registry_dir,
+        n_key=n_key, k_test=k_test, max_transmissions=max_transmissions, **options)
+
+
+def _run_strict_after_burn(alice, bob, *, authentication_key: bytes,
+                           key_id: str, session_id: bytes, registry_dir: str | Path,
+                           n_key: int, k_test: int, max_transmissions: int,
+                           precommit_digest: str | None = None, **options) -> dict:
+    # Internal post-burn path used after strict burn or S4.E handshake.
     scoped_key = hmac.digest(authentication_key,
                              b'pqc-rs/qkd/s3b/key-identity/v1\x00' + key_id.encode('ascii'),
                              'sha256')
@@ -100,6 +111,8 @@ def run_strict_distillation(alice, bob, *, authentication_key: bytes,
                alice_id='alice', bob_id='bob', schedule_id=schedule_id)
     if schedule_id == 'h2-ec-pa-v1':
         ctx['reconciliation_blocks'] = ec_blocks
+    if precommit_digest is not None:
+        ctx['precommit_digest'] = precommit_digest
     transcript_pair = (TranscriptSession(role='alice', **ctx),
                        TranscriptSession(role='bob', **ctx))
     result = run_distillation(alice, bob, n_key=n_key, k_test=k_test,
