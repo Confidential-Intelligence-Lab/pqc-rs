@@ -1,0 +1,9 @@
+# M1.H4.B — Empirical stopping and authenticated-subset comparison
+
+This campaign exercises the actual H3.A acquisition function used by H3.B, comparing observed capped stopping-time CDF and abort frequencies against H4.A's independent finite-state dynamic program. It additionally exercises the H3.B authenticated H2 selection path with a passive hook and compares the distribution of chosen X-position subsets conditional on exactly four eligible X positions. No raw bit values are logged.
+
+The CDF comparison uses a predeclared DKW-inspired envelope (1.35 times a distribution-free confidence band at alpha=0.001). Subset selection uses a chi-square goodness-of-fit comparison with five degrees of freedom and critical value 20.515 (p approximately 0.001). These are statistical regression checks with nonzero false-rejection probabilities, not formal proofs or guarantees against adversarial sampling. A failure means the statistical campaign needs investigation and repeat validation; it cannot by itself prove a vulnerability.
+
+The experiment assumes independent ideal single-qubit choices and a classical ideal-measurement backend. Small live CUDA-Q spot tests should be run separately. The engineering transmission cap and quota-based stopping must still be matched to Tomamichel et al.'s exact theorem assumptions. OS randomness does not establish secure physical randomness or QKD secrecy. Authentication keys are experimentally generated; secure provisioning has not been validated. All key export and security-validation flags remain false.
+
+Reference for theorem comparison: Tomamichel, Lim, Gisin, Renner (2012), *Tight finite-key analysis for quantum cryptography*, DOI 10.1038/ncomms1631. Bibliography and related-work notes are maintained only in the conversation, not in this repository.
