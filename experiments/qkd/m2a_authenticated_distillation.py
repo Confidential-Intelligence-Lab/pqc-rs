@@ -11,6 +11,7 @@ import hashlib
 import hmac
 import json
 import secrets
+from s3c_authenticated_transcript import TranscriptError
 
 from m1h2_authenticated_sampling import run_records
 from s2a2_syndrome_reconciliation import SyndromeError, reconcile_syndromes, public_report
@@ -123,6 +124,41 @@ def run_distillation(alice, bob, *, n_key: int, k_test: int,
         base['decision'] = 'ABORT_UNSUPPORTED_RECONCILIATION_SIZE'
         base['reconciliation'] = {'status': 'NOT_RUN', 'reason': 'RAW_KEY_BELOW_128_BITS'}
         return base
+    # Authenticated outer transport for actual S2.A2 and S2.A1 wire bytes.
+    # Receiver-side S3.C verification happens before the legacy decoder or
+    # confirmation code sees the delivered frame. Inner MACs remain for now.
+    ec_transport = {}
+    if s3c_pair is not None:
+        from s3c_authenticated_transcript import TranscriptError, canonical
+        s3c_alice, s3c_bob = s3c_pair
+        if s3c_alice._context.get('schedule_id') != 'h2-ec-v1':
+            raise TranscriptError('missing extended EC transcript profile')
+        def deliver_ec(stage, frame, tag):
+            outer_payload = canonical({'body_hex': frame.hex(), 'tag_hex': tag.hex()})
+            outer, outer_tag = s3c_alice.send(stage, outer_payload)
+            delivered_stage, delivered = s3c_bob.receive(outer, outer_tag)
+            if delivered_stage != stage:
+                raise TranscriptError('wrong EC stage')
+            try:
+                obj = json.loads(delivered)
+                if (type(obj) is not dict or set(obj) != {'body_hex', 'tag_hex'} or
+                        canonical(obj) != delivered):
+                    raise ValueError('noncanonical EC transport payload')
+                body2, tag2 = bytes.fromhex(obj['body_hex']), bytes.fromhex(obj['tag_hex'])
+                if body2.hex() != obj['body_hex'] or tag2.hex() != obj['tag_hex']:
+                    raise ValueError('noncanonical EC bytes')
+                return body2, tag2
+            except (ValueError, TypeError, KeyError) as exc:
+                s3c_alice.abort(); s3c_bob.abort()
+                raise TranscriptError('invalid authenticated EC payload') from exc
+        def syndrome_wire_hook(block, frame, tag):
+            return deliver_ec('ec_syndrome', frame, tag)
+        def confirmation_wire_hook(frame, tag):
+            delivered = deliver_ec('ec_confirmation', frame, tag)
+            ec_transport['confirmation_digest'] = hashlib.sha256(
+                b'pqc-rs/qkd/s3c/confirmation-commit/v1\x00' + delivered[0] + delivered[1]
+            ).hexdigest()
+            return delivered
     try:
         # The simulator owns both parties' private records. Only the S2.A2
         # protocol's authenticated syndromes and universal-hash confirmation
@@ -131,11 +167,47 @@ def run_distillation(alice, bob, *, n_key: int, k_test: int,
             alice_key, bob_key,
             session_id=session_id if strict_provisioned or session_id is not None else secrets.token_bytes(16),
             authentication_key=ec_key if ec_key is not None else secrets.token_bytes(32),
-            tag_bits=confirmation_tag_bits)
+            tag_bits=confirmation_tag_bits,
+            **({'wire_hook': syndrome_wire_hook,
+                'confirmation_wire_hook': confirmation_wire_hook}
+               if s3c_pair is not None else {}))
+        if s3c_pair is not None:
+            # Bob acknowledges successful independent confirmation verification.
+            # Alice then commits the acknowledged public outcome. All steps
+            # remain within the original H2 transcript hash chain.
+            if 'confirmation_digest' not in ec_transport:
+                raise TranscriptError('missing verified confirmation frame')
+            receipt = canonical({'confirmation_digest': ec_transport['confirmation_digest'],
+                                 'syndrome_blocks': ec.block_count, 'accepted': True})
+            outer, tag = s3c_bob.send('ec_ack', receipt)
+            kind, verified = s3c_alice.receive(outer, tag)
+            if kind != 'ec_ack' or verified != receipt:
+                raise TranscriptError('confirmation acknowledgement mismatch')
+            finish = canonical({'ack_sha256': hashlib.sha256(receipt).hexdigest(),
+                                'accepted': True})
+            outer, tag = s3c_alice.send('ec_commit', finish)
+            kind, verified = s3c_bob.receive(outer, tag)
+            if kind != 'ec_commit' or verified != finish:
+                raise TranscriptError('confirmation commit mismatch')
+            sa, sb = s3c_alice.status(), s3c_bob.status()
+            if (not sa.closed or not sb.closed or sa.aborted or sb.aborted or
+                    sa.transcript_digest != sb.transcript_digest):
+                raise TranscriptError('end-to-end EC transcript disagreement')
+            ec_transport['final_digest'] = sa.transcript_digest
     except SyndromeError:
+        if s3c_pair is not None:
+            s3c_alice.abort(); s3c_bob.abort()
         base['decision'] = 'ABORT_RECONCILIATION'
         base['reconciliation'] = {'status': 'REJECT'}
         return base
+    except TranscriptError:
+        if s3c_pair is not None:
+            s3c_alice.abort(); s3c_bob.abort()
+        raise
+    if s3c_pair is not None:
+        base['s3c_ec_authenticated'] = True
+        base['s3c_ec_digest_agreement'] = True
+        base['s3c_final_transcript_digest'] = ec_transport['final_digest']
     base['reconciliation'] = {
         'status': 'PASS', 'mechanism': 'S2A2_AUTHENTICATED_SYNDROME',
         'decoder_guarantee': ec.decoder_guarantee,

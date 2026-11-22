@@ -114,7 +114,8 @@ def reconcile_syndromes(alice_bits: str, bob_bits: str, *, session_id: bytes,
                         authentication_key: bytes, tag_bits: int = 40,
                         wire_hook: Callable[[int, bytes, bytes], tuple[bytes, bytes]] | None = None,
                         matrix_seed_source: Callable[[int], bytes] = secrets.token_bytes,
-                        confirmation_seed_source=None) -> tuple[str, SyndromeReport]:
+                        confirmation_seed_source=None,
+                        confirmation_wire_hook=None) -> tuple[str, SyndromeReport]:
     """Reconcile local Alice/Bob test records through authenticated syndromes.
 
     The output string is private Bob-side state for local testing, not a QKD
@@ -176,6 +177,8 @@ def reconcile_syndromes(alice_bits: str, bob_bits: str, *, session_id: bytes,
         params = dict(session_id=session_id, authentication_key=authentication_key, tag_bits=tag_bits)
         if confirmation_seed_source is not None:
             params['seed_source'] = confirmation_seed_source
+        if confirmation_wire_hook is not None:
+            params['wire_hook'] = confirmation_wire_hook
         confirm = confirm_fixed_inputs(alice_bits, result, **params)
     except ConfirmationError as exc:
         raise SyndromeError('universal confirmation failed: discard raw key') from exc

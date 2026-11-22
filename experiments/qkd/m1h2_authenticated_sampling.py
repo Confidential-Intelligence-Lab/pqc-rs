@@ -252,9 +252,19 @@ def run_records(alice, bob, *, n_key: int, k_test: int, max_transmissions: int,
             raise TranscriptError('transcript hash divergence')
 
     if s3c_pair is not None:
-        if (not s3c_alice.status().closed or not s3c_bob.status().closed or
-                s3c_alice.status().transcript_digest != s3c_bob.status().transcript_digest):
+        # The extended profile is deliberately still open: S2.A2 must
+        # continue the very same digest chain, not start a second session.
+        extended = s3c_alice._context.get('schedule_id') == 'h2-ec-v1'
+        sa, sb = s3c_alice.status(), s3c_bob.status()
+        if (sa.aborted or sb.aborted or
+                sa.closed != (not extended) or sb.closed != (not extended) or
+                sa.event_count != len(__import__('s3c_authenticated_transcript').H2_PASS) or
+                sb.event_count != sa.event_count or
+                sa.transcript_digest != sb.transcript_digest):
             raise TranscriptError('S3.C parameter-estimation transcript disagreement')
+        if outcome != 'CONTINUE_UNQUALIFIED' and extended:
+            s3c_alice.abort()
+            s3c_bob.abort()
     bound = numerical_bound(BoundInput(n_key, actual_z_test_size, q_tolerance,
                                       leakage_ec_bits, epsilon_secrecy, epsilon_correctness))
     return {

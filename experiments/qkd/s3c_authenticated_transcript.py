@@ -14,8 +14,7 @@ DOMAIN = b'pqc-rs/qkd/s3c/transcript/v1\x00'
 PROTOCOL = 'pqc-rs/bb84/idealized/v1'
 PROFILE = 'qst1-research-v1'
 MAX_PAYLOAD = 4000000  # bounded support for up to 100k public basis announcements
-# Minimal fixed-order reference trace. Repeated reconciliation messages will
-# require a separately reviewed extension before the real pipeline is wired.
+# Fixed reference trace retained for backwards compatibility.
 SCHEDULE = (
     ('parameters', 'alice'), ('parameters', 'bob'),
     ('sifting', 'alice'), ('sifting', 'bob'),
@@ -41,6 +40,16 @@ H2_ABORT_QUOTA = (
 )
 SCHEDULES = {'reference-v1': SCHEDULE, 'h2-pass-v1': H2_PASS,
              'h2-abort-quota-v1': H2_ABORT_QUOTA}
+MAX_EC_BLOCKS = 512
+
+
+def distillation_schedule(blocks: int) -> tuple[tuple[str, str], ...]:
+    """Bounded authenticated H2 -> EC -> confirmation -> commit schedule."""
+    if type(blocks) is not int or not 1 <= blocks <= MAX_EC_BLOCKS:
+        raise TranscriptError('invalid reconciliation block count')
+    return (H2_PASS + (('ec_syndrome', 'alice'),) * blocks +
+            (('ec_confirmation', 'alice'), ('ec_ack', 'bob'),
+             ('ec_commit', 'alice')))
 
 
 class TranscriptError(ValueError):
@@ -83,16 +92,20 @@ class TranscriptSession:
 
     def __init__(self, *, root: bytes, key_id: str, session_id: bytes,
                  role: str, alice_id: str, bob_id: str,
-                 schedule_id: str = 'reference-v1'):
+                 schedule_id: str = 'reference-v1',
+                 reconciliation_blocks: int | None = None):
         if type(root) is not bytes or len(root) < 32:
             raise TranscriptError('requires externally provided root >=32 bytes')
         if type(session_id) is not bytes or not 16 <= len(session_id) <= 64:
             raise TranscriptError('session ID must be 16..64 bytes')
         if role not in ('alice', 'bob'):
             raise TranscriptError('invalid endpoint role')
-        if schedule_id not in SCHEDULES:
-            raise TranscriptError('unsupported schedule profile')
-        self._schedule = SCHEDULES[schedule_id]
+        if schedule_id == 'h2-ec-v1':
+            self._schedule = distillation_schedule(reconciliation_blocks)
+        elif schedule_id in SCHEDULES and reconciliation_blocks is None:
+            self._schedule = SCHEDULES[schedule_id]
+        else:
+            raise TranscriptError('unsupported schedule profile or block count')
         self._context = {
             'protocol_id': PROTOCOL, 'profile_id': PROFILE, 'version': 1,
             'key_id': _label(key_id, 'key ID'), 'sid': session_id.hex(),
@@ -101,6 +114,8 @@ class TranscriptSession:
         }
         if schedule_id != 'reference-v1':
             self._context['schedule_id'] = schedule_id
+        if schedule_id == 'h2-ec-v1':
+            self._context['reconciliation_blocks'] = reconciliation_blocks
         if self._context['alice_id'] == self._context['bob_id']:
             raise TranscriptError('distinct endpoint identities required')
         self._role = role

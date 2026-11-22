@@ -91,9 +91,15 @@ def run_strict_distillation(alice, bob, *, authentication_key: bytes,
     b_bases = [r.basis for r in bob]
     quota_met = (len(_matched(a_bases, b_bases, 1)) >= n_key and
                  len(_matched(a_bases, b_bases, 0)) >= k_test)
-    schedule_id = 'h2-pass-v1' if quota_met else 'h2-abort-quota-v1'
+    # Strict successful n_key >= 128 proceeds through S3.C-2b under one
+    # digest chain. The bounded syndrome frame count is fixed before H2 starts.
+    ec_blocks = (n_key + 127) // 128 if type(n_key) is int and n_key >= 128 else 0
+    schedule_id = ('h2-ec-v1' if quota_met and ec_blocks else
+                   'h2-pass-v1' if quota_met else 'h2-abort-quota-v1')
     ctx = dict(root=scoped_key, key_id=key_id, session_id=session_id,
                alice_id='alice', bob_id='bob', schedule_id=schedule_id)
+    if schedule_id == 'h2-ec-v1':
+        ctx['reconciliation_blocks'] = ec_blocks
     transcript_pair = (TranscriptSession(role='alice', **ctx),
                        TranscriptSession(role='bob', **ctx))
     result = run_distillation(alice, bob, n_key=n_key, k_test=k_test,
