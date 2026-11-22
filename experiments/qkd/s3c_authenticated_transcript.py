@@ -112,7 +112,7 @@ class TranscriptSession:
             raise TranscriptError('session ID must be 16..64 bytes')
         if role not in ('alice', 'bob'):
             raise TranscriptError('invalid endpoint role')
-        if schedule_id == 's5d4-cascade-v1':
+        if schedule_id in ('s5d4-cascade-v1', 's5d5-cascade-v1'):
             if (reconciliation_blocks is not None or type(cascade_max_pairs) is not int or
                     not 1 <= cascade_max_pairs <= MAX_CASCADE_PAIRS or
                     type(precommit_digest) is not str):
@@ -120,6 +120,7 @@ class TranscriptSession:
             self._schedule = ()  # Adaptive schedule checked by _allows().
             self._cascade_pairs_limit = cascade_max_pairs
             self._cascade_finishing_at = None
+            self._cascade_confirmation_at = None
         elif schedule_id == 's4e-proof-v1' and reconciliation_blocks is None and precommit_digest is None:
             self._schedule = PROOF_STAGES
         elif schedule_id == 'h2-ec-pa-v1':
@@ -140,10 +141,10 @@ class TranscriptSession:
             self._context['schedule_id'] = schedule_id
         if schedule_id in ('h2-ec-v1', 'h2-ec-pa-v1'):
             self._context['reconciliation_blocks'] = reconciliation_blocks
-        if schedule_id == 's5d4-cascade-v1':
+        if schedule_id in ('s5d4-cascade-v1', 's5d5-cascade-v1'):
             self._context['cascade_max_pairs'] = cascade_max_pairs
         if precommit_digest is not None:
-            if (schedule_id not in ('h2-ec-pa-v1', 'h2-pass-v1', 'h2-abort-quota-v1', 's5d4-cascade-v1') or type(precommit_digest) is not str or
+            if (schedule_id not in ('h2-ec-pa-v1', 'h2-pass-v1', 'h2-abort-quota-v1', 's5d4-cascade-v1', 's5d5-cascade-v1') or type(precommit_digest) is not str or
                     len(precommit_digest) != 64 or
                     any(c not in '0123456789abcdef' for c in precommit_digest)):
                 raise TranscriptError('invalid or unsupported precommitment binding')
@@ -173,13 +174,25 @@ class TranscriptSession:
         self._erase()
 
     def _allows(self, stage: str, sender: str) -> bool:
-        if self._context.get('schedule_id') != 's5d4-cascade-v1':
+        if self._context.get('schedule_id') not in ('s5d4-cascade-v1', 's5d5-cascade-v1'):
             return (self._pos < len(self._schedule) and
                     self._schedule[self._pos] == (stage, sender))
         if self._pos == 0:
             return (stage, sender) == ('cascade_profile', 'alice')
         if self._pos == 1:
             return (stage, sender) == ('cascade_profile_ack', 'bob')
+        if self._context.get('schedule_id') == 's5d5-cascade-v1':
+            if self._cascade_confirmation_at is not None:
+                offset = self._pos - self._cascade_confirmation_at
+                return ((offset == 1 and (stage, sender) == ('cascade_confirmation_tag','alice')) or
+                        (offset == 2 and (stage, sender) == ('cascade_finish','alice')) or
+                        (offset == 3 and (stage, sender) == ('cascade_finish_ack','bob')) or
+                        (offset == 4 and (stage, sender) == ('cascade_commit','alice')))
+            rounds = (self._pos - 2) // 2
+            if (self._pos - 2) % 2 == 0:
+                return ((stage, sender) == ('cascade_confirmation_seed', 'bob') and rounds > 0 or
+                        (stage, sender) == ('cascade_alice_parity','alice') and rounds < self._cascade_pairs_limit)
+            return (stage, sender) == ('cascade_bob_parity','bob')
         if self._cascade_finishing_at is not None:
             offset = self._pos - self._cascade_finishing_at
             return (offset == 1 and (stage, sender) == ('cascade_finish_ack', 'bob') or
@@ -193,8 +206,10 @@ class TranscriptSession:
 
     def _advance(self, body: bytes, tag: bytes) -> None:
         self._digest = hashlib.sha256(DOMAIN + b'chain\x00' + self._digest + body + tag).digest()
-        if self._context.get('schedule_id') == 's5d4-cascade-v1':
+        if self._context.get('schedule_id') in ('s5d4-cascade-v1', 's5d5-cascade-v1'):
             stage = json.loads(body)['stage']
+            if stage == 'cascade_confirmation_seed':
+                self._cascade_confirmation_at = self._pos
             if stage == 'cascade_finish':
                 self._cascade_finishing_at = self._pos
             self._pos += 1
