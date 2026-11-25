@@ -113,3 +113,15 @@ interoperability evidence before production deployment.
 ## License
 
 Licensed under the MIT License.
+
+## Experimental HKDF-SHA3-256
+
+The opt-in experimental-hkdf-sha3 Cargo feature
+enables an experimental SHA3-based HPKE key schedule.
+
+Existing standardized KDF identifiers, default
+behavior and suite enumeration remain unchanged.
+
+See [Experimental HKDF-SHA3-256](EXPERIMENTAL_HKDF_SHA3.md)
+for construction details, interoperability coverage,
+performance methodology and security boundaries.

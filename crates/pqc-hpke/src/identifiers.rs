@@ -15,6 +15,13 @@ impl KdfId {
     pub const HKDF_SHA384: Self = Self(0x0002);
     /// HKDF-SHA512.
     pub const HKDF_SHA512: Self = Self(0x0003);
+
+    /// Experimental HKDF-SHA3-256 identifier.
+    ///
+    /// This is a local research identifier, not an IANA assignment.
+    /// It must not be advertised as a standardized HPKE suite.
+    #[cfg(feature = "experimental-hkdf-sha3")]
+    pub const EXPERIMENTAL_HKDF_SHA3_256: Self = Self(0xff01);
 }
 
 /// HPKE AEAD identifier.

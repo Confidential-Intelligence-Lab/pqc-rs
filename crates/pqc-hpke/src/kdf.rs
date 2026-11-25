@@ -3,12 +3,16 @@
 use hkdf::Hkdf;
 use sha2::{Sha256, Sha384, Sha512};
 
+#[cfg(feature = "experimental-hkdf-sha3")]
+use sha3::Sha3_256;
+
 use crate::identifiers::KdfId;
 use crate::HpkeError;
 
 const VERSION_LABEL: &[u8] = b"HPKE-v1";
 
-/// Supported RFC 9180 HKDF algorithms.
+/// Supported HKDF algorithms, including explicitly enabled
+/// experimental extensions.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum KdfAlgorithm {
     /// HKDF-SHA256.
@@ -17,15 +21,20 @@ pub enum KdfAlgorithm {
     HkdfSha384,
     /// HKDF-SHA512.
     HkdfSha512,
+    /// Experimental HKDF using HMAC-SHA3-256.
+    #[cfg(feature = "experimental-hkdf-sha3")]
+    HkdfSha3_256,
 }
 
 impl KdfAlgorithm {
-    /// Resolve an RFC 9180 KDF identifier.
+    /// Resolve a supported HPKE KDF identifier.
     pub const fn from_id(id: KdfId) -> Option<Self> {
         match id.0 {
             0x0001 => Some(Self::HkdfSha256),
             0x0002 => Some(Self::HkdfSha384),
             0x0003 => Some(Self::HkdfSha512),
+            #[cfg(feature = "experimental-hkdf-sha3")]
+            0xff01 => Some(Self::HkdfSha3_256),
             _ => None,
         }
     }
@@ -36,6 +45,8 @@ impl KdfAlgorithm {
             Self::HkdfSha256 => KdfId::HKDF_SHA256,
             Self::HkdfSha384 => KdfId::HKDF_SHA384,
             Self::HkdfSha512 => KdfId::HKDF_SHA512,
+            #[cfg(feature = "experimental-hkdf-sha3")]
+            Self::HkdfSha3_256 => KdfId::EXPERIMENTAL_HKDF_SHA3_256,
         }
     }
 
@@ -45,6 +56,8 @@ impl KdfAlgorithm {
             Self::HkdfSha256 => 32,
             Self::HkdfSha384 => 48,
             Self::HkdfSha512 => 64,
+            #[cfg(feature = "experimental-hkdf-sha3")]
+            Self::HkdfSha3_256 => 32,
         }
     }
 
@@ -74,6 +87,11 @@ impl KdfAlgorithm {
             }
             Self::HkdfSha512 => {
                 let (prk, _) = Hkdf::<Sha512>::extract(Some(salt), &labeled_ikm);
+                prk.as_slice().to_vec()
+            }
+            #[cfg(feature = "experimental-hkdf-sha3")]
+            Self::HkdfSha3_256 => {
+                let (prk, _) = Hkdf::<Sha3_256>::extract(Some(salt), &labeled_ikm);
                 prk.as_slice().to_vec()
             }
         }
@@ -115,6 +133,13 @@ impl KdfAlgorithm {
             }
             Self::HkdfSha512 => {
                 Hkdf::<Sha512>::from_prk(prk)
+                    .map_err(|_| HpkeError::InvalidPrk)?
+                    .expand(&labeled_info, &mut output)
+                    .map_err(|_| HpkeError::OutputTooLong)?;
+            }
+            #[cfg(feature = "experimental-hkdf-sha3")]
+            Self::HkdfSha3_256 => {
+                Hkdf::<Sha3_256>::from_prk(prk)
                     .map_err(|_| HpkeError::InvalidPrk)?
                     .expand(&labeled_info, &mut output)
                     .map_err(|_| HpkeError::OutputTooLong)?;
