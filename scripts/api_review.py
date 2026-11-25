@@ -31,6 +31,14 @@ def classify(crate, kind, name, path):
     if crate == 'pqc-smaug-t':
         return 'Experimental'
 
+    if (
+        crate == 'pqc-hpke'
+        and kind == 'const'
+        and name == 'EXPERIMENTAL_HKDF_SHA3_256'
+        and path.name == 'identifiers.rs'
+    ):
+        return 'Experimental'
+
     if name.endswith('Placeholder'):
         return 'Deprecated debt'
 
